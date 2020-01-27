@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "es2018",
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "lib": [
+      "es2018"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.test.ts"
+  ]
+}

@@ -1,0 +1,139 @@
+import { chunk, map, uniqueId } from 'lodash';
+import { Expression } from './types/expression';
+import { assertNever, checkedZipWith, mapValuesWithState, mapWithState } from './utils';
+
+export type RenameScopes = { [k: string]: string }[]
+
+function findNameInScopes(scopes: { [k: string]: string }[], name: string): string | undefined {
+  if (scopes.length === 0) {
+    return undefined;
+  }
+
+  const [currentScope, ...remainingScopes] = scopes;
+  return currentScope[name] || findNameInScopes(remainingScopes, name);
+}
+
+function newUniqueName(name: string): string {
+  return uniqueId(`${name}$rename$`);
+}
+
+function addToScope(scopes: RenameScopes, from: string, to: string): RenameScopes {
+  const [currentScope, ...otherScopes] = scopes;
+  return [{ ...currentScope, [from]: to }, ...otherScopes];
+}
+
+function withNewScope<T>(scopes: RenameScopes, f: (childScopes: RenameScopes) => [RenameScopes, T]): [RenameScopes, T] {
+  const childScopes = [{}, ...scopes];
+  const [[, ...newScopes], value] = f(childScopes);
+  return [newScopes, value];
+}
+
+/**
+ * Iterates over an expression and renames all the free variables to globally unique values. The
+ * scopes are generally implied from function expressions.
+ */
+function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expression: Expression): [{ [k: string]: string }[], Expression] {
+  switch (expression.kind) {
+    case 'SymbolExpression':
+    case 'NumberExpression':
+    case 'BooleanExpression':
+      return [scopes, expression];
+
+    case 'Identifier': {
+      const newName = findNameInScopes(scopes, expression.name);
+      if (newName) {
+        return [scopes, {
+          ...expression,
+          name: newName,
+        }];
+      }
+
+      const uniqueName = newUniqueName(expression.name);
+      const newScopes = addToScope(scopes, expression.name, uniqueName);
+      return [newScopes, { ...expression, name: uniqueName }];
+    }
+
+    case 'RecordExpression': {
+      const [newScopes, properties] = mapValuesWithState(
+        expression.properties,
+        scopes,
+        renameFreeVariablesInScope,
+      );
+      return [newScopes, { ...expression, properties }];
+    }
+
+    case 'Application': {
+      const [newScopes, [callee, ...parameters]] = mapWithState(
+        [expression.callee, ...expression.parameters],
+        scopes,
+        renameFreeVariablesInScope,
+      );
+      return [newScopes, { ...expression, callee, parameters }];
+    }
+
+    case 'FunctionExpression': {
+      const [newScopes, childExpressions] = withNewScope(scopes, childScopes => mapWithState(
+        [...map(expression.parameters, 'value'), expression.body],
+        childScopes,
+        renameFreeVariablesInScope,
+      ));
+      const [parameters, [body]] = chunk(childExpressions, childExpressions.length - 1);
+      return [newScopes, {
+        ...expression,
+        body,
+        parameters: checkedZipWith(expression.parameters, parameters, (parameter, value) => ({
+          ...parameter,
+          value,
+        })),
+      }];
+    }
+
+    case 'DataInstantiation': {
+      const [afterCalleeScopes, callee] = renameFreeVariablesInScope(scopes, expression.callee);
+      const [newScopes, parameters] = mapWithState(
+        expression.parameters,
+        afterCalleeScopes,
+        renameFreeVariablesInScope,
+      );
+      return [newScopes, { ...expression, parameters }];
+    }
+
+    case 'BindingExpression': {
+      // Rename the binding expression first
+      // const bindingName = newUniqueName(expression.callee);
+      const [newScopes, value] = withNewScope(
+        addToScope(scopes, expression.name, expression.name),
+        childScopes => renameFreeVariablesInScope(childScopes, expression.value),
+      );
+      const [bodyScope, body] = renameFreeVariablesInScope(newScopes, expression.body);
+      return [bodyScope, { ...expression, value, body }];
+    }
+
+    case 'DualExpression': {
+      const [newScopes, [left, right]] = mapWithState(
+        [expression.left, expression.right],
+        scopes,
+        renameFreeVariablesInScope,
+      );
+      return [newScopes, { ...expression, left, right }];
+    }
+
+    case 'ReadRecordPropertyExpression': {
+      const [newScopes, record] = renameFreeVariablesInScope(scopes, expression.record);
+      return [newScopes, { ...expression, record }];
+    }
+
+    case 'ReadDataPropertyExpression': {
+      const [newScopes, dataValue] = renameFreeVariablesInScope(scopes, expression.dataValue);
+      return [newScopes, { ...expression, dataValue }];
+    }
+
+    default:
+      return assertNever(expression);
+  }
+}
+
+export function renameFreeVariables(expression: Expression): Expression {
+  const [, result] = renameFreeVariablesInScope([], expression);
+  return result;
+}
