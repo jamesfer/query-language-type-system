@@ -1,16 +1,15 @@
-import { find, flatMap, flatten, map, mapValues } from 'lodash';
+import { find, mapValues } from 'lodash';
 import {
-  bind,
   eScopeBinding,
-  expandEvaluationScope, freeVariable,
-  readDataProperty,
-  readRecordProperty, symbol,
+  expandEvaluationScope,
+  freeVariable,
 } from './constructors';
-import { EScopeBinding, EvaluationScope } from './types/evaluation-scope';
+import { EvaluationScope } from './types/evaluation-scope';
 import { Expression } from './types/expression';
-import { ApplicationValue, DataValue, Value } from './types/value';
-import { assertNever, checkedZip, checkedZipWith, every, everyValue, isDefined } from './utils';
-import { VariableReplacement } from './variable-utils';
+import { DataValue, Value } from './types/value';
+import { assertNever, everyIs, everyValue, isDefined } from './utils';
+import { destructureValue } from './type-utils';
+import { applyReplacements } from './variable-utils';
 
 export const substituteExpressionVariables = (substitutions: { name: string, value: Expression }[]) => (expression: Expression): Expression => {
   const recurse = substituteExpressionVariables(substitutions);
@@ -30,7 +29,7 @@ export const substituteExpressionVariables = (substitutions: { name: string, val
           return {
             ...body,
             kind: 'Application',
-            parameters: body.parameters.map(recurse),
+            parameter: recurse(body.parameter),
             callee: recurse(body.callee),
           };
 
@@ -73,20 +72,6 @@ export const substituteExpressionVariables = (substitutions: { name: string, val
             dataValue: recurse(body.dataValue),
           };
 
-        // case 'ImplementExpression':
-        //   return {
-        //     ...body,
-        //     parameters: body.parameters.map(recurse),
-        //     body: recurse(body.body),
-        //   };
-        //
-        // case 'DataDeclaration':
-        //   return {
-        //     ...body,
-        //     parameters: body.parameters.map(recurse),
-        //     body: recurse(body.body),
-        //   };
-
         default:
           return assertNever(body);
       }
@@ -95,74 +80,6 @@ export const substituteExpressionVariables = (substitutions: { name: string, val
   );
 };
 
-function destructureValue(shape: Value, value: Value): VariableReplacement[] | undefined {
-  switch (shape.kind) {
-    case 'NumberLiteral':
-    case 'BooleanLiteral':
-    case 'FunctionLiteral':
-      return [];
-
-    case 'FreeVariable':
-      return [{ from: shape.name, to: value }];
-
-    case 'DualBinding':
-      const leftReplacements = destructureValue(shape.left, value);
-      const rightReplacements = destructureValue(shape.right, value);
-      return leftReplacements && rightReplacements
-        ? [...leftReplacements, ...rightReplacements]
-        : undefined;
-
-    case 'DataValue': {
-      if (value.kind !== 'DataValue' || value.name !== shape.name) {
-        return undefined;
-      }
-
-      const replacements = checkedZipWith(shape.parameters, value.parameters, destructureValue);
-      return every(replacements, isDefined) ? flatten(replacements) : undefined;
-    }
-
-    case 'RecordLiteral':
-      if (value.kind !== 'RecordLiteral') {
-        return undefined;
-      }
-
-      const replacements = map(shape.properties, (property, key) => (
-        value.properties[key] ? destructureValue(property, value.properties[key]) : undefined
-      ));
-      return every(replacements, isDefined) ? flatten(replacements) : undefined;
-  }
-}
-
-const destructureValueToBinds = (previousExpression: Expression) => (shape: Value): EScopeBinding[] => {
-  switch (shape.kind) {
-    case 'NumberLiteral':
-    case 'BooleanLiteral':
-    case 'FunctionLiteral':
-    case 'SymbolLiteral':
-      return [];
-
-    case 'FreeVariable':
-      return [eScopeBinding(shape.name, previousExpression)];
-
-    case 'DualBinding':
-      const leftReplacements = destructureValueToBinds(previousExpression)(shape.left);
-      const rightReplacements = destructureValueToBinds(previousExpression)(shape.right);
-      return [...leftReplacements, ...rightReplacements];
-
-    case 'DataValue':
-      return flatMap(shape.parameters, (parameter, index) => (
-        destructureValueToBinds(readDataProperty(previousExpression, index))(parameter)
-      ));
-
-    case 'RecordLiteral':
-      return flatMap(shape.properties, (parameter, key) => (
-        destructureValueToBinds(readRecordProperty(previousExpression, key))(parameter)
-      ));
-
-    default:
-      return assertNever(shape);
-  }
-};
 
 export const evaluateExpression = (scope: EvaluationScope) => (expression: Expression): Value | undefined => {
   switch (expression.kind) {
@@ -193,7 +110,7 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
       }
 
       const parameters = expression.parameters.map(evaluateExpression(scope));
-      if (every(parameters, isDefined)) {
+      if (everyIs(parameters, isDefined)) {
         return {
           parameters,
           kind: 'DataValue',
@@ -205,16 +122,21 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
     }
 
     case 'FunctionExpression': {
-      const parameters = map(expression.parameters, 'value').map(evaluateExpression(scope));
-      if (!every(parameters, isDefined)) {
+      const parameter = evaluateExpression(scope)(expression.parameter);
+      if (!parameter) {
         console.log('Failed to evaluate all parameters of a function expression');
         return undefined;
       }
 
+      const body = evaluateExpression(scope)(expression.body);
+      if (!body) {
+        return undefined;
+      }
+
       return {
-        kind: 'FunctionLiteral',
-        body: expression.body,
-        parameters: parameters.map(value => ({ value, kind: 'FunctionLiteralParameter' })),
+        body,
+        parameter,
+        kind: expression.implicit ? 'ImplicitFunctionLiteral' : 'FunctionLiteral',
       };
     }
 
@@ -244,69 +166,21 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
       }
 
       if (calleeValue.kind !== 'FunctionLiteral') {
-        console.log('Failed to evaluate application because the callee was not a function literal');
+        console.log(`Failed to evaluate application because the callee was not a function literal. Actual: ${calleeValue.kind}`);
         return undefined;
       }
 
-      if (expression.parameters.length > calleeValue.parameters.length) {
-        console.log('Too many parameters given to application');
+      const parameter = evaluateExpression(scope)(expression.parameter);
+      if (!parameter) {
         return undefined;
       }
 
-      const parameterBindings = flatMap(
-        checkedZip(expression.parameters, calleeValue.parameters),
-        ([parameter, shape]) => destructureValueToBinds(parameter)(shape.value),
-      );
-      const newScope = expandEvaluationScope(scope, { bindings: parameterBindings });
-
-      // Normal application
-      if (expression.parameters.length === calleeValue.parameters.length) {
-        return evaluateExpression(newScope)(calleeValue.body);
+      const replacements = destructureValue(calleeValue.parameter, parameter);
+      if (!replacements) {
+        return undefined;
       }
 
-
-      const newBody: ApplicationValue = {
-        kind: 'ApplicationValue',
-        callee: evaluateExpression(newScope)(calleeValue.body),
-        parameters: ,
-      };
-
-      return {
-        kind: 'DataValue',
-        name: symbol('Function'),
-        parameters: [
-          ...calleeValue.parameters.slice(expression.parameters.length).map(parameter => parameter.value),
-        ],
-      };
-
-      // return {
-      //   kind: 'FunctionLiteral',
-      //   parameters: calleeValue.parameters.slice(expression.parameters.length),
-      //   body: parameterBindings.reduceRight(
-      //     (previousValue, { name, value }) => bind(name, value)(previousValue),
-      //     calleeValue.body,
-      //   ),
-      // };
-
-        // // Replace all occurrences of the parameters in the body with their value
-        // const parameterPairs = checkedZipWith(
-        //   expression.parameters,
-        //   calleeValue.parameters.slice(0, expression.parameters.length),
-        //   (value, { callee }) => ({ callee, value }),
-        // );
-        // const newBody = substituteExpressionVariables(parameterPairs)(calleeValue.body);
-        //
-        // // Regular apply
-        // if (expression.parameters.length === calleeValue.parameters.length) {
-        //   return evaluateExpression(scope)(newBody);
-        // }
-        //
-        // // Partial apply
-        // return {
-        //   kind: 'FunctionLiteral',
-        //   body: newBody,
-        //   parameters: calleeValue.parameters.slice(expression.parameters.length),
-        // };
+      return applyReplacements(replacements)(calleeValue.body);
     }
 
     case 'BindingExpression':
@@ -386,7 +260,7 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
 //
 //     case 'DataInstantiation':
 //       const parameters = expression.parameters.map(evaluateNode(scope));
-//       return every(parameters, isDefined)
+//       return everyIs(parameters, isDefined)
 //         ? {
 //           parameters,
 //           kind: 'DataValue',

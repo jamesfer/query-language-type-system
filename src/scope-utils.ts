@@ -17,7 +17,7 @@ export function findMatchingImplementations(scope: Scope, value: Value): ScopeBi
     //   binding.callee === callee
     //   && binding.parameters.length === parameters.length
     //   && checkedZip(binding.parameters, parameters)
-    //     .every(([implementationParameter, parameter]) => (
+    //     .everyIs(([implementationParameter, parameter]) => (
     //       typesAreEqual(implementationParameter, parameter)
     //     ))
     // );

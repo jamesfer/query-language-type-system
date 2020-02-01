@@ -1,5 +1,5 @@
 import { AssertionError } from 'assert';
-import { unzip as unzipLodash, zip, zipWith, reduce, set, mapValues, flatMap } from 'lodash';
+import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith } from 'lodash';
 
 export function assertNever(x: never): never {
   throw new Error('Assert never was actually called');
@@ -49,7 +49,7 @@ export function unzipObject<T>(object: { [k: string]: T[] }): ({ [k: string]: T 
   );
 }
 
-export function every<T, X extends T>(array: T[], check: (element: T) => element is X): array is X[] {
+export function everyIs<T, X extends T>(array: T[], check: (element: T) => element is X): array is X[] {
   return array.every(check);
 }
 
@@ -128,4 +128,27 @@ export function permuteArrays<T>(arrays: T[][]): T[][] {
 
   const [current, ...rest] = arrays;
   return permuteArraysRecursive(rest, current.map(value => [value]));
+}
+
+export const accumulateStateWith = <S, T, R>(initial: S, accumulate: (left: S, right: S) => S) => (func: (arg: T) => S): [() => S, (arg: T) => T] => {
+  let state = initial;
+  return [
+    () => state,
+    (arg) => {
+      state = accumulate(state, func(arg));
+      return arg;
+    },
+  ];
+};
+
+export function accumulateStates<S, T, R>(func: (arg: T) => S[]): [() => S[], (arg: T) => T] {
+  return accumulateStateWith<S[], T, R>([], (left, right) => [...left, ...right])(func);
+}
+
+export function accumulateStatesUsingAnd<S, T, R>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
+  return accumulateStateWith<boolean, T, R>(true, (left, right) => left && right)(func);
+}
+
+export function accumulateStatesUsingOr<S, T, R>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
+  return accumulateStateWith<boolean, T, R>(false, (left, right) => left || right)(func);
 }

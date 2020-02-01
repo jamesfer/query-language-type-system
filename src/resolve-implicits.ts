@@ -1,19 +1,13 @@
-import { mapValues, flatten, flatMap, partition } from 'lodash';
+import { flatMap, flatten, mapValues, partition } from 'lodash';
 import { functionType, identifier, node } from './constructors';
 import { findMatchingImplementations } from './scope-utils';
 import { extractImplicits, TypedNode } from './type-check';
 import { areAllPairsSubtypes } from './type-utils';
-import { Expression } from './types/expression';
+import { Application, Expression } from './types/expression';
 import { Message } from './types/message';
 import { Scope, ScopeBinding } from './types/scope';
 import { DataValue, Value } from './types/value';
-import {
-  assertNever,
-  checkedZipWith,
-  permuteArrays,
-  unzip,
-  unzipObject,
-} from './utils';
+import { assertNever, checkedZipWith, permuteArrays, unzip, unzipObject } from './utils';
 import { extractFreeVariableNames, usesVariable } from './variable-utils';
 
 function findImplementationFor(scope: Scope, parameter: Value): string | undefined {
@@ -46,16 +40,14 @@ function iterateExpression(expression: Expression<TypedNode>, type: Value): [Mes
 
     case 'Application': {
       // console.log('Resolving application', JSON.stringify(expression.callee.decoration.scope.bindings.map(({ node, callee }) => ({ callee, value: stripNode(node) })), undefined, 2));
-      const [messagesArray = [], parameters = []] = unzip(
-        expression.parameters.map(strictResolveImplicitParameters),
-      );
+      const [messagesArray, parameter] = strictResolveImplicitParameters(expression.parameter);
       const [calleeMessages, callee] = strictResolveImplicitParameters(expression.callee);
-      return [flatten([...messagesArray, calleeMessages]), { ...expression, parameters, callee }];
+      return [flatten([...messagesArray, calleeMessages]), { ...expression, parameter, callee }];
     }
 
     case 'FunctionExpression': {
-      if (type.kind !== 'DataValue' || type.name.kind !== 'SymbolLiteral' || type.name.name !== 'Function') {
-        throw new Error('Not sure how to convert a function expression that does not have a function type');
+      if (type.kind !== 'FunctionLiteral') {
+        throw new Error(`Not sure how to convert a function expression that does not have a function type. Actual: ${type.kind}`);
       }
 
       const [messages, body] = strictResolveImplicitParameters(expression.body);
@@ -191,71 +183,74 @@ export function resolveImplicitParameters(typedNode: TypedNode, allowedUnresolve
 
   // If there is only one remaining possible set of replacements for each implicit parameter, then that is the answer
   const finalType = functionType(result, skippedImplicits.map(value => [value, true]));
-  const newExpression = node(resolvedExpression, { type: finalType, scope });
-  return [[...messages, ...expressionMessages], implementations.length === 0 ? newExpression : {
-    ...typedNode,
-    expression: {
-      kind: 'Application',
-      callee: newExpression,
-      parameters: implementations.map(({ name, type }) => (
-        node(identifier(name), { type, scope })
-      )),
-    },
-  }];
+  return [[...messages, ...expressionMessages], implementations.reduce<TypedNode>(
+    (callee, { name, type, scope }) => node(
+      {
+        callee,
+        kind: 'Application',
+        parameter: node(identifier(name), { type, scope }),
+      },
+      {
+        scope,
+        type: finalType,
+      },
+    ),
+    node(resolvedExpression, { type: finalType, scope }),
+  )];
 
   // TODO
   // Work out any additional replacements that have been discovered through the resolution process
   // Apply those to the remaining type
 }
 
-export function resolveImplicitParametersOld(typedNode: TypedNode, allowUnresolved = false): [Message[], TypedNode] {
-  const { expression, decoration: { scope } } = typedNode;
-  let remainingType = typedNode.decoration.type;
-  let discoveredImplementations: { name: string, type: Value }[] = [];
-  const skippedImplicits: Value[] = [];
-  const messages: Message[] = [];
-  while (remainingType.kind === 'DataValue' && remainingType.name.kind === 'SymbolLiteral' && remainingType.name.name === 'Function') {
-    const [implicit, parameter, result] = remainingType.parameters;
-
-    // Exit the loop as soon as we find a non implicit
-    if (implicit.kind !== 'BooleanLiteral' || !implicit.value) {
-      break;
-    }
-    remainingType = result;
-
-    const name = findImplementationFor(scope, parameter);
-    if (name) {
-      discoveredImplementations.push({ name, type: parameter });
-    } else if (allowUnresolved) {
-      skippedImplicits.push(parameter);
-    } else {
-      console.log('Failed to find implementation in scope', JSON.stringify(scope, undefined, 2));
-      messages.push(`Cannot find implementation for ${JSON.stringify(parameter, undefined, 2)}`);
-      // throw new Error(`Cannot find implementation for ${JSON.stringify(parameter, undefined, 2)}`);
-    }
-  }
-
-  const finalType = functionType(remainingType, skippedImplicits.map(value => [value, true]));
-  const [expressionMessages, resolvedExpression] = iterateExpression(expression, remainingType);
-  return [[...messages, ...expressionMessages], {
-    ...typedNode,
-    expression: discoveredImplementations.length === 0
-      ? resolvedExpression
-      : {
-        kind: 'Application',
-        callee: node(resolvedExpression, { type: finalType, scope }),
-        parameters: discoveredImplementations.map(({ name, type }) => (
-          node(identifier(name), { type, scope })
-        )),
-        // Remove all implicit information out of the type
-        // callee: iterateExpression(scope, expression, discoveredImplementations.reduce<Value>(
-        //   (result, { type }) => ({
-        //     kind: 'DataValue',
-        //     callee: 'Function',
-        //     parameters: [type, result],
-        //   }),
-        //   type,
-        // )),
-      },
-  }];
-}
+// export function resolveImplicitParametersOld(typedNode: TypedNode, allowUnresolved = false): [Message[], TypedNode] {
+//   const { expression, decoration: { scope } } = typedNode;
+//   let remainingType = typedNode.decoration.type;
+//   let discoveredImplementations: { name: string, type: Value }[] = [];
+//   const skippedImplicits: Value[] = [];
+//   const messages: Message[] = [];
+//   while (remainingType.kind === 'DataValue' && remainingType.name.kind === 'SymbolLiteral' && remainingType.name.name === 'Function') {
+//     const [implicit, parameter, result] = remainingType.parameters;
+//
+//     // Exit the loop as soon as we find a non implicit
+//     if (implicit.kind !== 'BooleanLiteral' || !implicit.value) {
+//       break;
+//     }
+//     remainingType = result;
+//
+//     const name = findImplementationFor(scope, parameter);
+//     if (name) {
+//       discoveredImplementations.push({ name, type: parameter });
+//     } else if (allowUnresolved) {
+//       skippedImplicits.push(parameter);
+//     } else {
+//       console.log('Failed to find implementation in scope', JSON.stringify(scope, undefined, 2));
+//       messages.push(`Cannot find implementation for ${JSON.stringify(parameter, undefined, 2)}`);
+//       // throw new Error(`Cannot find implementation for ${JSON.stringify(parameter, undefined, 2)}`);
+//     }
+//   }
+//
+//   const finalType = functionType(remainingType, skippedImplicits.map(value => [value, true]));
+//   const [expressionMessages, resolvedExpression] = iterateExpression(expression, remainingType);
+//   return [[...messages, ...expressionMessages], {
+//     ...typedNode,
+//     expression: discoveredImplementations.length === 0
+//       ? resolvedExpression
+//       : {
+//         kind: 'Application',
+//         callee: node(resolvedExpression, { type: finalType, scope }),
+//         parameters: discoveredImplementations.map(({ name, type }) => (
+//           node(identifier(name), { type, scope })
+//         )),
+//         // Remove all implicit information out of the type
+//         // callee: iterateExpression(scope, expression, discoveredImplementations.reduce<Value>(
+//         //   (result, { type }) => ({
+//         //     kind: 'DataValue',
+//         //     callee: 'Function',
+//         //     parameters: [type, result],
+//         //   }),
+//         //   type,
+//         // )),
+//       },
+//   }];
+// }

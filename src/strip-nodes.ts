@@ -25,7 +25,7 @@ export function stripExpression<T extends Node<any>>(expression: Expression<T>):
       return {
         ...expression,
         callee: stripNode(expression.callee),
-        parameters: expression.parameters.map(stripNode),
+        parameter: stripNode(expression.parameter),
       };
 
     case 'FunctionExpression':

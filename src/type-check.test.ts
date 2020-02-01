@@ -1,3 +1,4 @@
+import { uniqueId } from 'lodash';
 import { runTypePhase } from './run-type-phase';
 import { stripNode } from './strip-nodes';
 import { typeExpression } from './type-check';
@@ -34,7 +35,7 @@ describe('typeExpression', () => {
   });
 
   it('fails on an implement declaration when children do not match the constraints', () => {
-    const [messages, node] = runTypePhase(pipe(
+    const [messages] = runTypePhase(pipe(
       data('Serial', ['s']),
       bind('Color', lambda([[apply('Serial', ['t']), true], 't'], dataInstantiation('Color', [identifier('t')]))),
       data('Red'),
@@ -196,6 +197,12 @@ describe('typeExpression', () => {
           10,
         ),
       })]),
+      // bind(uniqueId(`SerializeImplementation`), apply(identifier('Serialize'), [apply('Color', ['t']), record({
+      //   valueOf: lambda(
+      //     ['color'],
+      //     10,
+      //   ),
+      // })])),
       apply('valueOf', ['Red']),
     );
 

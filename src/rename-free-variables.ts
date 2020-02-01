@@ -63,29 +63,21 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
     }
 
     case 'Application': {
-      const [newScopes, [callee, ...parameters]] = mapWithState(
-        [expression.callee, ...expression.parameters],
+      const [newScopes, [callee, parameter]] = mapWithState(
+        [expression.callee, expression.parameter],
         scopes,
         renameFreeVariablesInScope,
       );
-      return [newScopes, { ...expression, callee, parameters }];
+      return [newScopes, { ...expression, callee, parameter }];
     }
 
     case 'FunctionExpression': {
-      const [newScopes, childExpressions] = withNewScope(scopes, childScopes => mapWithState(
-        [...map(expression.parameters, 'value'), expression.body],
+      const [newScopes, [parameter, body]] = withNewScope(scopes, childScopes => mapWithState(
+        [expression.parameter, expression.body],
         childScopes,
         renameFreeVariablesInScope,
       ));
-      const [parameters, [body]] = chunk(childExpressions, childExpressions.length - 1);
-      return [newScopes, {
-        ...expression,
-        body,
-        parameters: checkedZipWith(expression.parameters, parameters, (parameter, value) => ({
-          ...parameter,
-          value,
-        })),
-      }];
+      return [newScopes, { ...expression, body, parameter }];
     }
 
     case 'DataInstantiation': {
@@ -95,7 +87,7 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
         afterCalleeScopes,
         renameFreeVariablesInScope,
       );
-      return [newScopes, { ...expression, parameters }];
+      return [newScopes, { ...expression, parameters, callee }];
     }
 
     case 'BindingExpression': {

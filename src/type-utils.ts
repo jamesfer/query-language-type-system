@@ -1,19 +1,26 @@
-import { find, flatten, map, mapValues, uniqueId } from 'lodash';
+import { find, flatten, map, uniqueId } from 'lodash';
 import { freeVariable, scopeBinding } from './constructors';
 import { TypeResult, TypeWriter } from './monad-utils';
-import { TypedNode } from './type-check';
-import { BooleanExpression, Expression } from './types/expression';
 import { Message } from './types/message';
 import { Scope } from './types/scope';
-import { BooleanLiteral, DataValue, FreeVariable, Value } from './types/value';
-import { assertNever, checkedZip, every, isDefined } from './utils';
-import { applyReplacements, substituteVariables, VariableReplacement } from './variable-utils';
+import {
+  BooleanLiteral,
+  DataValue,
+  DualBinding,
+  FreeVariable,
+  RecordLiteral,
+  SymbolLiteral,
+  Value,
+} from './types/value';
+import { assertNever, checkedZip, everyIs, isDefined } from './utils';
+import { applyReplacements, VariableReplacement } from './variable-utils';
 
+/**
+ * Looks at two values and tries to infer as much information about the free variables as possible
+ * based on any corresponding value in the value. Returns undefined if the two parameters are not
+ * compatible.
+ */
 export function fitsShape(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined {
-  if (shape.kind === 'FunctionLiteral' || child.kind === 'FunctionLiteral') {
-    return undefined;
-  }
-
   if (child.kind === 'FreeVariable' && shape.kind !== 'FreeVariable' && shape.kind !== 'DualBinding') {
     return [{ from: child.name, to: shape }];
   }
@@ -46,7 +53,7 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
           : undefined
       ));
 
-      return every(replacementArrays, isDefined) ? flatten(replacementArrays) : undefined;
+      return everyIs(replacementArrays, isDefined) ? flatten(replacementArrays) : undefined;
     }
 
     case 'DataValue': {
@@ -64,8 +71,109 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
 
       const replacements = checkedZip(shape.parameters, child.parameters)
         .map(([shapeParameter, childParameter]) => fitsShape(scope, shapeParameter, childParameter));
-      return every(replacements, isDefined) ? flatten([nameReplacements, ...replacements]) : undefined;
+      return everyIs(replacements, isDefined) ? flatten([nameReplacements, ...replacements]) : undefined;
     }
+
+    case 'ImplicitFunctionLiteral':
+    case 'FunctionLiteral': {
+      if (child.kind !== shape.kind) {
+        return undefined;
+      }
+
+      const parameterReplacements = fitsShape(scope, shape.parameter, child.parameter);
+      if (!parameterReplacements) {
+        return undefined;
+      }
+
+      const bodyReplacements = fitsShape(scope, shape.body, child.body);
+      if (!bodyReplacements) {
+        return undefined;
+      }
+
+      return [...parameterReplacements, ...bodyReplacements];
+    }
+
+    case 'ApplicationValue': {
+      if (child.kind !== shape.kind) {
+        return undefined;
+      }
+
+      const calleeReplacements = fitsShape(scope, shape.callee, child.callee);
+      if (!calleeReplacements) {
+        return undefined;
+      }
+
+      const parameterReplacements = fitsShape(scope, shape.parameter, child.parameter);
+      if (!parameterReplacements) {
+        return undefined;
+      }
+
+      return [...calleeReplacements, ...parameterReplacements];
+    }
+
+    case 'ReadDataValueProperty':
+    case 'ReadRecordProperty':
+      return undefined;
+
+    default:
+      return assertNever(shape);
+  }
+}
+
+/**
+ * Looks at all the free variables in the shape and generates an expression represents each variable
+ * based on value.
+ */
+export function destructureValue(shape: Value, value: Value): VariableReplacement[] | undefined {
+  switch (shape.kind) {
+    case 'SymbolLiteral':
+      return value.kind === 'SymbolLiteral' && value.name === shape.kind ? [] : undefined;
+
+    case 'NumberLiteral':
+    case 'BooleanLiteral':
+      return value.kind === shape.kind && value.value === shape.value ? [] : undefined;
+
+    case 'FreeVariable':
+      return [{ from: shape.name, to: value }];
+
+    case 'DualBinding':
+      const leftReplacements = destructureValue(shape.left, value);
+      const rightReplacements = destructureValue(shape.right, value);
+      return leftReplacements && rightReplacements
+        ? [...leftReplacements, ...rightReplacements]
+        : undefined;
+
+    case 'DataValue': {
+      const replacements = shape.parameters.map((shapeParameter, index) => (
+        destructureValue(shapeParameter, {
+          kind: 'ReadDataValueProperty',
+          property: index,
+          dataValue: value,
+        })
+      ));
+      // const replacements = checkedZipWith(shape.parameters, value.parameters, destructureValue);
+      return everyIs(replacements, isDefined) ? flatten(replacements) : undefined;
+    }
+
+    case 'RecordLiteral':
+      const replacements = map(shape.properties, (shapeParameter, property) => (
+        destructureValue(shapeParameter, {
+          property,
+          kind: 'ReadRecordProperty',
+          record: value,
+        })
+      ));
+      // const replacements = map(shape.properties, (property, key) => (
+      //   value.properties[key] ? destructureValue(property, value.properties[key]) : undefined
+      // ));
+      return everyIs(replacements, isDefined) ? flatten(replacements) : undefined;
+
+    case 'ReadRecordProperty':
+    case 'ReadDataValueProperty':
+    case 'FunctionLiteral':
+    case 'ImplicitFunctionLiteral':
+    case 'ApplicationValue':
+      return [];
 
     default:
       return assertNever(shape);
@@ -73,49 +181,14 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
 }
 
 function removeImplicitParameters(value: Value): Value {
-  return isFunctionType(value)
-      && value.parameters.length === 3
-      && value.parameters[0].kind === 'BooleanLiteral'
-      && value.parameters[0].value === true
-    ? removeImplicitParameters(value.parameters[2])
+  return value.kind === 'ImplicitFunctionLiteral'
+    ? removeImplicitParameters(value.body)
     : value;
 }
 
 export function canSatisfyShape(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined {
   return fitsShape(scope, removeImplicitParameters(shape), removeImplicitParameters(child));
 }
-
-// export function areAllSubtypes(
-//   scope: Scope,
-//   constraints: Value[],
-//   parameters: Value[],
-//   onFailure: (constraint: Value, parameter: Value, index: number) => Message,
-// ): [Message[], VariableReplacement[]] {
-//   const allReplacements: VariableReplacement[] = [];
-//   const messages: Message[] = [];
-//   checkedZip(constraints, parameters).forEach(([constraint, parameter], index) => {
-//     // Apply previous replacements to constraint
-//     const replacedConstraint = applyReplacements(allReplacements, constraint);
-//
-//     // Find new replacements
-//     const replacements = fitsShape(scope, replacedConstraint, parameter);
-//     if (!replacements) {
-//       messages.push(onFailure(constraint, parameter, index));
-//     } else {
-//       allReplacements.push(...replacements);
-//     }
-//
-//     // Replace all variables on the right-hand side of the replacements with variables that
-//     // don't exist in the current left-hand expression or any of its replacements
-//     // const takenVariables = flatten([
-//     //   extractFreeVariableNames(calleeType),
-//     //   ...allReplacements.map(({ to }) => extractFreeVariableNames(to)),
-//     // ]);
-//     // const safeReplacements = renameTakenVariables(takenVariables, replacements);
-//   });
-//
-//   return [messages, allReplacements];
-// }
 
 export function areAllPairsSubtypes(
   scope: Scope,
@@ -168,245 +241,10 @@ const applyReplacementsToScope = (scope: Scope) => (variableReplacements: Variab
   };
 
   return new TypeWriter(newScope).wrap(undefined);
-}
-
-export const areAllPairsSubtypes2 = (scope: Scope) => (
-  pairs: Iterable<[Value, Value]>,
-  onFailure: (constraint: Value, parameter: Value, index: number) => Message,
-): TypeResult<boolean> => {
-  const state = new TypeWriter(scope);
-  let succeeded = true;
-  let index = 0;
-  for (const [constraint, parameter] of pairs) {
-    // Apply previous replacements to constraint
-    const replacedConstraint = substituteVariables(state.scope)(constraint);
-    // const replacedConstraint = applyReplacements(allReplacements)(constraint);
-
-    // Find new replacements
-    const replacements = canSatisfyShape(state.scope, replacedConstraint, parameter);
-    if (!replacements) {
-      succeeded = false;
-      state.log(onFailure(constraint, parameter, index));
-    } else {
-      state.run(applyReplacementsToScope)(replacements);
-    }
-
-    index += 1;
-  }
-
-  return state.wrap(succeeded);
 };
 
-
-
-
-
-// export function typesAreEqual(left: Value, right: Value): boolean {
-//   if (left.kind !== 'FreeVariable' && right.kind === 'FreeVariable') {
-//     return typesAreEqual(right, left);
-//   }
-//
-//   switch (left.kind) {
-//     case 'DataValue':
-//       return right.kind === 'DataValue'
-//         && left.callee === right.callee
-//         && left.parameters.length === right.parameters.length
-//         && checkedZip(left.parameters, right.parameters).every(([leftParameter, rightParameter]) => (
-//           typesAreEqual(leftParameter, rightParameter)
-//         ));
-//
-//     case 'FreeVariable':
-//       return true;
-//
-//     case 'NumberLiteral':
-//       return right.kind === 'NumberLiteral' && left.value === right.value;
-//
-//     case 'BooleanLiteral':
-//       return right.kind === 'BooleanLiteral' && left.value === right.value;
-//
-//     case 'FunctionLiteral':
-//       // TODO
-//       return false;
-//
-//     case 'RecordLiteral':
-//       return right.kind === 'RecordLiteral' && Object.keys(left.properties).every(key => (
-//         key in right.properties && typesAreEqual(left.properties[key], right.properties[key])
-//       ));
-//
-//     default:
-//       return assertNever(left);
-//   }
-// }
 
 export function newFreeVariable(prefix: string): FreeVariable {
   return freeVariable(uniqueId(prefix));
 }
-
-export function isFunctionType(value: Value): value is DataValue & { name: 'Function' } {
-  return value.kind === 'DataValue' && value.name.kind === 'SymbolLiteral' && value.name.name === 'Function';
-}
-
-export function * unfoldParameters(value: Value): Generator<[boolean, Value, Value]> {
-  let currentValue = value;
-  while (isFunctionType(currentValue)) {
-    const [isImplicit, parameter, result] = currentValue.parameters;
-    yield [!!((isImplicit as BooleanLiteral).value), parameter, result];
-    currentValue = result;
-  }
-}
-
-export function * unfoldExplicitParameters(value: Value): Generator<[Value, Value, Value[]]> {
-  const skippedImplicits: Value[] = [];
-  for (const [implicit, parameter, body] of unfoldParameters(value)) {
-    if (implicit) {
-      skippedImplicits.push(parameter);
-    } else {
-      yield [parameter, body, skippedImplicits];
-    }
-  }
-}
-
-interface Visitor<T> {
-  before?(t: T): T;
-  after?(t: T): T;
-}
-
-export const visitExpressionNodes = (visitor: Visitor<TypedNode>) => (expression: Expression<TypedNode>): Expression<TypedNode> => {
-  switch (expression.kind) {
-    case 'SymbolExpression':
-    case 'NumberExpression':
-    case 'BooleanExpression':
-    case 'Identifier':
-      return expression;
-
-    case 'RecordExpression':
-      return {
-        ...expression,
-        properties: mapValues(expression.properties, visitNodes(visitor)),
-      };
-
-    case 'Application':
-      return {
-        ...expression,
-        callee: visitNodes(visitor)(expression.callee),
-        parameters: expression.parameters.map(visitNodes(visitor)),
-      };
-
-    case 'FunctionExpression':
-      return {
-        ...expression,
-        body: visitNodes(visitor)(expression.body),
-      };
-
-    case 'DataInstantiation':
-      return {
-        ...expression,
-        parameters: expression.parameters.map(visitNodes(visitor)),
-      };
-
-    case 'BindingExpression':
-      return {
-        ...expression,
-        value: visitNodes(visitor)(expression.value),
-        body: visitNodes(visitor)(expression.body),
-      };
-
-    case 'DualExpression':
-      return {
-        ...expression,
-        left: visitNodes(visitor)(expression.left),
-        right: visitNodes(visitor)(expression.right),
-      };
-
-    case 'ReadRecordPropertyExpression':
-      return {
-        ...expression,
-        record: visitNodes(visitor)(expression.record),
-      };
-
-    case 'ReadDataPropertyExpression':
-      return {
-        ...expression,
-        dataValue: visitNodes(visitor)(expression.dataValue),
-      };
-
-    default:
-      return assertNever(expression);
-  }
-};
-
-export const visitNodes = (visitor: Visitor<TypedNode>) => (node: TypedNode): TypedNode => {
-  const beforeNode = visitor.before?.(node) || node;
-  const transformedNode = {
-    ...node,
-    expression: visitExpressionNodes(visitor)(beforeNode.expression),
-  };
-  return visitor.after?.(transformedNode) || transformedNode;
-};
-
-interface Visitor<T> {
-  before?(t: T): T;
-  after?(t: T): T;
-}
-
-export const visitChildValues = (visitor: Visitor<Value>) => (value: Value): Value => {
-  switch (value.kind) {
-    case 'SymbolLiteral':
-    case 'NumberLiteral':
-    case 'BooleanLiteral':
-    case 'FreeVariable':
-      return value;
-
-    case 'DataValue':
-      return {
-        ...value,
-        parameters: value.parameters.map(visitValue(visitor)),
-      };
-
-    case 'DualBinding':
-      return {
-        ...value,
-        left: visitValue(visitor)(value.left),
-        right: visitValue(visitor)(value.right),
-      };
-
-    case 'FunctionLiteral':
-      return {
-        ...value,
-        parameters: value.parameters.map(parameter => ({
-          ...parameter,
-          value: visitValue(visitor)(parameter.value),
-        })),
-      };
-
-    case 'RecordLiteral':
-      return {
-        ...value,
-        properties: mapValues(value.properties, visitValue(visitor)),
-      };
-
-    default:
-      return assertNever(value);
-  }
-};
-
-export const visitValue = (visitor: Visitor<Value>) => (value: Value): Value => {
-  const beforeValue = visitor.before?.(value) || value;
-  const transformedValue = visitChildValues(visitor)(beforeValue);
-  return visitor.after?.(transformedValue) || transformedValue;
-};
-
-export const visitValueWithState = <S>(initial: S, visitor: Visitor<[S, Value]>) => (value: Value): S => {
-  let state = initial;
-  const wrap = (visitor: (s: [S, Value]) => [S, Value]) => (value: Value) => {
-    const [newState, newValue] = visitor([state, value]);
-    state = newState;
-    return newValue;
-  };
-  visitValue({
-    before: visitor.before ? wrap(visitor.before) : undefined,
-    after: visitor.after ? wrap(visitor.after) : undefined,
-  })(value);
-  return state;
-};
 

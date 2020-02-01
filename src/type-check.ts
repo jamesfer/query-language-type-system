@@ -18,11 +18,11 @@ import { runTypePhaseWithoutRename } from './run-type-phase';
 import { scopeToEScope } from './scope-utils';
 import { stripNode } from './strip-nodes';
 import {
-  areAllPairsSubtypes2,
+  fitsShape,
   newFreeVariable,
-  unfoldParameters,
-  visitNodes,
-  visitValue,
+
+
+
 } from './type-utils';
 import {
   DataInstantiation,
@@ -32,13 +32,15 @@ import {
 } from './types/expression';
 import { Message } from './types/message';
 import { Node } from './types/node';
-import { Scope, ScopeBinding } from './types/scope';
+import { Scope } from './types/scope';
 import { DataValue, Value } from './types/value';
 import { assertNever, unzip } from './utils';
-import { getBindingsFromValue } from './variable-utils';
+import { applyReplacements, getBindingsFromValue } from './variable-utils';
+import { unfoldParameters, visitNodes, visitValue } from './visitor-utils';
 
 export interface TypedDecoration {
   type: Value;
+  typeWithImplicits: Value;
   scope: Scope;
 }
 
@@ -65,7 +67,7 @@ const extractImplicitParametersFromExpression = (depth: number) => (expression: 
       return flatMap(expression.properties, extractNextImplicits);
 
     case 'Application':
-      return [...extractNextImplicits(expression.callee), ...flatMap(expression.parameters, extractNextImplicits)];
+      return [...extractNextImplicits(expression.callee), ...extractNextImplicits(expression.parameter)];
 
     case 'FunctionExpression':
       // We don't extract implicits from the parameters because I don't think they should be handled
@@ -124,27 +126,6 @@ function stripAllImplicits(types: Value[]): Value[] {
   return types.map(stripImplicits);
 }
 
-// function isFullyResolved(value: Value<any>): boolean {
-//   switch (value.kind) {
-//     case 'FunctionLiteral':
-//     case 'NumberLiteral':
-//     case 'BooleanLiteral':
-//       return true;
-//
-//     case 'FreeVariable':
-//       return false;
-//
-//     case 'DataValue':
-//       return every(value.parameters, isFullyResolved);
-//
-//     case 'DualBinding':
-//       return isFullyResolved(value.left) && isFullyResolved(value.right);
-//
-//     case 'RecordLiteral':
-//       return every(value.properties, isFullyResolved);
-//   }
-// }
-
 function result(
   expression: Expression<TypedNode>,
   scope: Scope,
@@ -168,54 +149,6 @@ function typeNode(
 function getTypeDecorations(nodes: TypedNode[]): Value[] {
   return nodes.map(node => node.decoration.type);
 }
-
-const checkApplicationParameters = (scope: Scope) => (
-  givenParameterNodes: TypedNode[],
-  calleeType: DataValue,
-): TypeResult<{
-  givenParameterTypes: Value[];
-  remainingGivenParameterTypes: Value[];
-  expectedParameterCount: number;
-  returnType: Value;
-}> => {
-  const state = new TypeWriter(scope);
-  const givenParameterTypes = getTypeDecorations(givenParameterNodes);
-  let remainingGivenParameterTypes = givenParameterTypes;
-  let expectedParameterCount = 0;
-  let nextCallee: Value = calleeType;
-  let nextGivenParameter: Value;
-  const skippedImplicits: Value[] = [];
-  const pairs: [Value, Value][] = [];
-  for (const [implicit, expectedParameter, result] of unfoldParameters(nextCallee)) {
-    expectedParameterCount += 1;
-
-    // Skip implicit arguments
-    if (implicit) {
-      skippedImplicits.push(expectedParameter);
-      continue;
-    }
-
-    ([nextGivenParameter, ...remainingGivenParameterTypes] = remainingGivenParameterTypes);
-    pairs.push([expectedParameter, nextGivenParameter]);
-
-    if (remainingGivenParameterTypes.length === 0) {
-      // Update the next callee
-      nextCallee = result
-    }
-  }
-
-  const onFailure = (_1: any, _2: any, index: number) => (
-    `Parameter ${index} does not fit its constraint. Shape ${JSON.stringify(_1)}, child ${JSON.stringify(_2)}`
-  );
-  const succeeded = state.run(areAllPairsSubtypes2)(pairs, onFailure);
-
-  return state.wrap({
-    givenParameterTypes,
-    remainingGivenParameterTypes,
-    expectedParameterCount,
-    returnType: functionType(nextCallee, skippedImplicits.map(value => [value, true])),
-  });
-};
 
 const copyFreeVariables = visitValue({
   after(value: Value) {
@@ -272,17 +205,16 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
 
     case 'FunctionExpression': {
       // Create a free variable for each parameter
-      const evaluatedParameters = map(expression.parameters, ({ value, implicit }): [Value, boolean] => {
-        const typedParameterNode = state.run(runTypePhaseWithoutRename)(value);
-        const evaluated = evaluateExpression(scopeToEScope(scope))(stripNode(typedParameterNode));
-        if (!evaluated) {
-          // TODO handle undefined parameters that failed to be evaluated
-          throw new Error(`Failed to evaluate expression: ${JSON.stringify(value, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
-        }
-        return [evaluated, implicit];
-      });
+      const node1 = state.run(runTypePhaseWithoutRename)(expression.parameter);
+      const parameter = evaluateExpression(scopeToEScope(state.scope))(
+        stripNode(node1)
+      );
+      if (!parameter) {
+        // TODO handle undefined parameters that failed to be evaluated
+        throw new Error(`Failed to evaluate expression: ${JSON.stringify(expression.parameter, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
+      }
 
-      const bindings = flatMap(evaluatedParameters, ([value]) => getBindingsFromValue(value))
+      const bindings = getBindingsFromValue(parameter)
         .map(({ from, to }) => scopeBinding(from, scope, to));
       state.updateScope(expandScope(state.scope, { bindings }));
 
@@ -293,7 +225,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       return state.wrap(typeNode(
         { ...expression, body },
         scope,
-        functionType(stripImplicits(body.decoration.type), evaluatedParameters),
+        functionType(stripImplicits(body.decoration.type), [[stripImplicits(parameter), expression.implicit]]),
       ));
     }
 
@@ -310,45 +242,25 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     }
 
     case 'Application': {
-      const calleeNode = state.run(typeExpression)(expression.callee);
+      const callee = state.run(typeExpression)(expression.callee);
+      const parameter = state.run(typeExpression)(expression.parameter);
+      const expressionNode: Expression<TypedNode> = { ...expression, callee, parameter };
 
-      // Convert all of the parameter expressions to types
-      const givenParameterNodes = expression.parameters.map(state.run(typeExpression));
-
-      const expressionNode: Expression<TypedNode> = {
-        ...expression,
-        callee: calleeNode,
-        parameters: givenParameterNodes,
-      };
-
-      const calleeType = calleeNode.decoration.type;
-      if (calleeType.kind !== 'DataValue') {
+      const calleeType = stripImplicits(callee.decoration.type);
+      if (calleeType.kind !== 'FunctionLiteral') {
         return result(expressionNode, scope, dataValue('Any'), [`Cannot call a ${calleeType.kind}`]);
       }
 
-      if (calleeType.name.kind !== 'SymbolLiteral' || calleeType.name.name !== 'Function') {
-        const actual = calleeType.name.kind + (calleeType.name.kind === 'SymbolLiteral' ? `(${calleeType.name.name})` : '');
-        return result(expressionNode, scope, dataValue('Any'), [`Cannot call data values that are not functions. Was actually ${actual}`]);
-      }
-
-      // Check if each of the parameter types is a subtype of their constraint
-      const {
-        givenParameterTypes,
-        remainingGivenParameterTypes,
-        expectedParameterCount,
-        returnType,
-      } = state.run(checkApplicationParameters)(givenParameterNodes, calleeType);
-
-      // Check if there are any remaining parameters
-      if (remainingGivenParameterTypes.length > 0) {
-        state.log(`Too many parameters given to function. Expected ${expectedParameterCount}, given ${givenParameterTypes.length}`);
+      const replacements = fitsShape(scope, calleeType.parameter, parameter.decoration.type);
+      if (!replacements) {
+        return result(expressionNode, scope, dataValue('Any'), ['Given parameter did not match expected shape']);
       }
 
       // Apply replacements to all children and implicits
       return state.wrap(typeNode(
         expressionNode,
         scope,
-        stripImplicits(returnType),
+        stripImplicits(applyReplacements(replacements)(calleeType.body)),
       ));
     }
 

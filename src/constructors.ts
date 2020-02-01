@@ -1,34 +1,30 @@
 import { uniqueId } from 'lodash';
-import {
-  DataParameter,
-  ExpressionDeclaration,
-  FunctionDeclaration,
-  FunctionParameter,
-} from '../unused/declaration';
-import { TypedNode } from './type-check';
 import { EScopeBinding, EScopeShapeBinding, EvaluationScope } from './types/evaluation-scope';
 import {
   Application,
-  Expression,
-  Identifier,
-  RecordExpression,
-  NumberExpression,
-  FunctionExpression,
-  FunctionExpressionParameter,
   BindingExpression,
+  BooleanExpression,
   DataInstantiation,
   DualExpression,
-  BooleanExpression,
-  ReadRecordPropertyExpression, ReadDataPropertyExpression, SymbolExpression,
+  Expression,
+  FunctionExpression,
+  Identifier,
+  NumberExpression,
+  ReadDataPropertyExpression,
+  ReadRecordPropertyExpression,
+  RecordExpression,
+  SymbolExpression,
 } from './types/expression';
 import { Node } from './types/node';
 import { Scope, ScopeBinding } from './types/scope';
 import {
   BooleanLiteral,
-  DataValue, DualBinding,
+  DataValue,
+  DualBinding,
   FreeVariable,
   NumberLiteral,
-  RecordLiteral, SymbolLiteral,
+  RecordLiteral,
+  SymbolLiteral,
   Value,
 } from './types/value';
 
@@ -108,7 +104,7 @@ export function symbol(name: string): SymbolLiteral {
   };
 }
 
-export function dataValue<T = Expression>(name: string | Value<T>, parameters: Value<T>[] = []): DataValue<T> {
+export function dataValue(name: string | Value, parameters: Value[] = []): DataValue {
   return {
     parameters,
     name: typeof name === 'string' ? symbol(name) : name,
@@ -116,21 +112,20 @@ export function dataValue<T = Expression>(name: string | Value<T>, parameters: V
   };
 }
 
-export function functionType<T = Expression>(returnType: Value<T>, parameters: (Value<T> | [Value<T>, boolean])[]): Value<T> {
+export function functionType(returnType: Value, parameters: (Value | [Value, boolean])[]): Value {
   // TODO create a custom function type value
-  return parameters.reduceRight<Value<T>>(
-    (value, parameter) => ({
-      kind: 'DataValue',
-      name: symbol('Function'),
-      parameters: [
-        {
-          kind: 'BooleanLiteral',
-          value: Array.isArray(parameter) ? parameter[1] : false,
-        },
-        Array.isArray(parameter) ? parameter[0] : parameter,
-        value,
-      ],
-    }),
+  return parameters.reduceRight<Value>(
+    (body, parameter) => Array.isArray(parameter)
+      ? {
+        body,
+        kind: parameter[1] ? 'ImplicitFunctionLiteral' : 'FunctionLiteral',
+        parameter: parameter[0],
+      }
+      : {
+        body,
+        parameter,
+        kind: 'FunctionLiteral',
+      },
     returnType,
   )
 }
@@ -169,10 +164,6 @@ export function dualBinding(left: Value, right: Value): DualBinding {
     right,
     kind: 'DualBinding',
   };
-}
-
-export function isBooleanLiteral(value: Value): value is BooleanLiteral {
-  return value.kind === 'BooleanLiteral';
 }
 
 
@@ -219,43 +210,25 @@ export const bind = (name: string, value: MaybeExpression) => (body: Expression)
 export const implement = (name: string, parameters: MaybeExpression[] = []) => (
   bind(uniqueId(`${name}Implementation`), parameters.length > 0 ? apply(identifier(name), parameters) : identifier(name))
 );
-// export const implement = (callee: string, parameters: Expression[] = []) => (body: Expression): ImplementExpression => ({
-//   callee,
-//   body,
-//   parameters,
-//   kind: 'ImplementExpression',
-//   identifier: uniqueId(`${expression.callee}Implementation`),
-// });
 
-export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean] | FunctionExpressionParameter)[], body: MaybeExpression<T>): Expression
-export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean] | FunctionExpressionParameter)[], body: T): T | Expression {
-  const bodyExpression = toExpression(body) as any;
-  return parameters.length === 0 ? bodyExpression : {
-    kind: 'FunctionExpression',
-    parameters: parameters.map((parameter) => {
-      if (Array.isArray(parameter)) {
-        return funcExpParam(toExpression(parameter[0]), parameter[1]);
+export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean])[], body: MaybeExpression<T>): Expression
+export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean])[], body: T): T | Expression {
+  return parameters.reduceRight(
+    (body, parameter): FunctionExpression => Array.isArray(parameter)
+      ? {
+        body,
+        kind: 'FunctionExpression',
+        implicit: parameter[1],
+        parameter: toExpression(parameter[0]),
       }
-
-      if (typeof parameter !== 'object' || parameter.kind !== 'FunctionExpressionParameter') {
-        return funcExpParam(parameter);
-      }
-
-      return parameter;
-    }),
-    body: bodyExpression,
-  };
-}
-
-export function funcExpParam(
-  value: MaybeExpression,
-  implicit = false,
-): FunctionExpressionParameter {
-  return {
-    implicit,
-    kind: 'FunctionExpressionParameter',
-    value: toExpression(value),
-  };
+      : {
+        body,
+        parameter: toExpression(parameter),
+        kind: 'FunctionExpression',
+        implicit: false,
+      },
+    toExpression(body) as any,
+  );
 }
 
 export function identifier(name: string): Identifier {
@@ -265,12 +238,15 @@ export function identifier(name: string): Identifier {
   };
 }
 
-export function apply(callee: MaybeExpression, parameters: MaybeExpression[] = []): Application {
-  return {
-    kind: 'Application',
-    callee: toExpression(callee),
-    parameters: allToExpression(parameters),
-  };
+export function apply(callee: MaybeExpression, parameters: MaybeExpression[] = []): Expression {
+  return parameters.reduce<Expression>(
+    (callee, parameter): Application => ({
+      kind: 'Application',
+      callee: callee,
+      parameter: toExpression(parameter),
+    }),
+    toExpression(callee),
+  );
 }
 
 export function numberExpression(value: number): NumberExpression {

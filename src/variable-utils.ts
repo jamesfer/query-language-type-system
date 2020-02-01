@@ -1,68 +1,45 @@
-import { flatMap, mapValues, intersection, find, every } from 'lodash';
+import { every, find, flatMap, identity, intersection, mapValues } from 'lodash';
 import { freeVariable, functionType, node } from './constructors';
 import { TypedNode } from './type-check';
-import {
-  unfoldExplicitParameters,
-  visitValue,
-} from './type-utils';
 import { Expression } from './types/expression';
 import { Scope } from './types/scope';
 import {
   DataValue,
   DualBinding,
-  FreeVariable, RecordLiteral,
+  FreeVariable,
+  RecordLiteral,
   SymbolLiteral,
   Value,
 } from './types/value';
-import { assertNever, checkedZip, spreadApply } from './utils';
+import {
+  accumulateStates,
+  accumulateStatesUsingOr,
+  assertNever,
+  checkedZip,
+  spreadApply,
+} from './utils';
+import { unfoldExplicitParameters, visitValue } from './visitor-utils';
 
 export interface VariableReplacement {
   from: string;
   to: Value;
 }
 
-export const applyReplacements = (replacements: VariableReplacement[]) => (value: Value): Value => {
-  const recurse = applyReplacements(replacements);
-  switch (value.kind) {
-    case 'FreeVariable':
-      if (replacements.length === 0) {
+export const applyReplacements = (replacements: VariableReplacement[]): (value: Value) => Value => (
+  replacements.length === 0
+    ? identity
+    : visitValue({
+      after(value: Value) {
+        if (value.kind === 'FreeVariable') {
+          const [replacement, ...remainingReplacements] = replacements;
+          return replacement.from === value.name
+            ? applyReplacements(replacements)(replacement.to)
+            : applyReplacements(remainingReplacements)(value);
+        }
         return value;
-      }
-
-      const [replacement, ...remainingReplacements] = replacements;
-      return applyReplacements(remainingReplacements)(
-        value.name === replacement.from ? replacement.to : value,
-      );
-
-    case 'DataValue':
-      return {
-        ...value,
-        parameters: value.parameters.map(recurse),
-      };
-
-    case 'RecordLiteral':
-      return {
-        ...value,
-        properties: mapValues(value.properties, recurse),
-      };
-
-    case 'DualBinding':
-      return {
-        ...value,
-        left: recurse(value.left),
-        right: recurse(value.right),
-      };
-
-    case 'NumberLiteral':
-    case 'BooleanLiteral':
-    case 'FunctionLiteral':
-    case 'SymbolLiteral':
-      return value;
-
-    default:
-      return assertNever(value);
-  }
-};
+      },
+    })
+);
 
 export const recursivelyApplyReplacementsToNode = (replacements: VariableReplacement[]) => ({ expression, decoration }: TypedNode): TypedNode => {
   return node(
@@ -89,7 +66,7 @@ export const recursivelyApplyReplacements = (replacements: VariableReplacement[]
         return {
           ...expression,
           callee: recurse(expression.callee),
-          parameters: expression.parameters.map(recurse),
+          parameter: recurse(expression.parameter),
         };
 
       case 'DataInstantiation':
@@ -149,29 +126,12 @@ export const recursivelyApplyReplacements = (replacements: VariableReplacement[]
     }
   };
 
-export function extractFreeVariableNames(value: Value): string[] {
-  switch (value.kind) {
-    case 'FreeVariable':
-      return [value.name];
-
-    case 'DataValue':
-      return flatMap(value.parameters, extractFreeVariableNames);
-
-    case 'RecordLiteral':
-      return flatMap(value.properties, extractFreeVariableNames);
-
-    case 'DualBinding':
-      return [...extractFreeVariableNames(value.left), ...extractFreeVariableNames(value.right)];
-
-    case 'NumberLiteral':
-    case 'BooleanLiteral':
-    case 'FunctionLiteral':
-    case 'SymbolLiteral':
-      return [];
-
-    default:
-      return assertNever(value);
-  }
+export function extractFreeVariableNames(inputValue: Value) {
+  const [getState, after] = accumulateStates((value: Value) => (
+    value.kind === 'FreeVariable' ? [value.name] : []
+  ));
+  visitValue({ after })(inputValue);
+  return getState();
 }
 
 export function nextFreeName(taken: string[], prefix = 'var'): string {
@@ -220,8 +180,21 @@ export function getBindingsFromValue(value: Value): VariableReplacement[] {
     case 'RecordLiteral':
       return flatMap(value.properties, getBindingsFromValue);
 
-    case 'FunctionLiteral':
+    case 'ApplicationValue':
       return [];
+
+    case 'FunctionLiteral':
+    case 'ImplicitFunctionLiteral':
+      return [];
+
+    case 'ReadDataValueProperty':
+      return getBindingsFromValue(value.dataValue);
+
+    case 'ReadRecordProperty':
+      return getBindingsFromValue(value.record);
+
+    default:
+      return assertNever(value);
   }
 }
 
@@ -265,7 +238,11 @@ export function getBindingsFromPair(left: Value, right: Value): VariableReplacem
       return flatMap(intersectingKeys, key => getBindingsFromPair(left.properties[key], right.properties[key]));
     }
 
+    case 'ApplicationValue':
     case 'FunctionLiteral':
+    case 'ImplicitFunctionLiteral':
+    case 'ReadDataValueProperty':
+    case 'ReadRecordProperty':
       return [];
 
     default:
@@ -273,32 +250,12 @@ export function getBindingsFromPair(left: Value, right: Value): VariableReplacem
   }
 }
 
-export const usesVariable = (variables: string[]) => (value: Value): boolean => {
-  switch (value.kind) {
-    case 'SymbolLiteral':
-    case 'NumberLiteral':
-    case 'BooleanLiteral':
-      return false;
-
-    case 'FreeVariable':
-      return variables.includes(value.name);
-
-    case 'DataValue':
-      return value.parameters.some(usesVariable(variables));
-
-    case 'DualBinding':
-      return [value.left, value.right].some(usesVariable(variables));
-
-    case 'FunctionLiteral':
-      // TODO
-      return false;
-
-    case 'RecordLiteral':
-      return Object.values(value.properties).some(usesVariable(variables));
-
-    default:
-      return assertNever(value);
-  }
+export const usesVariable = (variables: string[]) => (incomingValue: Value): boolean => {
+  const [getState, after] = accumulateStatesUsingOr((value: Value) => (
+    value.kind === 'FreeVariable' ? variables.includes(value.name) : false
+  ));
+  visitValue({ after })(incomingValue);
+  return getState();
 };
 
 export const substituteVariables = (scope: Scope): (value: Value) => Value => visitValue({
@@ -330,6 +287,12 @@ export function areValuesEqual(left: Value, right: Value): boolean {
     case 'FreeVariable':
       return (right as FreeVariable).name === left.name;
 
+    case 'DualBinding': {
+      const rightDualBinding = right as DualBinding;
+      return areValuesEqual(left.left, rightDualBinding.left) && areValuesEqual(left.right, rightDualBinding.right)
+        || areValuesEqual(left.right, rightDualBinding.left) && areValuesEqual(left.left, rightDualBinding.right);
+    }
+
     case 'DataValue': {
       const rightDataValue = right as DataValue;
       return areValuesEqual(left.name, rightDataValue.name)
@@ -337,15 +300,6 @@ export function areValuesEqual(left: Value, right: Value): boolean {
         && checkedZip(left.parameters, rightDataValue.parameters)
           .every(([leftParam, rightParam]) => areValuesEqual(leftParam, rightParam));
     }
-
-    case 'DualBinding': {
-      const rightDualBinding = right as DualBinding;
-      return areValuesEqual(left.left, rightDualBinding.left) && areValuesEqual(left.right, rightDualBinding.right)
-        || areValuesEqual(left.right, rightDualBinding.left) && areValuesEqual(left.left, rightDualBinding.right);
-    }
-
-    case 'FunctionLiteral':
-      return false;
 
     case 'RecordLiteral': {
       const rightRecord = right as RecordLiteral;
@@ -359,12 +313,26 @@ export function areValuesEqual(left: Value, right: Value): boolean {
       });
     }
 
+    case 'ApplicationValue': {
+      if (right.kind !== 'ApplicationValue') {
+        return false;
+      }
+
+      return areValuesEqual(left.callee, right.callee) && areValuesEqual(left.parameter, right.parameter);
+    }
+
+    case 'ImplicitFunctionLiteral':
+    case 'FunctionLiteral':
+    case 'ReadDataValueProperty':
+    case 'ReadRecordProperty':
+      return false;
+
     default:
       return assertNever(left);
   }
 }
 
-export const collapseValue = visitValue({
+const collapseValue = visitValue({
   after(value: Value) {
     if (value.kind === 'DualBinding') {
       return areValuesEqual(value.left, value.right) ? value.left : value;

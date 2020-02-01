@@ -1,26 +1,36 @@
-import { Expression } from './expression';
-
 export interface FreeVariable {
   kind: 'FreeVariable';
   name: string;
 }
 
-export interface DataValue<T = Expression> {
+export interface DataValue {
   kind: 'DataValue';
-  name: Value<T>;
-  parameters: Value<T>[];
+  name: Value;
+  parameters: Value[];
 }
 
-export interface DualBinding<T = Expression> {
+export interface DualBinding {
   kind: 'DualBinding';
-  left: Value<T>;
-  right: Value<T>;
+  left: Value;
+  right: Value;
 }
 
 export interface ApplicationValue {
   kind: 'ApplicationValue';
   callee: Value;
   parameter: Value;
+}
+
+export interface ReadRecordPropertyValue {
+  kind: 'ReadRecordProperty';
+  property: string;
+  record: Value;
+}
+
+export interface ReadDataValueProperty {
+  kind: 'ReadDataValueProperty';
+  property: number;
+  dataValue: Value;
 }
 
 /**
@@ -32,20 +42,21 @@ export interface SymbolLiteral {
   name: string;
 }
 
-export interface FunctionLiteralParameter {
-  kind: 'FunctionLiteralParameter';
-  value: Value;
-}
-
-export interface FunctionLiteral<T = Expression> {
+export interface FunctionLiteral {
   kind: 'FunctionLiteral';
-  parameters: FunctionLiteralParameter[];
-  body: T;
+  parameter: Value;
+  body: Value;
 }
 
-export interface RecordLiteral<T = Expression> {
+export interface ImplicitFunctionLiteral {
+  kind: 'ImplicitFunctionLiteral';
+  parameter: Value;
+  body: Value;
+}
+
+export interface RecordLiteral {
   kind: 'RecordLiteral';
-  properties: { [k: string]: Value<T> };
+  properties: { [k: string]: Value };
 }
 
 export interface NumberLiteral {
@@ -58,13 +69,16 @@ export interface BooleanLiteral {
   value: boolean;
 }
 
-export type Value<T = Expression> =
+export type Value =
   | FreeVariable
-  | DataValue<T>
-  | DualBinding<T>
-  | FunctionLiteral<T>
-  | RecordLiteral<T>
+  | DataValue
+  | DualBinding
+  | ApplicationValue
+  | ReadDataValueProperty
+  | ReadRecordPropertyValue
+  | FunctionLiteral
+  | ImplicitFunctionLiteral
+  | RecordLiteral
   | SymbolLiteral
   | NumberLiteral
-  | BooleanLiteral
-  | ApplicationValue;
+  | BooleanLiteral;

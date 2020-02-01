@@ -26,18 +26,13 @@ export interface RecordExpression<T = Expression> {
 export interface Application<T = Expression> {
   kind: 'Application';
   callee: T;
-  parameters: T[];
-}
-
-export interface FunctionExpressionParameter {
-  kind: 'FunctionExpressionParameter';
-  value: Expression;
-  implicit: boolean;
+  parameter: T;
 }
 
 export interface FunctionExpression<T = Expression> {
   kind: 'FunctionExpression';
-  parameters: FunctionExpressionParameter[];
+  parameter: Expression;
+  implicit: boolean;
   body: T;
 }
 
