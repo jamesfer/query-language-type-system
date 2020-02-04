@@ -8,7 +8,8 @@ import { Message } from './types/message';
 import { Scope } from './types/scope';
 
 export function runTypePhase(expression: Expression): [Message[], TypedNode] {
-  const { state: [messages], value: node } = runTypePhaseWithoutRename(scope())(renameFreeVariables(expression));
+  const typedNodeTypeResult = runTypePhaseWithoutRename(scope())(renameFreeVariables(expression));
+  const { state: [messages], value: node } = typedNodeTypeResult;
   return [messages, node];
 }
 

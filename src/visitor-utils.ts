@@ -166,6 +166,70 @@ export const visitValue = (visitor: Visitor<Value>) => (value: Value): Value => 
   return visitor.after?.(transformedValue) || transformedValue;
 };
 
+const visitAndTransformChildValues = <T>(callback: (value: Value) => T extends void ? Value : T) => (value: Value): Value<T> => {
+  switch (value.kind) {
+    case 'SymbolLiteral':
+    case 'NumberLiteral':
+    case 'BooleanLiteral':
+    case 'FreeVariable':
+      return value;
+
+    case 'DataValue':
+      return {
+        ...value,
+        name: callback(value.name),
+        parameters: value.parameters.map(callback),
+      };
+
+    case 'RecordLiteral':
+      return {
+        ...value,
+        properties: mapValues(value.properties, callback),
+      };
+
+    case 'DualBinding':
+      return {
+        ...value,
+        left: callback(value.left),
+        right: callback(value.right),
+      };
+
+    case 'FunctionLiteral':
+    case 'ImplicitFunctionLiteral':
+      return {
+        ...value,
+        parameter: callback(value.parameter),
+        body: callback(value.body),
+      };
+
+    case 'ApplicationValue':
+      return {
+        ...value,
+        parameter: callback(value.parameter),
+        callee: callback(value.callee),
+      };
+
+    case 'ReadDataValueProperty':
+      return {
+        ...value,
+        dataValue: callback(value.dataValue),
+      };
+
+    case 'ReadRecordProperty':
+      return {
+        ...value,
+        record: callback(value.record),
+      };
+
+    default:
+      return assertNever(value);
+  }
+};
+
+export const visitAndTransformValue = <T>(visitor: (value: Value<T>) => T extends void ? Value : T) => (value: Value): T extends void ? Value : T => {
+  return visitor(visitAndTransformChildValues(visitAndTransformValue(visitor))(value))
+};
+
 export const visitValueWithState = <S>(initial: S, visitor: Visitor<[S, Value]>) => (value: Value): S => {
   let state = initial;
   const wrap = (visitor: (s: [S, Value]) => [S, Value]) => (value: Value) => {

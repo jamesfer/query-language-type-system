@@ -13,7 +13,7 @@ import {
   bind,
   dual, dataInstantiation, identifier, readRecordProperty,
 } from './constructors';
-import { evaluateExpression } from './evaluate';
+import { evaluateExpression, simplify } from './evaluate';
 import { pipe } from './utils';
 
 describe('typeExpression', () => {
@@ -217,10 +217,14 @@ describe('typeExpression', () => {
 
       const resolvedExpression = stripNode(node);
       const result = evaluateExpression(evaluationScope())(resolvedExpression);
-      expect(result).toEqual({
-        kind: 'NumberLiteral',
-        value: 10,
-      });
+      expect(result).toBeDefined();
+
+      if (result) {
+        expect(simplify(result)).toEqual({
+          kind: 'NumberLiteral',
+          value: 10,
+        });
+      }
     });
   });
 });

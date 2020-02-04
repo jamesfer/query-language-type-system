@@ -1,6 +1,7 @@
 import { find, flatten, map, uniqueId } from 'lodash';
 import { freeVariable, scopeBinding } from './constructors';
 import { TypeResult, TypeWriter } from './monad-utils';
+import { addReplacementsToScope, findBinding } from './scope-utils';
 import { Message } from './types/message';
 import { Scope } from './types/scope';
 import {
@@ -15,16 +16,21 @@ import {
 import { assertNever, checkedZip, everyIs, isDefined } from './utils';
 import { applyReplacements, VariableReplacement } from './variable-utils';
 
-/**
- * Looks at two values and tries to infer as much information about the free variables as possible
- * based on any corresponding value in the value. Returns undefined if the two parameters are not
- * compatible.
- */
-export function fitsShape(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined {
-  if (child.kind === 'FreeVariable' && shape.kind !== 'FreeVariable' && shape.kind !== 'DualBinding') {
-    return [{ from: child.name, to: shape }];
+function convergeDualBinding(scope: Scope, shape: DualBinding, child: Value): VariableReplacement[] | undefined {
+  const leftResult = converge(scope, shape.left, child);
+  if (!leftResult) {
+    return undefined;
   }
 
+  const rightResult = converge(scope, shape.right, child);
+  if (!rightResult) {
+    return undefined;
+  }
+
+  return [...leftResult, ...rightResult]
+}
+
+function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, child: Exclude<Value, FreeVariable>): VariableReplacement[] | undefined {
   switch (shape.kind) {
     case 'NumberLiteral':
     case 'BooleanLiteral':
@@ -33,14 +39,8 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
     case 'SymbolLiteral':
       return child.kind === shape.kind && child.name === shape.name ? [] : undefined;
 
-    case 'FreeVariable':
-      return [{ from: shape.name, to: child }];
-
-    case 'DualBinding': {
-      const leftResult = fitsShape(scope, shape.left, child);
-      const rightResult = fitsShape(scope, shape.right, child);
-      return leftResult && rightResult ? [...leftResult, ...rightResult] : undefined;
-    }
+    case 'DualBinding':
+      return convergeDualBinding(scope, shape, child);
 
     case 'RecordLiteral': {
       if (child.kind !== 'RecordLiteral') {
@@ -49,7 +49,7 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
 
       const replacementArrays = map(shape.properties, (value, key) => (
         key in child.properties
-          ? fitsShape(scope, value, child.properties[key])
+          ? converge(scope, value, child.properties[key])
           : undefined
       ));
 
@@ -64,13 +64,13 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
         return undefined;
       }
 
-      const nameReplacements = fitsShape(scope, shape.name, child.name);
+      const nameReplacements = converge(scope, shape.name, child.name);
       if (!nameReplacements) {
         return undefined;
       }
 
       const replacements = checkedZip(shape.parameters, child.parameters)
-        .map(([shapeParameter, childParameter]) => fitsShape(scope, shapeParameter, childParameter));
+        .map(([shapeParameter, childParameter]) => converge(scope, shapeParameter, childParameter));
       return everyIs(replacements, isDefined) ? flatten([nameReplacements, ...replacements]) : undefined;
     }
 
@@ -80,12 +80,12 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
         return undefined;
       }
 
-      const parameterReplacements = fitsShape(scope, shape.parameter, child.parameter);
+      const parameterReplacements = converge(scope, shape.parameter, child.parameter);
       if (!parameterReplacements) {
         return undefined;
       }
 
-      const bodyReplacements = fitsShape(scope, shape.body, child.body);
+      const bodyReplacements = converge(scope, shape.body, child.body);
       if (!bodyReplacements) {
         return undefined;
       }
@@ -98,12 +98,12 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
         return undefined;
       }
 
-      const calleeReplacements = fitsShape(scope, shape.callee, child.callee);
+      const calleeReplacements = converge(scope, shape.callee, child.callee);
       if (!calleeReplacements) {
         return undefined;
       }
 
-      const parameterReplacements = fitsShape(scope, shape.parameter, child.parameter);
+      const parameterReplacements = converge(scope, shape.parameter, child.parameter);
       if (!parameterReplacements) {
         return undefined;
       }
@@ -119,6 +119,48 @@ export function fitsShape(scope: Scope, shape: Value, child: Value): VariableRep
       return assertNever(shape);
   }
 }
+
+function convergeFreeVariable(scope: Scope, freeVariable: FreeVariable, other: Value): VariableReplacement[] | undefined {
+  const binding = findBinding(scope, freeVariable.name);
+  if (binding) {
+    return converge(scope, other, binding.type);
+  }
+
+  if (other.kind === 'DualBinding') {
+    return convergeDualBinding(scope, other, freeVariable);
+  }
+
+  return [{ from: freeVariable.name, to: other }];
+}
+
+/**
+ * Looks at two values and tries to infer as much information about the free variables as possible
+ * based on any corresponding value in the value. Returns undefined if the two parameters are not
+ * compatible.
+ */
+function converge(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined {
+  if (shape.kind === 'FreeVariable') {
+    return convergeFreeVariable(scope, shape, child);
+  }
+
+  if (child.kind === 'FreeVariable') {
+    return convergeFreeVariable(scope, child, shape);
+  }
+
+  return convergeConcrete(scope, shape, child);
+}
+
+/**
+ * Runs `converge` but then adds the generated replacements to the scope and just returns true or
+ * false based on whether the values could be converged.
+ */
+export const fitsShape = (scope: Scope) => (shape: Value, child: Value): TypeResult<boolean> => {
+  const replacements = converge(scope, shape, child);
+  return TypeWriter.wrapWithScope(
+    replacements ? addReplacementsToScope(scope, replacements) : scope,
+    !!replacements,
+  );
+};
 
 /**
  * Looks at all the free variables in the shape and generates an expression represents each variable
@@ -187,7 +229,7 @@ function removeImplicitParameters(value: Value): Value {
 }
 
 export function canSatisfyShape(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined {
-  return fitsShape(scope, removeImplicitParameters(shape), removeImplicitParameters(child));
+  return converge(scope, removeImplicitParameters(shape), removeImplicitParameters(child));
 }
 
 export function areAllPairsSubtypes(

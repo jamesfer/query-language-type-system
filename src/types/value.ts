@@ -3,34 +3,34 @@ export interface FreeVariable {
   name: string;
 }
 
-export interface DataValue {
+export interface DataValue<T = Value> {
   kind: 'DataValue';
-  name: Value;
-  parameters: Value[];
+  name: T;
+  parameters: T[];
 }
 
-export interface DualBinding {
+export interface DualBinding<T = Value> {
   kind: 'DualBinding';
-  left: Value;
-  right: Value;
+  left: T;
+  right: T;
 }
 
-export interface ApplicationValue {
+export interface ApplicationValue<T = Value> {
   kind: 'ApplicationValue';
-  callee: Value;
-  parameter: Value;
+  callee: T;
+  parameter: T;
 }
 
-export interface ReadRecordPropertyValue {
+export interface ReadRecordPropertyValue<T = Value> {
   kind: 'ReadRecordProperty';
   property: string;
-  record: Value;
+  record: T;
 }
 
-export interface ReadDataValueProperty {
+export interface ReadDataValueProperty<T = Value> {
   kind: 'ReadDataValueProperty';
   property: number;
-  dataValue: Value;
+  dataValue: T;
 }
 
 /**
@@ -42,21 +42,21 @@ export interface SymbolLiteral {
   name: string;
 }
 
-export interface FunctionLiteral {
+export interface FunctionLiteral<T = Value> {
   kind: 'FunctionLiteral';
-  parameter: Value;
-  body: Value;
+  parameter: T;
+  body: T;
 }
 
-export interface ImplicitFunctionLiteral {
+export interface ImplicitFunctionLiteral<T = Value> {
   kind: 'ImplicitFunctionLiteral';
-  parameter: Value;
-  body: Value;
+  parameter: T;
+  body: T;
 }
 
-export interface RecordLiteral {
+export interface RecordLiteral<T = Value> {
   kind: 'RecordLiteral';
-  properties: { [k: string]: Value };
+  properties: { [k: string]: T };
 }
 
 export interface NumberLiteral {
@@ -69,16 +69,30 @@ export interface BooleanLiteral {
   value: boolean;
 }
 
-export type Value =
+export type Value<T = void> =
+  | DataValue<T extends void ? Value : T>
+  | RecordLiteral<T extends void ? Value : T>
+  | DualBinding<T extends void ? Value : T>
+  | ApplicationValue<T extends void ? Value : T>
+  | ReadDataValueProperty<T extends void ? Value : T>
+  | ReadRecordPropertyValue<T extends void ? Value : T>
+  | FunctionLiteral<T extends void ? Value : T>
+  | ImplicitFunctionLiteral<T extends void ? Value : T>
   | FreeVariable
-  | DataValue
-  | DualBinding
-  | ApplicationValue
-  | ReadDataValueProperty
-  | ReadRecordPropertyValue
-  | FunctionLiteral
-  | ImplicitFunctionLiteral
-  | RecordLiteral
   | SymbolLiteral
   | NumberLiteral
   | BooleanLiteral;
+
+export type ExplicitValue<T = void> =
+  | DataValue<T extends void ? ExplicitValue : T>
+  | RecordLiteral<T extends void ? ExplicitValue : T>
+  | DualBinding<T extends void ? ExplicitValue : T>
+  | ApplicationValue<T extends void ? ExplicitValue : T>
+  | ReadDataValueProperty<T extends void ? ExplicitValue : T>
+  | ReadRecordPropertyValue<T extends void ? ExplicitValue : T>
+  | FunctionLiteral<T extends void ? ExplicitValue : T>
+  | FreeVariable
+  | SymbolLiteral
+  | NumberLiteral
+  | BooleanLiteral;
+

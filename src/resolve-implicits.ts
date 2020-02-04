@@ -1,7 +1,8 @@
 import { flatMap, flatten, mapValues, partition } from 'lodash';
 import { functionType, identifier, node } from './constructors';
+import { extractImplicitsParameters, stripImplicits } from './implicit-utils';
 import { findMatchingImplementations } from './scope-utils';
-import { extractImplicits, TypedNode } from './type-check';
+import { TypedDecoration, TypedNode } from './type-check';
 import { areAllPairsSubtypes } from './type-utils';
 import { Application, Expression } from './types/expression';
 import { Message } from './types/message';
@@ -117,7 +118,7 @@ function strictResolveImplicitParameters(typedNode: TypedNode): [Message[], Type
 
 function getImplicitImplementations(scope: Scope, value: Value): { result: Value, implementations: ScopeBinding[], skippedImplicits: Value[], messages: Message[] } {
   // Find all the implicit parts of the type
-  const [implicitParameters, result] = extractImplicits(value);
+  const [implicitParameters, result] = extractImplicitsParameters(value);
   if (implicitParameters.length === 0) {
     return { result, implementations: [], skippedImplicits: [], messages: [] };
   }
@@ -175,7 +176,7 @@ function getImplicitImplementations(scope: Scope, value: Value): { result: Value
 export function resolveImplicitParameters(typedNode: TypedNode, allowedUnresolved = false): [Message[], TypedNode] {
   // TODO use allowed unresolved
 
-  const { expression, decoration: { scope, type } } = typedNode;
+  const { expression, decoration: { scope, implicitType: type } } = typedNode;
   const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type);
 
   // Recurse through the rest of the tree
@@ -188,14 +189,15 @@ export function resolveImplicitParameters(typedNode: TypedNode, allowedUnresolve
       {
         callee,
         kind: 'Application',
-        parameter: node(identifier(name), { type, scope }),
+        parameter: node(identifier(name), { type: stripImplicits(type), implicitType: type, scope }),
       },
       {
         scope,
-        type: finalType,
+        type: stripImplicits(finalType),
+        implicitType: finalType,
       },
     ),
-    node(resolvedExpression, { type: finalType, scope }),
+    node(resolvedExpression, { type: stripImplicits(finalType), implicitType: finalType, scope }),
   )];
 
   // TODO
