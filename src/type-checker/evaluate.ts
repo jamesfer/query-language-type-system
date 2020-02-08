@@ -97,7 +97,6 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
       const left = evaluateExpression(scope)(expression.left);
       const right = evaluateExpression(scope)(expression.right);
       if (!left || !right) {
-        console.log('Failed to evaluate dual expression');
         return undefined;
       }
       return { left, right, kind: 'DualBinding' };
@@ -106,7 +105,6 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
     case 'DataInstantiation': {
       const name = evaluateExpression(scope)(expression.callee);
       if (!name) {
-        console.log('Failed to evaluate callee of data instantiation', expression.callee);
         return undefined;
       }
 
@@ -118,14 +116,12 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
           name: name,
         };
       }
-      console.log('Failed to evaluate all parameters of a DataInstantiation');
       return undefined;
     }
 
     case 'FunctionExpression': {
       const parameter = evaluateExpression(scope)(expression.parameter);
       if (!parameter) {
-        console.log('Failed to evaluate all parameters of a function expression');
         return undefined;
       }
 
@@ -147,7 +143,6 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
         return { properties, kind: 'RecordLiteral' };
       }
 
-      console.log('Failed to evaluate all properties of a record expression');
       return undefined;
     }
 
@@ -162,7 +157,6 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
     case 'Application': {
       const callee = evaluateExpression(scope)(expression.callee);
       if (!callee) {
-        console.log('Failed to evaluate callee of an application');
         return undefined;
       }
 
@@ -173,7 +167,6 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
 
       const simplifiedCallee = simplify(callee);
       if (simplifiedCallee.kind !== 'FunctionLiteral' && simplifiedCallee.kind !== 'ImplicitFunctionLiteral') {
-        console.log(`Failed to evaluate application because the callee was not a function literal. Actual: ${callee.kind}`);
         return {
           parameter,
           kind: 'ApplicationValue',
@@ -215,7 +208,6 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
     case 'ReadDataPropertyExpression': {
       const dataValue = evaluateExpression(scope)(expression.dataValue);
       if (!dataValue) {
-        console.log('Failed to evaluate read data property expression because the subject was not a data value');
         return undefined;
       }
 

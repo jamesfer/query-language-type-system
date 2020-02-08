@@ -9,6 +9,9 @@ import { Expression } from './types/expression';
 import { Value } from './types/value';
 
 describe('evaluate', () => {
+  it('a', () => {
+    expect(true).toBe(true);
+  });
   // it.each<[string, Expression, Value]>([
   //   ['number', { kind: 'NumberExpression', value: 1 }, { kind: 'NumberLiteral', value: 1 }],
   //   ['string', { kind: 'BooleanExpression', value: true }, { kind: 'BooleanLiteral', value: true }],

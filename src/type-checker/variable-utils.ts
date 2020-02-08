@@ -1,11 +1,12 @@
 import { every, find, flatMap, identity, intersection, mapValues } from 'lodash';
 import { freeVariable, functionType, node } from './constructors';
+import { stripImplicits } from './implicit-utils';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
 import { Scope } from './types/scope';
 import {
   DataValue,
-  DualBinding,
+  DualBinding, ExplicitValue,
   FreeVariable,
   RecordLiteral,
   SymbolLiteral,
@@ -46,7 +47,8 @@ export const recursivelyApplyReplacementsToNode = (replacements: VariableReplace
     recursivelyApplyReplacements(replacements)(expression),
     {
       ...decoration,
-      type: applyReplacements(replacements)(decoration.type)
+      implicitType: applyReplacements(replacements)(decoration.implicitType),
+      type: stripImplicits(applyReplacements(replacements)(decoration.type)),
     },
   );
 };

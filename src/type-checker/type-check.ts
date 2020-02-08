@@ -147,11 +147,9 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     case 'Identifier': {
       const binding = find(scope.bindings, { name: expression.name });
       if (binding) {
-        console.log('found binding for', expression.name);
         return state.wrap(typeNode(expression, scope, copyFreeVariables(binding.type)));
       }
 
-      console.log('creating new identifier for', expression.name);
       // return result(expression, scope, newFreeVariable(`${expression.callee}$typingFreeIdentifier$`));
       return state.wrap(typeNode(expression, scope, freeVariable(expression.name)));
     }

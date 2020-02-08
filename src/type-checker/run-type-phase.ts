@@ -16,7 +16,6 @@ export function runTypePhase(expression: Expression): [Message[], TypedNode] {
 export const runTypePhaseWithoutRename = (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
   const state = new TypeWriter(scope);
   const node = state.run(typeExpression)(expression);
-  console.log('Node', JSON.stringify(node, (key, value) => key === 'scope' ? '[Scope]' : value, 2));
   const [resolvingMessages, resolvedNode] = resolveImplicitParameters(node);
   state.logAll(resolvingMessages);
   return state.wrap(resolvedNode);

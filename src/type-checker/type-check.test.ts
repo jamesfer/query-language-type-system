@@ -161,20 +161,6 @@ describe('typeExpression', () => {
         ],
         dataInstantiation('Serializable', ['a', 'c']),
       )),
-      // data('Serializable', ['a', 'c'], [
-      //   'a',
-      //   dual('c', record({
-      //     valueOf: lambda(
-      //       [
-      //         [apply('Int', ['result']), true],
-      //         [apply('a', ['object']), true],
-      //         'object',
-      //       ],
-      //       'result',
-      //     ),
-      //   }))
-      // ]),
-
       // Declare usable implementation of type class
       bind('valueOf', lambda(
         [
@@ -197,12 +183,6 @@ describe('typeExpression', () => {
           10,
         ),
       })]),
-      // bind(uniqueId(`SerializeImplementation`), apply(identifier('Serialize'), [apply('Color', ['t']), record({
-      //   valueOf: lambda(
-      //     ['color'],
-      //     10,
-      //   ),
-      // })])),
       apply('valueOf', ['Red']),
     );
 

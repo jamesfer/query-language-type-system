@@ -13,7 +13,6 @@ import { extractFreeVariableNames, usesVariable } from './variable-utils';
 
 function findImplementationFor(scope: Scope, parameter: Value): string | undefined {
   const implementations = findMatchingImplementations(scope, parameter);
-  console.log('Implementations', JSON.stringify(implementations, undefined, 2));
   return implementations.length === 1 ? implementations[0].name : undefined;
 }
 

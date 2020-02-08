@@ -1,9 +1,12 @@
 {
   "compilerOptions": {
+    "outDir": "build",
     "strict": true,
     "target": "es2018",
+    "module": "commonjs",
     "esModuleInterop": true,
     "downlevelIteration": true,
+    "moduleResolution": "node",
     "lib": [
       "es2018"
     ]

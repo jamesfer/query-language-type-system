@@ -14,11 +14,9 @@ import { find, flatMap } from 'lodash';
 import { VariableReplacement } from './variable-utils';
 
 export function findMatchingImplementations(scope: Scope, value: Value): ScopeBinding[] {
-  console.log('Resolving implicit value', JSON.stringify(value, undefined, 2));
   const evaluateWithScope = evaluateExpression(scopeToEScope(scope));
   return scope.bindings.filter(binding => {
     const bindingValue = binding.expression ? evaluateWithScope(binding.expression) : binding.type;
-    console.log('- Possible value', JSON.stringify(bindingValue, undefined, 2));
     return bindingValue && canSatisfyShape(scope, value, bindingValue);
     // return (
     //   binding.callee === callee
