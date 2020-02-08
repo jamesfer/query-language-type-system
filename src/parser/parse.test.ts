@@ -48,7 +48,7 @@ describe('parse', () => {
     });
   });
 
-  it('recognises a function expression', () => {
+  it('recognises an implicit function expression', () => {
     expect(parse('implicit a -> implicit b -> c').value).toEqual({
       kind: 'FunctionExpression',
       implicit: true,
@@ -111,11 +111,12 @@ describe('parse', () => {
     });
   });
 
-  it('recognises a record property', () => {
-    expect(parse('10.10').value).toEqual({
+  it('recognises a data value property', () => {
+    const withMessages = parse('10#10');
+    expect(withMessages.value).toEqual({
       kind: 'ReadDataPropertyExpression',
       property: 10,
-      record: {
+      dataValue: {
         kind: 'NumberExpression',
         value: 10,
       },

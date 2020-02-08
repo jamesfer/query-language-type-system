@@ -1,4 +1,4 @@
-import { map, maxBy } from 'lodash';
+import { flatMap, map, max, maxBy } from 'lodash';
 import {
   BindingExpression,
   BooleanExpression,
@@ -22,6 +22,26 @@ function withTokens<T>(tokens: Token[], value: T): WithTokens<T> {
   return { tokens, value };
 }
 
+function mapWithTokens<A, B>(f: (a: A) => B): (result: WithTokens<A>) => WithTokens<B>;
+function mapWithTokens<A, B>(result: WithTokens<A>, f: (a: A) => B): WithTokens<B>;
+function mapWithTokens<A, B>(result: WithTokens<A> | ((a: A) => B), f?: ((a: A) => B)): WithTokens<B> | ((result: WithTokens<A>) => WithTokens<B>) {
+  if (typeof result === 'function') {
+    return (actualResult) => mapWithTokens(actualResult, result);
+  }
+
+  if (!f) {
+    throw new Error('Missing parameter to mapWithTokens');
+  }
+
+  const { tokens, value } = result;
+  return withTokens(tokens, f(value));
+}
+
+function flatMapWithTokens<A, B>({ tokens, value }: WithTokens<A>, f: (a: A) => WithTokens<B>): WithTokens<B> {
+  const { tokens: resultTokens, value: resultValue } = f(value);
+  return withTokens([...tokens, ...resultTokens], resultValue);
+}
+
 export interface WithMessages<T> {
   messages: Message[];
   value: T;
@@ -33,7 +53,7 @@ function withMessages<T>(messages: Message[], value: T): WithMessages<T> {
 
 // export type Interpreter<T> = (tokens: Token[], previous: Expression | undefined) => WithTokens<T> | undefined;
 
-type InterpreterFunction<T> = (tokens: Token[], previous: Expression | undefined) => WithMessages<WithTokens<T> | undefined>
+type InterpreterFunction<T> = (tokens: Token[], previous: Expression | undefined) => WithMessages<WithTokens<T>[]>
 
 export interface Interpreter<T> {
   name: string | undefined;
@@ -42,7 +62,7 @@ export interface Interpreter<T> {
 
 function interpreter<T>(
   name: string | undefined,
-  interpret: (tokens: Token[], previous: Expression | undefined) => WithMessages<WithTokens<T> | undefined>,
+  interpret: InterpreterFunction<T>,
 ): Interpreter<T> {
   return { name, interpret };
 }
@@ -51,16 +71,16 @@ function runInterpreter<T>(
   interpreter: Interpreter<T>,
   tokens: Token[],
   previous: Expression | undefined,
-): WithMessages<WithTokens<T> | undefined> {
+): WithMessages<WithTokens<T>[]> {
   if (!interpreter.name) {
     return interpreter.interpret(tokens, previous);
   }
 
-  const { messages, value: result } = interpreter.interpret(tokens, previous);
+  const { messages, value: results } = interpreter.interpret(tokens, previous);
   const indentedMessages = messages.map(message => `  ${message}`);
   const debugMessage = `${interpreter.name} running on: ${map(tokens, 'value').join(', ')}`;
-  const resultMessage = `${interpreter.name} ${result ? `succeeded (matched ${result.tokens.length} tokens)` : 'failed'}`;
-  return withMessages([debugMessage, ...indentedMessages, resultMessage], result);
+  const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${max(map(results, 'tokens.length'))} tokens)` : 'failed'}`;
+  return withMessages([debugMessage, ...indentedMessages, resultMessage], results);
 }
 
 function doWithState<T>(f: (state: MessageState) => T): WithMessages<T> {
@@ -95,19 +115,15 @@ function matchAll<T1, T2, T3, T4>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: 
 function matchAll<T1, T2, T3, T4, T5>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>): <R>(f: (args: [T1, T2, T3, T4, T5]) => R) => InterpreterFunction<R>;
 function matchAll<T, R>(...interpreters: Interpreter<T>[]): (f: (args: T[]) => R) => InterpreterFunction<R> {
   return (f) => (tokens, previous) => doWithState((state) => {
-    const results: T[] = [];
-    let remainingTokens = tokens;
-    for (const interpreter of interpreters) {
-      const result = state.run(runInterpreter)(interpreter, remainingTokens, previous);
-      if (!result) {
-        return undefined;
-      }
-
-      results.push(result.value);
-      remainingTokens = remainingTokens.slice(result.tokens.length);
-    }
-
-    return withTokens(tokens.slice(0, -remainingTokens.length), f(results));
+    return interpreters.reduce<WithTokens<T[]>[]>(
+      (combinations, interpreter) => flatMap(combinations, (combination) => (
+        state.run(runInterpreter)(interpreter, tokens.slice(combination.tokens.length), previous)
+          .map(result => flatMapWithTokens(combination, combination => (
+            mapWithTokens(result, resultValue => [...combination, resultValue])
+          )))
+      )),
+      [withTokens<T[]>([], [])],
+    ).map(mapWithTokens(f));
   });
 }
 
@@ -122,10 +138,9 @@ function matchAny<T1, T2, T3, T4, T5, T6, T7, T8>(i1: Interpreter<T1>, i2: Inter
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>): InterpreterFunction<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9>;
 function matchAny<T, R>(...interpreters: Interpreter<T>[]): InterpreterFunction<T> {
   return (tokens, previous) => doWithState((state) => {
-    const collection = interpreters.map(interpreter => (
+    return flatMap(interpreters, interpreter => (
       state.run(runInterpreter)(interpreter, tokens, previous)
     ));
-    return maxBy(collection, 'tokens.length');
   });
 }
 
@@ -134,29 +149,26 @@ function matchAny<T, R>(...interpreters: Interpreter<T>[]): InterpreterFunction<
 // }
 
 const matchKeyword = (keyword: string): Interpreter<Token> => interpreter(`matchKeyword(${keyword})`, (tokens, previous) => doWithState((state) => {
-  const result = state.run(runInterpreter)(matchTokens(TokenKind.keyword), tokens, previous);
-  if (!result) {
-    return undefined;
-  }
-
-  const { value: [token] } = result;
-  return token.value === keyword ? withTokens([token], token) : undefined;
+  const results = state.run(runInterpreter)(matchTokens(TokenKind.keyword), tokens, previous);
+  return flatMap(results, ({ value: [token] }): WithTokens<Token>[] => {
+    return token && token.value === keyword ? [withTokens([token], token)] : [];
+  });
 }));
 
 const matchTokens = (...kinds: TokenKind[]): Interpreter<Token[]> => interpreter(`matchTokens(${kinds.join(', ')})`, (tokens) => doWithState(() => {
   if (kinds.every((kind, index) => tokens[index] && tokens[index].kind === kind)) {
     const matchedTokens = tokens.slice(0, kinds.length);
-    return withTokens(matchedTokens, matchedTokens);
+    return [withTokens(matchedTokens, matchedTokens)];
   }
-  return undefined;
+  return [];
 }));
 
 const withPrevious: Interpreter<Expression> = interpreter('withPrevious', (_, previous) => (
-  withMessages([], previous === undefined ? undefined : withTokens([], previous))
+  withMessages([], previous === undefined ? [] : [withTokens([], previous)])
 ));
 
 const withoutPrevious: Interpreter<null> = interpreter('withoutPrevious', (_, previous) => (
-  withMessages([], previous === undefined ? withTokens([], null) : undefined)
+  withMessages([], previous === undefined ? [withTokens([], null)] : [])
 ));
 
 function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T> {
@@ -173,19 +185,16 @@ function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T> {
   }));
 }
 
-function recursivelyMatchExpression(tokens: Token[], previous: Expression | undefined, previousTokens: Token[]): WithMessages<WithTokens<Expression> | undefined> {
+function recursivelyMatchExpression(tokens: Token[], previous: Expression | undefined, previousTokens: Token[]): WithMessages<WithTokens<Expression>[]> {
   return doWithState((state) => {
-    const result = state.run(runInterpreter)(interpretExpressionComponent, tokens, previous);
-    if (!result) {
-      return previous ? withTokens(previousTokens, previous) : undefined;
-    }
-
-    const { value, tokens: resultTokens } = result;
-    return state.run(recursivelyMatchExpression)(
-      tokens.slice(resultTokens.length),
-      value,
-      [...previousTokens, ...resultTokens],
-    );
+    const results = state.run(runInterpreter)(interpretExpressionComponent, tokens, previous);
+    return [...results, ...flatMap(results, ({ value, tokens: resultTokens }) => (
+      state.run(recursivelyMatchExpression)(
+        tokens.slice(resultTokens.length),
+        value,
+        [...previousTokens, ...resultTokens],
+      ))
+    )];
   });
 }
 
@@ -265,7 +274,7 @@ const interpretDual = interpreter('interpretDual', matchAll(
   kind: 'DualExpression',
 })));
 
-const interpretRecordProperty = interpreter('interpretRecordProperty', matchAll(
+const interpretDataProperty = interpreter('interpretDataProperty', matchAll(
   withPrevious,
   matchTokens(TokenKind.hash, TokenKind.number),
 )(([dataValue, [, property]]): ReadDataPropertyExpression => ({
@@ -274,7 +283,7 @@ const interpretRecordProperty = interpreter('interpretRecordProperty', matchAll(
   property: +property.value,
 })));
 
-const interpretDataProperty = interpreter('interpretDataProperty', matchAll(
+const interpretRecordProperty = interpreter('interpretRecordProperty', matchAll(
   withPrevious,
   matchTokens(TokenKind.dot, TokenKind.identifier),
 )(([record, [, property]]): ReadRecordPropertyExpression => ({
@@ -291,8 +300,8 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretImplicitFunction,
   interpretBinding,
   interpretDual,
-  interpretDataProperty,
   interpretRecordProperty,
+  interpretDataProperty,
 )));
 
 
@@ -301,6 +310,7 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
  */
 
 export default function interpretExpression(tokens: Token[]): WithMessages<Expression | undefined> {
-  const { messages, value } = runInterpreter(matchExpression, tokens, undefined);
-  return withMessages(messages, value ? value.value : undefined);
+  const { messages, value: results } = runInterpreter(matchExpression, tokens, undefined);
+  const longestMatch = maxBy(results, 'tokens.length');
+  return withMessages(messages, longestMatch ? longestMatch.value : undefined);
 }
