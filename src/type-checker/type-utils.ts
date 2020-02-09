@@ -121,13 +121,13 @@ function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, chi
 }
 
 function convergeFreeVariable(scope: Scope, freeVariable: FreeVariable, other: Value): VariableReplacement[] | undefined {
+  if (other.kind === 'FreeVariable' && other.name === freeVariable.name) {
+    return [];
+  }
+
   const binding = findBinding(scope, freeVariable.name);
   if (binding) {
     return converge(scope, other, binding.type);
-  }
-
-  if (other.kind === 'DualBinding') {
-    return convergeDualBinding(scope, other, freeVariable);
   }
 
   return [{ from: freeVariable.name, to: other }];
@@ -138,7 +138,15 @@ function convergeFreeVariable(scope: Scope, freeVariable: FreeVariable, other: V
  * based on any corresponding value in the value. Returns undefined if the two parameters are not
  * compatible.
  */
-function converge(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined {
+export function converge(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined {
+  if (shape.kind === 'DualBinding') {
+    return convergeDualBinding(scope, shape, child);
+  }
+
+  if (child.kind === 'DualBinding') {
+    return convergeDualBinding(scope, child, shape);
+  }
+
   if (shape.kind === 'FreeVariable') {
     return convergeFreeVariable(scope, shape, child);
   }

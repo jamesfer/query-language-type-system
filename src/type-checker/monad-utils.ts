@@ -1,3 +1,4 @@
+import { expandScope } from './constructors';
 import { Message } from './types/message';
 import { VariableReplacement } from './variable-utils';
 import { Scope } from './types/scope';
@@ -13,8 +14,12 @@ export class WriterMonad<S> {
     private combine: (current: S, next: S) => S,
   ) {}
 
-  append<V>({ state, value }: WriterResult<S, V>): V {
+  update(state: S): void {
     this.state = this.combine(this.state, state);
+  }
+
+  append<V>({ state, value }: WriterResult<S, V>): V {
+    this.update(state);
     return value;
   }
 
@@ -61,9 +66,20 @@ export class TypeWriter extends WriterMonad<TypeState> {
     this.state = [this.messages, newScope];
   }
 
+  expandScope(newScope: Scope): void {
+    this.state = [this.messages, expandScope(this.scope, newScope)];
+  }
+
   // run<V>(f: (scope: Scope) => TypeResult<V>): V;
   run<V, A extends any[]>(f: (scope: Scope) => (...args: A) => TypeResult<V>): (...args: A) => V {
     return (...args) => this.append(f(this.scope)(...args));
+  }
+
+  withChildScope<T>(f: (state: TypeWriter) => TypeResult<T>): T {
+    const childWriter = new TypeWriter(this.scope);
+    const { state: [messages], value } = f(childWriter);
+    this.update([messages, this.scope]);
+    return value;
   }
 
   static emptyTypeState(scope: Scope = { bindings: [] }): TypeState {

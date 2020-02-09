@@ -1,16 +1,10 @@
-import {
-  dataValue,
-  eScopeBinding,
-  eScopeShapeBinding,
-  expandScope,
-  scopeBinding,
-} from './constructors';
+import { find, flatMap } from 'lodash';
+import { eScopeBinding, eScopeShapeBinding, expandScope, scopeBinding } from './constructors';
 import { evaluateExpression } from './evaluate';
 import { canSatisfyShape } from './type-utils';
 import { EvaluationScope } from './types/evaluation-scope';
 import { Scope, ScopeBinding } from './types/scope';
 import { Value } from './types/value';
-import { find, flatMap } from 'lodash';
 import { VariableReplacement } from './variable-utils';
 
 export function findMatchingImplementations(scope: Scope, value: Value): ScopeBinding[] {

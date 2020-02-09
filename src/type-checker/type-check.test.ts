@@ -1,4 +1,3 @@
-import { uniqueId } from 'lodash';
 import { runTypePhase } from './run-type-phase';
 import { stripNode } from './strip-nodes';
 import { typeExpression } from './type-check';

@@ -1,9 +1,11 @@
-import { flatMap } from 'lodash';
+import { flatMap, map, partition } from 'lodash';
 import { functionType } from './constructors';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
+import { Scope } from './types/scope';
 import { ExplicitValue, Value } from './types/value';
 import { assertNever } from './utils';
+import { extractFreeVariableNames, usesVariable } from './variable-utils';
 import { unfoldParameters, visitAndTransformValue } from './visitor-utils';
 
 const extractImplicitParametersFromNode = (depth: number) => (node: TypedNode): Value[] => {
@@ -87,4 +89,13 @@ export const stripImplicits = visitAndTransformValue<ExplicitValue>(shallowStrip
 
 export function stripAllImplicits(types: Value[]): ExplicitValue[] {
   return types.map(stripImplicits);
+}
+
+/**
+ * Splits a list of values into two lists. The first contains all the values that use at least one
+ * free variable in common with relating value. The second shares no free variables.
+ */
+export function partitionUnrelatedValues(valueList: Value[], relatingValue: Value): [Value[], Value[]] {
+  const freeVariables = extractFreeVariableNames(relatingValue);
+  return partition(valueList, usesVariable(freeVariables));
 }

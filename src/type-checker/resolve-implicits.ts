@@ -1,6 +1,10 @@
 import { flatMap, flatten, mapValues, partition } from 'lodash';
 import { functionType, identifier, node } from './constructors';
-import { extractImplicitsParameters, stripImplicits } from './implicit-utils';
+import {
+  extractImplicitsParameters,
+  partitionUnrelatedValues,
+  stripImplicits,
+} from './implicit-utils';
 import { findMatchingImplementations } from './scope-utils';
 import { TypedDecoration, TypedNode } from './type-check';
 import { areAllPairsSubtypes } from './type-utils';
@@ -92,20 +96,6 @@ function iterateExpression(expression: Expression<TypedNode>, type: Value): [Mes
       }];
     }
 
-    // case 'ImplementExpression':
-    //   return {
-    //     ...expression,
-    //     parameters: expression.parameters.map(resolveImplicitParameters),
-    //     body: resolveImplicitParameters(expression.body),
-    //   };
-
-    // case 'DataDeclaration':
-    //   return {
-    //     ...expression,
-    //     parameters: expression.parameters.map(resolveImplicitParameters),
-    //     body: resolveImplicitParameters(expression.body),
-    //   };
-
     default:
       return assertNever(expression);
   }
@@ -122,11 +112,8 @@ function getImplicitImplementations(scope: Scope, value: Value): { result: Value
     return { result, implementations: [], skippedImplicits: [], messages: [] };
   }
 
-  // Find all unbound variables in the non-implicit part of the type
-  const freeVariables = extractFreeVariableNames(result);
-
   // Find all the implicit parts of the type that only mention unbound parameters not in the above list
-  const [skippedImplicits, implicitsToFill] = partition(implicitParameters, usesVariable(freeVariables));
+  const [skippedImplicits, implicitsToFill] = partitionUnrelatedValues(implicitParameters, result);
   if (implicitsToFill.length === 0) {
     return { result, skippedImplicits, implementations: [], messages: [] };
   }

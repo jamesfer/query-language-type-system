@@ -13,12 +13,16 @@ import {
   symbol,
 } from './constructors';
 import { evaluateExpression } from './evaluate';
-import { extractImplicitParameters, stripImplicits } from './implicit-utils';
+import {
+  extractImplicitParameters,
+  partitionUnrelatedValues,
+  stripImplicits,
+} from './implicit-utils';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { runTypePhaseWithoutRename } from './run-type-phase';
-import { scopeToEScope } from './scope-utils';
+import { addReplacementsToScope, scopeToEScope } from './scope-utils';
 import { stripNode } from './strip-nodes';
-import { fitsShape, newFreeVariable } from './type-utils';
+import { converge, newFreeVariable } from './type-utils';
 import {
   DataInstantiation,
   Expression,
@@ -28,10 +32,14 @@ import {
 import { Message } from './types/message';
 import { Node } from './types/node';
 import { Scope } from './types/scope';
-import { DataValue, ExplicitValue, Value } from './types/value';
+import { DataValue, ExplicitValue, FreeVariable, Value } from './types/value';
 import { assertNever } from './utils';
-import { applyReplacements, getBindingsFromValue } from './variable-utils';
-import { visitNodes, visitValue } from './visitor-utils';
+import {
+  applyReplacements,
+  getBindingsFromValue,
+  recursivelyApplyReplacementsToNode,
+} from './variable-utils';
+import { visitNodes, visitValue, visitValueWithState } from './visitor-utils';
 
 export interface TypedDecoration {
   type: ExplicitValue;
@@ -65,9 +73,15 @@ function getTypeDecorations(nodes: TypedNode[]): Value[] {
   return nodes.map(node => node.decoration.type);
 }
 
-const copyFreeVariables = visitValue({
-  after(value: Value) {
-    return value.kind === 'FreeVariable' ? newFreeVariable(`${value.name}$copy$`) : value;
+const copyFreeVariables = visitValueWithState<{ [k: string]: FreeVariable }>({}, {
+  after([state, value]) {
+    if (value.kind === 'FreeVariable') {
+      if (!state[value.name]) {
+        state[value.name] = newFreeVariable(`${value.name}$copy$`);
+      }
+      return [state, state[value.name]];
+    }
+    return [state, value];
   },
 });
 
@@ -129,14 +143,19 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
         throw new Error(`Failed to evaluate expression: ${JSON.stringify(expression.parameter, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
       }
 
-      const bindings = getBindingsFromValue(parameter)
-        .map(({ from, to }) => scopeBinding(from, scope, to));
-      state.updateScope(expandScope(state.scope, { bindings }));
+      const body = state.withChildScope((innerState) => {
+        innerState.expandScope({
+          bindings: getBindingsFromValue(parameter).map(({ from, to }) => (
+            scopeBinding(from, scope, to)
+          )),
+        });
 
-      // TODO return inferred variables from typeExpression so that the types of parameters can be
-      //      checked. I think this has been accomplished with the new scope behaviour, but need to
-      //      double check.
-      const body = state.run(typeExpression)(expression.body);
+        // TODO return inferred variables from typeExpression so that the types of parameters can be
+        //      checked. I think this has been accomplished with the new scope behaviour, but need to
+        //      double check.
+        return typeExpression(innerState.scope)(expression.body);
+      });
+
       return state.wrap(typeNode(
         { ...expression, body },
         scope,
@@ -164,20 +183,29 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
         return result(expressionNode, scope, dataValue('Any'), [`Cannot call a ${calleeType.kind}`]);
       }
 
-      if (!state.run(fitsShape)(calleeType.parameter, parameter.decoration.type)) {
+      const replacements = converge(state.scope, calleeType.parameter, parameter.decoration.type);
+      if (!replacements) {
         return result(expressionNode, scope, dataValue('Any'), ['Given parameter did not match expected shape']);
       }
 
+      const newCallee = recursivelyApplyReplacementsToNode(replacements)(callee);
+
       // Apply replacements to all children and implicits
-      return state.wrap(typeNode(expressionNode, scope, calleeType.body));
+      return state.wrap(typeNode({ ...expressionNode, callee: newCallee }, scope, calleeType.body));
     }
 
     case 'BindingExpression': {
       const valueNode = state.run(typeExpression)(expression.value);
 
       // Extract implicit parameters from all children on the value
-      const valueImplicits = extractImplicitParameters(valueNode);
-      const implicitParameters = valueImplicits.map(value => dualBinding(newFreeVariable('implicitBinding$'), value));
+      const valueList = extractImplicitParameters(valueNode);
+      const [valueImplicits] = partitionUnrelatedValues(
+        valueList,
+        valueNode.decoration.type,
+      );
+      const implicitParameters = valueImplicits.map(value => (
+        dualBinding(newFreeVariable('implicitBinding$'), value)
+      ));
 
       // Add implicits to every scope so they can be discovered by the `resolveImplicitParameters`
       // function
@@ -206,9 +234,9 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       const expressionNode = {
         ...expression,
         value: {
-          ...valueNode,
+          ...newValueNode,
           decoration: {
-            ...valueNode.decoration,
+            ...newValueNode.decoration,
             implicitType: newType,
           },
         },

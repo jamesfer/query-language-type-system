@@ -230,7 +230,7 @@ export const visitAndTransformValue = <T>(visitor: (value: Value<T>) => T extend
   return visitor(visitAndTransformChildValues(visitAndTransformValue(visitor))(value))
 };
 
-export const visitValueWithState = <S>(initial: S, visitor: Visitor<[S, Value]>) => (value: Value): S => {
+export const visitValueForState = <S>(initial: S, visitor: Visitor<[S, Value]>) => (value: Value): S => {
   let state = initial;
   const wrap = (visitor: (s: [S, Value]) => [S, Value]) => (value: Value) => {
     const [newState, newValue] = visitor([state, value]);
@@ -242,4 +242,17 @@ export const visitValueWithState = <S>(initial: S, visitor: Visitor<[S, Value]>)
     after: visitor.after ? wrap(visitor.after) : undefined,
   })(value);
   return state;
+};
+
+export const visitValueWithState = <S>(initial: S, visitor: Visitor<[S, Value]>) => (value: Value): Value => {
+  let state = initial;
+  const wrap = (visitor: (s: [S, Value]) => [S, Value]) => (value: Value) => {
+    const [newState, newValue] = visitor([state, value]);
+    state = newState;
+    return newValue;
+  };
+  return visitValue({
+    before: visitor.before ? wrap(visitor.before) : undefined,
+    after: visitor.after ? wrap(visitor.after) : undefined,
+  })(value);
 };
