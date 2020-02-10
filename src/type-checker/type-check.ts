@@ -32,7 +32,7 @@ import {
 import { Message } from './types/message';
 import { Node } from './types/node';
 import { Scope } from './types/scope';
-import { DataValue, ExplicitValue, FreeVariable, Value } from './types/value';
+import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
 import { assertNever } from './utils';
 import {
   applyReplacements,
@@ -191,7 +191,11 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       const newCallee = recursivelyApplyReplacementsToNode(replacements)(callee);
 
       // Apply replacements to all children and implicits
-      return state.wrap(typeNode({ ...expressionNode, callee: newCallee }, scope, calleeType.body));
+      return state.wrap(typeNode(
+        { ...expressionNode, callee: newCallee },
+        scope,
+        (newCallee.decoration.type as FunctionLiteral).body),
+      );
     }
 
     case 'BindingExpression': {

@@ -162,6 +162,10 @@ function getImplicitImplementations(scope: Scope, value: Value): { result: Value
 export function resolveImplicitParameters(typedNode: TypedNode, allowedUnresolved = false): [Message[], TypedNode] {
   // TODO use allowed unresolved
 
+  if (typedNode.expression.kind === 'Application' && typedNode.expression.callee.expression.kind === 'Identifier' && typedNode.expression.callee.expression.name === 'go') {
+    console.log(1);
+  }
+
   const { expression, decoration: { scope, implicitType: type } } = typedNode;
   const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type);
 
