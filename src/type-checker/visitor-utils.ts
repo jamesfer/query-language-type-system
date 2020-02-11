@@ -113,6 +113,7 @@ export const visitChildValues = (visitor: Visitor<Value>) => (value: Value): Val
       return {
         ...value,
         parameters: value.parameters.map(visitValue(visitor)),
+        name: visitValue(visitor)(value.name),
       };
 
     case 'RecordLiteral':

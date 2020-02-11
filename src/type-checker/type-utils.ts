@@ -162,13 +162,13 @@ export function converge(scope: Scope, shape: Value, child: Value): VariableRepl
  * Runs `converge` but then adds the generated replacements to the scope and just returns true or
  * false based on whether the values could be converged.
  */
-export const fitsShape = (scope: Scope) => (shape: Value, child: Value): TypeResult<boolean> => {
-  const replacements = converge(scope, shape, child);
-  return TypeWriter.wrapWithScope(
-    replacements ? addReplacementsToScope(scope, replacements) : scope,
-    !!replacements,
-  );
-};
+// export const fitsShape = (scope: Scope) => (shape: Value, child: Value): TypeResult<boolean> => {
+//   const replacements = converge(scope, shape, child);
+//   return TypeWriter.wrapWithScope(
+//     replacements ? addReplacementsToScope(scope, replacements) : scope,
+//     !!replacements,
+//   );
+// };
 
 /**
  * Looks at all the free variables in the shape and generates an expression represents each variable

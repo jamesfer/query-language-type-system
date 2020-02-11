@@ -163,7 +163,7 @@ describe('typeExpression', () => {
       // Declare usable implementation of type class
       bind('valueOf', lambda(
         [
-          [apply('Serializable', ['a', 'z']), true],
+          [apply('Serializable', [dataInstantiation('a', ['object']), 'z']), true],
           [dataInstantiation('a', ['object']), true],
           // TODO if functions were correctly curried in all places, then we probably wouldn't need
           //      to accept an 'value' parameter here, which would mean this method acts kind of

@@ -96,6 +96,16 @@ export function stripAllImplicits(types: Value[]): ExplicitValue[] {
  * free variable in common with relating value. The second shares no free variables.
  */
 export function partitionUnrelatedValues(valueList: Value[], relatingValue: Value): [Value[], Value[]] {
-  const freeVariables = extractFreeVariableNames(relatingValue);
-  return partition(valueList, usesVariable(freeVariables));
+  let variableNames = extractFreeVariableNames(relatingValue);
+  let allRelated: Value[] = [];
+  let [related, unrelated] = partition(valueList, usesVariable(variableNames));
+  while (related.length > 0) {
+    allRelated = [...allRelated, ...related];
+    variableNames = [...variableNames, ...flatMap(related, extractFreeVariableNames)];
+    ([related, unrelated] = partition(unrelated, usesVariable(variableNames)));
+  }
+  return [allRelated, unrelated];
+
+  // const freeVariables = extractFreeVariableNames(relatingValue);
+  // return partition(valueList, usesVariable(freeVariables));
 }

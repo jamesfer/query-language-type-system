@@ -1,8 +1,8 @@
-import { find, flatMap, map, some, zipObject } from 'lodash';
+import { find, flatMap, map, partition, some, zipObject } from 'lodash';
 import {
   booleanLiteral,
   dataValue,
-  dualBinding,
+  dualBinding, eScopeShapeBinding,
   expandScope,
   freeVariable,
   functionType,
@@ -20,7 +20,7 @@ import {
 } from './implicit-utils';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { runTypePhaseWithoutRename } from './run-type-phase';
-import { addReplacementsToScope, scopeToEScope } from './scope-utils';
+import { expandScopeWithReplacements, scopeToEScope } from './scope-utils';
 import { stripNode } from './strip-nodes';
 import { converge, newFreeVariable } from './type-utils';
 import {
@@ -29,17 +29,17 @@ import {
   FunctionExpression,
   RecordExpression,
 } from './types/expression';
-import { Message } from './types/message';
 import { Node } from './types/node';
 import { Scope } from './types/scope';
 import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
 import { assertNever } from './utils';
 import {
-  applyReplacements,
+  applyReplacements, extractFreeVariableNames,
   getBindingsFromValue,
-  recursivelyApplyReplacementsToNode,
+  recursivelyApplyReplacements,
+  recursivelyApplyReplacementsToNode, usesVariable,
 } from './variable-utils';
-import { visitNodes, visitValue, visitValueWithState } from './visitor-utils';
+import { visitNodes, visitValueWithState } from './visitor-utils';
 
 export interface TypedDecoration {
   type: ExplicitValue;
@@ -49,17 +49,17 @@ export interface TypedDecoration {
 
 export type TypedNode = Node<TypedDecoration>;
 
-function result(
-  expression: Expression<TypedNode>,
-  scope: Scope,
-  implicitType: Value,
-  messages: Message[] = [],
-): TypeResult<TypedNode> {
-  return TypeWriter.createResult(
-    [messages, scope],
-    node(expression, { type: stripImplicits(implicitType), implicitType, scope }),
-  );
-}
+// function result(
+//   expression: Expression<TypedNode>,
+//   scope: Scope,
+//   implicitType: Value,
+//   messages: Message[] = [],
+// ): TypeResult<TypedNode> {
+//   return TypeWriter.createResult(
+//     [messages, []],
+//     node(expression, { type: stripImplicits(implicitType), implicitType, scope }),
+//   );
+// }
 
 function typeNode(
   expression: Expression<TypedNode>,
@@ -84,6 +84,19 @@ const copyFreeVariables = visitValueWithState<{ [k: string]: FreeVariable }>({},
     return [state, value];
   },
 });
+
+function getImplicitsForBinding(valueNode: TypedNode): Value[] {
+  const valueList = extractImplicitParameters(valueNode);
+  let variableNames = extractFreeVariableNames(valueNode.decoration.type);
+  let allRelated: Value[] = [];
+  let [related, unrelated] = partition(valueList, usesVariable(variableNames));
+  while (related.length > 0) {
+    allRelated = [...allRelated, ...related];
+    variableNames = [...variableNames, ...flatMap(related, extractFreeVariableNames)];
+    ([related, unrelated] = partition(unrelated, usesVariable(variableNames)));
+  }
+  return allRelated;
+}
 
 export const typeExpression = (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
   const state = new TypeWriter(scope);
@@ -135,9 +148,9 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     case 'FunctionExpression': {
       // Create a free variable for each parameter
       const node1 = state.run(runTypePhaseWithoutRename)(expression.parameter);
-      const parameter = evaluateExpression(scopeToEScope(state.scope))(
-        stripNode(node1)
-      );
+      const parameter = evaluateExpression(
+        scopeToEScope(state.scope)
+      )(stripNode(node1));
       if (!parameter) {
         // TODO handle undefined parameters that failed to be evaluated
         throw new Error(`Failed to evaluate expression: ${JSON.stringify(expression.parameter, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
@@ -145,15 +158,18 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
 
       const body = state.withChildScope((innerState) => {
         innerState.expandScope({
-          bindings: getBindingsFromValue(parameter).map(({ from, to }) => (
-            scopeBinding(from, scope, to)
-          )),
+          bindings: [
+            ...getBindingsFromValue(parameter).map(({ from, to }) => (
+              scopeBinding(from, scope, to)
+            )),
+            ...state.replacements.map(({ from, to }) => scopeBinding(from, scope, to))
+          ],
         });
 
         // TODO return inferred variables from typeExpression so that the types of parameters can be
         //      checked. I think this has been accomplished with the new scope behaviour, but need to
         //      double check.
-        return typeExpression(innerState.scope)(expression.body);
+        return innerState.run(typeExpression)(expression.body);
       });
 
       return state.wrap(typeNode(
@@ -180,22 +196,23 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
 
       const calleeType = callee.decoration.type;
       if (calleeType.kind !== 'FunctionLiteral') {
-        return result(expressionNode, scope, dataValue('Any'), [`Cannot call a ${calleeType.kind}`]);
+        state.log(`Cannot call a ${calleeType.kind}`);
+        return state.wrap(typeNode(expressionNode, scope, dataValue('Any')));
       }
 
       const replacements = converge(state.scope, calleeType.parameter, parameter.decoration.type);
       if (!replacements) {
-        return result(expressionNode, scope, dataValue('Any'), ['Given parameter did not match expected shape']);
+        state.log('Given parameter did not match expected shape');
+        return state.wrap(typeNode(expressionNode, scope, dataValue('Any')));
       }
 
-      const newCallee = recursivelyApplyReplacementsToNode(replacements)(callee);
-
       // Apply replacements to all children and implicits
+      state.recordReplacements(replacements);
       return state.wrap(typeNode(
-        { ...expressionNode, callee: newCallee },
+        recursivelyApplyReplacements(state.replacements)(expressionNode),
         scope,
-        (newCallee.decoration.type as FunctionLiteral).body),
-      );
+        applyReplacements(state.replacements)(calleeType.body),
+      ));
     }
 
     case 'BindingExpression': {
@@ -203,10 +220,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
 
       // Extract implicit parameters from all children on the value
       const valueList = extractImplicitParameters(valueNode);
-      const [valueImplicits] = partitionUnrelatedValues(
-        valueList,
-        valueNode.decoration.type,
-      );
+      const [valueImplicits] = partitionUnrelatedValues(valueList, valueNode.decoration.type);
       const implicitParameters = valueImplicits.map(value => (
         dualBinding(newFreeVariable('implicitBinding$'), value)
       ));
@@ -227,9 +241,11 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
 
       // Add the binding to the scope so that it can be used in the body
       const newType = functionType(valueNode.decoration.type, implicitParameters.map(parameter => [parameter, true]));
-      const scopeDeclaration = scopeBinding(expression.name, newValueNode.decoration.scope, newType, stripNode(newValueNode));
-      state.updateScope(expandScope(scope, { bindings: [scopeDeclaration] }));
-      const bodyNode = state.run(typeExpression)(expression.body);
+      const bodyNode = state.withChildScope((innerState) => {
+        const binding = scopeBinding(expression.name, newValueNode.decoration.scope, newType, stripNode(newValueNode));
+        innerState.expandScope({ bindings: [binding] });
+        return innerState.run(typeExpression)(expression.body);
+      });
 
       if (some(scope.bindings, { name: expression.name })) {
         state.log(`A variable with the name ${expression.name} already exists`)

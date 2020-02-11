@@ -1273,5 +1273,72 @@ describe('type-utils', () => {
       console.log(canSatisfyShape(s, value, bindingValue));
       expect(canSatisfyShape(s, value, bindingValue)).toBeDefined();
     });
+
+    it('blah 2', () => {
+      const left: Value = {
+        'kind': 'DualBinding',
+        'left': {
+          'name': 'implicitBinding$21$copy$26',
+          'kind': 'FreeVariable',
+        },
+        'right': {
+          'kind': 'DataValue',
+          'name': {
+            'kind': 'SymbolLiteral',
+            'name': 'Serializable',
+          },
+          'parameters': [
+            {
+              'kind': 'SymbolLiteral',
+              'name': 'Color',
+            },
+            {
+              'kind': 'FreeVariable',
+              'name': 'z$rename$9$copy$27',
+            },
+          ],
+        },
+      };
+      const valueOf: Value = {
+        'body': {
+          'name': 'result$rename$6$copy$14$copy$19',
+          'kind': 'FreeVariable',
+        },
+        'parameter': {
+          'name': 'object$rename$7$copy$15$copy$18',
+          'kind': 'FreeVariable',
+        },
+        'kind': 'FunctionLiteral',
+      };
+      const right: Value = {
+        'kind': 'DataValue',
+        'name': {
+          'name': 'Serializable',
+          'kind': 'SymbolLiteral',
+        },
+        'parameters': [
+          {
+            'kind': 'DataValue',
+            'parameters': [
+              {
+                'kind': 'FreeVariable',
+                'name': 't$rename$12',
+              },
+            ],
+            'name': {
+              'kind': 'SymbolLiteral',
+              'name': 'Color',
+            },
+          },
+          {
+            'kind': 'RecordLiteral',
+            'properties': {
+              'valueOf': valueOf,
+            },
+          },
+        ],
+      };
+      expect(canSatisfyShape(scope(), left, right)).toBeDefined();
+    });
   });
 });

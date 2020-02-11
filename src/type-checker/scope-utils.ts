@@ -35,6 +35,15 @@ export function scopeToEScope(scope: Scope): EvaluationScope {
   };
 }
 
+export function expandScopeWithReplacements(scope: EvaluationScope, replacements: VariableReplacement[]) {
+  return {
+    bindings: [
+      ...scope.bindings,
+      ...replacements.map(({ from, to }) => eScopeShapeBinding(from,  to))
+    ],
+  };
+}
+
 export function addReplacementsToScope(scope: Scope, replacements: VariableReplacement[]): Scope {
   return expandScope(scope, {
     bindings: replacements.map(({ from, to }) => scopeBinding(from, scope, to)),

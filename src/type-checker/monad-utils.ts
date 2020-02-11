@@ -32,42 +32,46 @@ export class WriterMonad<S> {
   }
 }
 
-export type TypeState = [Message[], Scope];
+export type TypeState = [Message[], VariableReplacement[]];
 
 export interface TypeResult<V> extends WriterResult<TypeState, V> {}
 
 export class TypeWriter extends WriterMonad<TypeState> {
-  constructor(scope: Scope) {
+  constructor(public scope: Scope) {
     super(
-      TypeWriter.emptyTypeState(scope),
+      TypeWriter.emptyTypeState(),
       ([messages], [newMessages, scope]) => [[...messages, ...newMessages], scope],
     );
 
-    this.state = [this.state[0], scope];
+    this.state = [this.state[0], []];
   }
 
   get messages() {
     return this.state[0];
   }
 
-  get scope() {
+  get replacements()  {
     return this.state[1];
   }
 
   log(message: Message): void {
-    this.state = [[...this.messages, message], this.scope];
+    this.state = [[...this.messages, message], this.replacements];
   }
 
   logAll(messages: Message[]): void {
-    this.state = [[...this.messages, ...messages], this.scope];
+    this.state = [[...this.messages, ...messages], this.replacements];
+  }
+
+  recordReplacements(replacements: VariableReplacement[]): void {
+    this.state = [this.messages, [...this.replacements, ...replacements]];
   }
 
   updateScope(newScope: Scope): void {
-    this.state = [this.messages, newScope];
+    this.scope = newScope;
   }
 
   expandScope(newScope: Scope): void {
-    this.state = [this.messages, expandScope(this.scope, newScope)];
+    this.scope = expandScope(this.scope, newScope);
   }
 
   // run<V>(f: (scope: Scope) => TypeResult<V>): V;
@@ -75,23 +79,23 @@ export class TypeWriter extends WriterMonad<TypeState> {
     return (...args) => this.append(f(this.scope)(...args));
   }
 
-  withChildScope<T>(f: (state: TypeWriter) => TypeResult<T>): T {
+  withChildScope<T>(f: (state: TypeWriter) => T): T {
     const childWriter = new TypeWriter(this.scope);
-    const { state: [messages], value } = f(childWriter);
-    this.update([messages, this.scope]);
-    return value;
+    const result = f(childWriter);
+    this.update(childWriter.state);
+    return result;
   }
 
-  static emptyTypeState(scope: Scope = { bindings: [] }): TypeState {
-    return [[], { bindings: [] }];
+  static emptyTypeState(): TypeState {
+    return [[], []];
   }
 
-  static wrapEmpty<V>(value: V): TypeResult<V> {
-    return WriterMonad.createResult(TypeWriter.emptyTypeState(), value);
-  }
+  // static wrapEmpty<V>(value: V): TypeResult<V> {
+  //   return WriterMonad.createResult(TypeWriter.emptyTypeState(), value);
+  // }
 
-  static wrapWithScope<V>(scope: Scope, value: V): TypeResult<V> {
-    return WriterMonad.createResult([[], scope], value);
-  }
+  // static wrapWithScope<V>(scope: Scope, value: V): TypeResult<V> {
+  //   return WriterMonad.createResult([[], scope], value);
+  // }
 }
 
