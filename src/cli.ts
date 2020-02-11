@@ -95,7 +95,7 @@ async function readFile(filename: string): Promise<string> {
 
 function parseCode(code: string): Expression {
   process.stdout.write('➜ Parsing code...');
-  const [time, expression] = timeFunction(() => parse(code.toString()));
+  const [time, { value: expression }] = timeFunction(() => parse(code.toString()));
   if (!expression) {
     process.stdout.write('\n');
     console.log(chalk.red('✖ Failed to parse code'));
