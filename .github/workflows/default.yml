@@ -1,0 +1,23 @@
+name: Default
+
+on:
+  - push
+
+jobs:
+  build:
+    name: Test on nnode ${{ matrix.nodeVersion }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nodeVersion:
+          - '10'
+          - '12'
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install node ${{ matrix.nodeVersion }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.nodeVersion }}
+      - run: yarn install
+      - run: yarn build
+      - run: yarn test
