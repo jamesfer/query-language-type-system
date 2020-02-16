@@ -1,8 +1,8 @@
 import generate from '@babel/generator';
 import * as types from '@babel/types';
+import { flatMap, initial, last, map } from 'lodash';
 import { identifier } from '../../type-checker/constructors';
-import { Expression } from '../../type-checker/types/expression';
-import { flatMap, map } from 'lodash';
+import { Expression, PatternMatchExpression } from '../../type-checker/types/expression';
 import { assertNever } from '../../type-checker/utils';
 
 const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
@@ -40,12 +40,59 @@ const destructureExpression = (base: Expression) => (value: Expression): [string
     case 'ReadDataPropertyExpression':
     case 'ReadRecordPropertyExpression':
     case 'BindingExpression':
+    case 'PatternMatchExpression':
       return [];
 
     default:
       return assertNever(value);
   }
 };
+
+interface PatternConditions {
+  bindings: { name: string; value: types.Expression }[];
+  conditions: { left: types.Expression, right: types.Expression }[];
+}
+
+
+
+function convertPatternMatchToConditions(value: types.Expression, test: Expression): PatternConditions['conditions'] {
+  switch (test.kind) {
+    case 'NumberExpression':
+    case 'BooleanExpression':
+    case 'SymbolExpression':
+      return [{
+        left: value,
+        right: convertExpressionToCode(test),
+      }];
+
+    case 'RecordExpression':
+      return [
+        {
+          left: types.unaryExpression('typeof', value),
+          right: types.stringLiteral('object'),
+        },
+        ...flatMap(test.properties, (property, name) => (
+          convertPatternMatchToConditions(types.memberExpression(value, name), property)
+        )),
+      ];
+
+    case 'DualExpression':
+      return [
+        ...convertPatternMatchToConditions(value, test.left),
+        ...convertPatternMatchToConditions(value, test.right),
+      ];
+
+    case 'ReadRecordPropertyExpression':
+    case 'ReadDataPropertyExpression':
+    case 'PatternMatchExpression':
+    case 'Application':
+    case 'Identifier':
+    case 'FunctionExpression':
+    case 'DataInstantiation':
+    case 'BindingExpression':
+      return [];
+  }
+}
 
 function convertExpressionToCode(expression: Expression): types.Expression {
   switch (expression.kind) {
@@ -100,6 +147,31 @@ function convertExpressionToCode(expression: Expression): types.Expression {
 
     case 'ReadDataPropertyExpression':
       return types.memberExpression(convertExpressionToCode(expression.dataValue), expression.property);
+
+    case 'PatternMatchExpression': {
+      const jsValue = convertExpressionToCode(expression.value);
+      const patterns = expression.patterns.map(({ test, value }) => ({
+        test,
+        value: convertExpressionToCode(value),
+      }));
+
+      const fallback = last(patterns);
+      if (!fallback) {
+        throw new Error('Tried to print a pattern expression with no viable patterns');
+      }
+
+      // TODO create bindings for all the variables in this pattern
+      return initial(patterns).reduceRight<types.Expression>(
+        (fallback, { test, value }): types.Expression => {
+          const conditions = convertPatternMatchToConditions(jsValue, test)
+            .map(({ left, right }): types.Expression => types.binaryExpression('===', left, right))
+            .reduce((left, right) => types.logicalExpression('&&', left, right));
+          return types.conditionalExpression(conditions, value, fallback);
+        },
+        fallback.value,
+      );
+    }
+
 
     default:
       return assertNever(expression);
