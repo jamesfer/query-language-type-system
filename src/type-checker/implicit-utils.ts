@@ -51,6 +51,11 @@ const extractImplicitParametersFromExpression = (depth: number) => (expression: 
     case 'ReadDataPropertyExpression':
       return extractNextImplicits(expression.dataValue);
 
+    case 'PatternMatchExpression':
+      return [...extractNextImplicits(expression.value), ...flatMap(expression.patterns, ({ test, value }) => (
+        [...extractNextImplicits(test), ...extractNextImplicits(value)]
+      ))];
+
     default:
       return assertNever(expression);
   }

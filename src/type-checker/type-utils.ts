@@ -111,6 +111,7 @@ function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, chi
       return [...calleeReplacements, ...parameterReplacements];
     }
 
+    case 'PatternMatchValue':
     case 'ReadDataValueProperty':
     case 'ReadRecordProperty':
       return undefined;
@@ -223,6 +224,7 @@ export function destructureValue(shape: Value, value: Value): VariableReplacemen
     case 'FunctionLiteral':
     case 'ImplicitFunctionLiteral':
     case 'ApplicationValue':
+    case 'PatternMatchValue':
       return [];
 
     default:

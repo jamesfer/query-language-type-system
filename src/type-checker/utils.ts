@@ -1,5 +1,5 @@
 import { AssertionError } from 'assert';
-import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith } from 'lodash';
+import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith, concat } from 'lodash';
 
 export function assertNever(x: never): never {
   throw new Error('Assert never was actually called');
@@ -130,25 +130,48 @@ export function permuteArrays<T>(arrays: T[][]): T[][] {
   return permuteArraysRecursive(rest, current.map(value => [value]));
 }
 
-export const accumulateStateWith = <S, T, R>(initial: S, accumulate: (left: S, right: S) => S) => (func: (arg: T) => S): [() => S, (arg: T) => T] => {
+const accumulateStateWith = <S, T, R>(initial: S, accumulate: (left: S, right: S) => S) => (func: (arg: T) => [S, R]): [() => S, (arg: T) => R] => {
   let state = initial;
   return [
     () => state,
     (arg) => {
-      state = accumulate(state, func(arg));
-      return arg;
+      const [newState, result] = func(arg);
+      state = accumulate(state, newState);
+      return result;
     },
   ];
 };
 
-export function accumulateStates<S, T, R>(func: (arg: T) => S[]): [() => S[], (arg: T) => T] {
-  return accumulateStateWith<S[], T, R>([], (left, right) => [...left, ...right])(func);
+function resultWithArg<A, T>(f: (arg: A) => T): (arg: A) => [T, A] {
+  return arg => [f(arg), arg];
 }
 
-export function accumulateStatesUsingAnd<S, T, R>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
-  return accumulateStateWith<boolean, T, R>(true, (left, right) => left && right)(func);
+export function accumulateStates<S, T>(func: (arg: T) => S[]): [() => S[], (arg: T) => T] {
+  return accumulateStateWith<S[], T, T>([], concat)(resultWithArg(func));
 }
 
-export function accumulateStatesUsingOr<S, T, R>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
-  return accumulateStateWith<boolean, T, R>(false, (left, right) => left || right)(func);
+export function accumulateStatesWithResult<S, T, R>(func: (arg: T) => [S[], R]): [() => S[], (arg: T) => R] {
+  return accumulateStateWith<S[], T, R>([], concat)(func);
+}
+
+export function accumulateStatesUsingAnd<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
+  return accumulateStateWith<boolean, T, T>(true, (left, right) => left && right)(resultWithArg(func));
+}
+
+export function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
+  return accumulateStateWith<boolean, T, T>(false, (left, right) => left || right)(resultWithArg(func));
+}
+
+export function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined): [T, R] | undefined {
+  let result: R | undefined = undefined;
+  let found = list.find(element => {
+    result = f(element);
+    return result;
+  });
+
+  if (found === undefined || result === undefined) {
+    return undefined;
+  }
+
+  return [found, result]
 }

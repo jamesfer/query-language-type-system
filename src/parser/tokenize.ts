@@ -12,6 +12,7 @@ export enum TokenKind {
   dot = 'dot',
   hash = 'hash',
   equals = 'equals',
+  bar = 'bar',
   openParen = 'openParen',
   closeParen = 'closeParen',
   // openBracket,
@@ -28,7 +29,7 @@ const rules: moo.Rules = {
   [TokenKind.identifier]: {
     match: /[a-zA-Z_][a-zA-Z0-9_]*/,
     type: moo.keywords({
-      [TokenKind.keyword]: ['let', 'implicit'],
+      [TokenKind.keyword]: ['let', 'implicit', 'match'],
       [TokenKind.boolean]: ['true', 'false'],
     }),
   },
@@ -39,6 +40,7 @@ const rules: moo.Rules = {
   [TokenKind.dot]: '.',
   [TokenKind.hash]: '#',
   [TokenKind.equals]: '=',
+  [TokenKind.bar]: '|',
   [TokenKind.openParen]: '(',
   [TokenKind.closeParen]: ')',
 };

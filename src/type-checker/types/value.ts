@@ -33,6 +33,15 @@ export interface ReadDataValueProperty<T = Value> {
   dataValue: T;
 }
 
+export interface PatternMatchValue<T = Value> {
+  kind: 'PatternMatchValue';
+  value: T;
+  patterns: {
+    test: T;
+    value: T;
+  }[];
+}
+
 /**
  * Literals
  */
@@ -78,6 +87,7 @@ export type Value<T = void> =
   | ReadRecordPropertyValue<T extends void ? Value : T>
   | FunctionLiteral<T extends void ? Value : T>
   | ImplicitFunctionLiteral<T extends void ? Value : T>
+  | PatternMatchValue<T extends void ? Value : T>
   | FreeVariable
   | SymbolLiteral
   | NumberLiteral
@@ -91,6 +101,7 @@ export type ExplicitValue<T = void> =
   | ReadDataValueProperty<T extends void ? ExplicitValue : T>
   | ReadRecordPropertyValue<T extends void ? ExplicitValue : T>
   | FunctionLiteral<T extends void ? ExplicitValue : T>
+  | PatternMatchValue<T extends void ? ExplicitValue : T>
   | FreeVariable
   | SymbolLiteral
   | NumberLiteral

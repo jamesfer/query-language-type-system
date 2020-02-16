@@ -1,4 +1,4 @@
-import { flatMap, map, max, maxBy } from 'lodash';
+import { flatMap, map, max, maxBy, partition } from 'lodash';
 import {
   BindingExpression,
   BooleanExpression,
@@ -7,10 +7,12 @@ import {
   FunctionExpression,
   Identifier,
   NumberExpression,
+  PatternMatchExpression,
   ReadDataPropertyExpression,
   ReadRecordPropertyExpression,
 } from '../type-checker/types/expression';
 import { Message } from '../type-checker/types/message';
+import { checkedZip } from '../type-checker/utils';
 import { Token, TokenKind } from './tokenize';
 
 export interface WithTokens<T> {
@@ -50,8 +52,6 @@ export interface WithMessages<T> {
 function withMessages<T>(messages: Message[], value: T): WithMessages<T> {
   return { messages, value };
 }
-
-// export type Interpreter<T> = (tokens: Token[], previous: Expression | undefined) => WithTokens<T> | undefined;
 
 type InterpreterFunction<T> = (tokens: Token[], previous: Expression | undefined) => WithMessages<WithTokens<T>[]>
 
@@ -127,26 +127,57 @@ function matchAll<T, R>(...interpreters: Interpreter<T>[]): (f: (args: T[]) => R
   });
 }
 
-function matchAny<T1>(i1: Interpreter<T1>): InterpreterFunction<T1>;
-function matchAny<T1, T2>(i1: Interpreter<T1>, i2: Interpreter<T2>): InterpreterFunction<T1 | T2>;
-function matchAny<T1, T2, T3>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>): InterpreterFunction<T1 | T2 | T3>;
-function matchAny<T1, T2, T3, T4>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>): InterpreterFunction<T1 | T2 | T3 | T4>;
-function matchAny<T1, T2, T3, T4, T5>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>): InterpreterFunction<T1 | T2 | T3 | T4 | T5>;
-function matchAny<T1, T2, T3, T4, T5, T6>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, i6: Interpreter<T6>): InterpreterFunction<T1 | T2 | T3 | T4 | T5 | T6>;
-function matchAny<T1, T2, T3, T4, T5, T6, T7>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>): InterpreterFunction<T1 | T2 | T3 | T4 | T5 | T6 | T7>;
-function matchAny<T1, T2, T3, T4, T5, T6, T7, T8>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>): InterpreterFunction<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8>;
-function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>): InterpreterFunction<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9>;
-function matchAny<T, R>(...interpreters: Interpreter<T>[]): InterpreterFunction<T> {
-  return (tokens, previous) => doWithState((state) => {
+function matchAny<T1>(i1: Interpreter<T1>): Interpreter<T1>;
+function matchAny<T1, T2>(i1: Interpreter<T1>, i2: Interpreter<T2>): Interpreter<T1 | T2>;
+function matchAny<T1, T2, T3>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>): Interpreter<T1 | T2 | T3>;
+function matchAny<T1, T2, T3, T4>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>): Interpreter<T1 | T2 | T3 | T4>;
+function matchAny<T1, T2, T3, T4, T5>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>): Interpreter<T1 | T2 | T3 | T4 | T5>;
+function matchAny<T1, T2, T3, T4, T5, T6>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, i6: Interpreter<T6>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10>;
+function matchAny<T, R>(...interpreters: Interpreter<T>[]): Interpreter<T> {
+  return interpreter(undefined, (tokens, previous) => doWithState((state) => {
     return flatMap(interpreters, interpreter => (
       state.run(runInterpreter)(interpreter, tokens, previous)
     ));
-  });
+  }));
 }
 
-// function optionallyMatch<T>(interpreter: Interpreter<T>): Interpreter<T | undefined> {
-//   return (tokens, previous) => interpreter(tokens, previous) || withTokens([], undefined);
-// }
+function matchRepeated<T>(childInterpreter: Interpreter<T>): Interpreter<T[]> {
+  return interpreter(undefined, (tokens, previous) => doWithState((state) => {
+    let completedMatches: WithTokens<T[]>[] = [];
+    let previousMatches: WithTokens<T[]>[] = [];
+
+    // Initially run the interpreter against the tokens
+    previousMatches = state.run(runInterpreter)(childInterpreter, tokens, previous)
+      .map(({ tokens, value }) => withTokens(tokens, [value]));
+
+    while (previousMatches.length > 0) {
+      // Find more matches for each of the existing possibilities
+      const nextMatches = previousMatches.map(({ tokens: usedTokens }) => (
+        state.run(runInterpreter)(childInterpreter, tokens.slice(usedTokens.length), previous)
+      ));
+      const [failedMatches, successfulMatches] = partition(
+        checkedZip(previousMatches, nextMatches),
+        ([, nextResults]) => nextResults.length === 0,
+      );
+
+      // Add each of the failed to matches to the completed list
+      completedMatches = [...completedMatches, ...map(failedMatches, '0')];
+
+      // Add the successful matches to the previous matches to continue searching for them
+      previousMatches = flatMap(successfulMatches, ([previousResult, nextResults]) => (
+        nextResults.map(nextResult => flatMapWithTokens(previousResult, previousValues => (
+          mapWithTokens(nextResult, nextValue => [...previousValues, nextValue])
+        )))
+      ));
+    }
+
+    return completedMatches;
+  }));
+}
 
 const matchKeyword = (keyword: string): Interpreter<Token> => interpreter(`matchKeyword(${keyword})`, (tokens, previous) => doWithState((state) => {
   const results = state.run(runInterpreter)(matchTokens(TokenKind.keyword), tokens, previous);
@@ -292,7 +323,23 @@ const interpretRecordProperty = interpreter('interpretRecordProperty', matchAll(
   property: property.value,
 })));
 
-const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoops(interpreter(undefined, matchAny(
+const interpretPatternMatch = interpreter('interpretPatternMatch', matchAll(
+  withoutPrevious,
+  matchKeyword('match'),
+  matchExpression,
+  matchRepeated(interpreter(undefined, matchAll(
+    matchTokens(TokenKind.bar),
+    matchExpression,
+    matchTokens(TokenKind.equals),
+    matchExpression,
+  )(a => a))),
+)(([, , value, patterns]): PatternMatchExpression => ({
+  value,
+  kind: 'PatternMatchExpression',
+  patterns: patterns.map(([, test, , value]) => ({ test, value })),
+})));
+
+const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoops(matchAny(
   interpretBoolean,
   interpretNumber,
   interpretIdentifier,
@@ -302,7 +349,8 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretDual,
   interpretRecordProperty,
   interpretDataProperty,
-)));
+  interpretPatternMatch,
+));
 
 
 /**

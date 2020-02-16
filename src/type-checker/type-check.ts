@@ -2,7 +2,7 @@ import { find, flatMap, map, partition, some, zipObject } from 'lodash';
 import {
   booleanLiteral,
   dataValue,
-  dualBinding, eScopeShapeBinding,
+  dualBinding,
   expandScope,
   freeVariable,
   functionType,
@@ -20,7 +20,7 @@ import {
 } from './implicit-utils';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { runTypePhaseWithoutRename } from './run-type-phase';
-import { expandScopeWithReplacements, scopeToEScope } from './scope-utils';
+import { scopeToEScope } from './scope-utils';
 import { stripNode } from './strip-nodes';
 import { converge, newFreeVariable } from './type-utils';
 import {
@@ -34,10 +34,11 @@ import { Scope } from './types/scope';
 import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
 import { assertNever } from './utils';
 import {
-  applyReplacements, extractFreeVariableNames,
+  applyReplacements,
+  extractFreeVariableNames,
   getBindingsFromValue,
   recursivelyApplyReplacements,
-  recursivelyApplyReplacementsToNode, usesVariable,
+  usesVariable,
 } from './variable-utils';
 import { visitNodes, visitValueWithState } from './visitor-utils';
 
@@ -48,18 +49,6 @@ export interface TypedDecoration {
 }
 
 export type TypedNode = Node<TypedDecoration>;
-
-// function result(
-//   expression: Expression<TypedNode>,
-//   scope: Scope,
-//   implicitType: Value,
-//   messages: Message[] = [],
-// ): TypeResult<TypedNode> {
-//   return TypeWriter.createResult(
-//     [messages, []],
-//     node(expression, { type: stripImplicits(implicitType), implicitType, scope }),
-//   );
-// }
 
 function typeNode(
   expression: Expression<TypedNode>,
@@ -324,6 +313,53 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
         expressionNode,
         scope,
         resultType ? resultType : dataValue('void'),
+      ));
+    }
+
+    case 'PatternMatchExpression': {
+      const value = state.run(typeExpression)(expression.value);
+      const patterns = expression.patterns.map(({ test, value }) => {
+        const testNode = state.run(runTypePhaseWithoutRename)(test);
+        const evaluatedTest = evaluateExpression(scopeToEScope(state.scope))(stripNode(testNode));
+        if (!evaluatedTest) {
+          // TODO handle undefined parameters that failed to be evaluated
+          throw new Error(`Failed to evaluate expression: ${JSON.stringify(test, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
+        }
+
+        const valueNode = state.withChildScope((innerState) => {
+          innerState.expandScope({
+            bindings: [
+              ...getBindingsFromValue(evaluatedTest).map(({ from, to }) => (
+                scopeBinding(from, scope, to)
+              )),
+              ...state.replacements.map(({ from, to }) => scopeBinding(from, scope, to))
+            ],
+          });
+
+          // TODO return inferred variables from typeExpression so that the types of parameters can be
+          //      checked. I think this has been accomplished with the new scope behaviour, but need to
+          //      double check.
+          return innerState.run(typeExpression)(value);
+        });
+
+        return { test: testNode, value: valueNode };
+      });
+
+
+      // TODO Check that all the values have the same type
+
+      // TODO check that all the tests are the same type as the input value
+
+      // TODO check that there are no holes in the tests
+
+      if (patterns.length === 0) {
+        state.log('Require at least one pattern in match expression');
+      }
+
+      return state.wrap(typeNode(
+        { ...expression, value, patterns },
+        scope,
+        patterns.length > 0 ? patterns[0].value.decoration.type : dataValue('void'),
       ));
     }
 
