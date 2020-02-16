@@ -54,6 +54,11 @@ const prettyPrintValue = visitAndTransformValue<string>((value): string => {
     case 'BooleanLiteral':
       return value.value ? 'true' : 'false';
 
+    case 'PatternMatchValue': {
+      const patterns = value.patterns.map(({ test, value }) => `  | ${test} = ${value}`);
+      return `${value.value}\n${patterns.join('')}`;
+    }
+
     default:
       return assertNever(value);
   }
