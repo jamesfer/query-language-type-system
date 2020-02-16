@@ -1,23 +1,21 @@
 name: Default
-
-on:
-  - push
-
+on: push
 jobs:
   build:
-    name: Test on node ${{ matrix.nodeVersion }}
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        nodeVersion:
-          - '10'
-          - '12'
     steps:
       - uses: actions/checkout@v2
-      - name: Install node ${{ matrix.nodeVersion }}
-        uses: actions/setup-node@v1
+      - uses: actions/setup-node@v1
         with:
-          node-version: ${{ matrix.nodeVersion }}
+          node-version: 12
       - run: yarn install
       - run: yarn build
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: 12
+      - run: yarn install
       - run: yarn test
