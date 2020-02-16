@@ -2,85 +2,89 @@ import { find, mapValues } from 'lodash';
 import {
   eScopeBinding,
   expandEvaluationScope,
-  freeVariable,
+  freeVariable, scope,
 } from './constructors';
 import { EvaluationScope } from './types/evaluation-scope';
 import { Expression } from './types/expression';
 import { DataValue, Value } from './types/value';
-import { assertNever, everyIs, everyValue, isDefined } from './utils';
-import { destructureValue } from './type-utils';
-import { applyReplacements } from './variable-utils';
+import { assertNever, everyIs, everyValue, findWithResult, isDefined } from './utils';
+import { converge, destructureValue } from './type-utils';
+import { applyReplacements, extractFreeVariableNames } from './variable-utils';
 import { visitValue } from './visitor-utils';
 
-export const substituteExpressionVariables = (substitutions: { name: string, value: Expression }[]) => (expression: Expression): Expression => {
-  const recurse = substituteExpressionVariables(substitutions);
-  return substitutions.reduce(
-    (body, { name, value }): Expression => {
-      switch (body.kind) {
-        case 'SymbolExpression':
-        case 'NumberExpression':
-        case 'BooleanExpression':
-        case 'FunctionExpression':
-          return body;
-
-        case 'Identifier':
-          return body.name === name ? value : body;
-
-        case 'Application':
-          return {
-            ...body,
-            kind: 'Application',
-            parameter: recurse(body.parameter),
-            callee: recurse(body.callee),
-          };
-
-        case 'DataInstantiation':
-          return {
-            ...body,
-            kind: 'DataInstantiation',
-            parameters: body.parameters.map(recurse),
-          };
-
-        case 'RecordExpression':
-          return {
-            ...body,
-            properties: mapValues(body.properties, recurse),
-          };
-
-        case 'BindingExpression':
-          return {
-            ...body,
-            value: recurse(body.value),
-            body: recurse(body.body),
-          };
-
-        case 'DualExpression':
-          return {
-            ...body,
-            left: recurse(body.left),
-            right: recurse(body.right),
-          };
-
-        case 'ReadRecordPropertyExpression':
-          return {
-            ...body,
-            record: recurse(body.record),
-          };
-
-        case 'ReadDataPropertyExpression':
-          return {
-            ...body,
-            dataValue: recurse(body.dataValue),
-          };
-
-        default:
-          return assertNever(body);
-      }
-    },
-    expression,
-  );
-};
-
+// const substituteExpressionVariables = (substitutions: { name: string, value: Expression }[]) => (expression: Expression): Expression => {
+//   const recurse = substituteExpressionVariables(substitutions);
+//   return substitutions.reduce(
+//     (body, { name, value }): Expression => {
+//       switch (body.kind) {
+//         case 'SymbolExpression':
+//         case 'NumberExpression':
+//         case 'BooleanExpression':
+//         case 'FunctionExpression':
+//           return body;
+//
+//         case 'Identifier':
+//           return body.name === name ? value : body;
+//
+//         case 'Application':
+//           return {
+//             ...body,
+//             kind: 'Application',
+//             parameter: recurse(body.parameter),
+//             callee: recurse(body.callee),
+//           };
+//
+//         case 'DataInstantiation':
+//           return {
+//             ...body,
+//             kind: 'DataInstantiation',
+//             parameters: body.parameters.map(recurse),
+//           };
+//
+//         case 'RecordExpression':
+//           return {
+//             ...body,
+//             properties: mapValues(body.properties, recurse),
+//           };
+//
+//         case 'BindingExpression':
+//           return {
+//             ...body,
+//             value: recurse(body.value),
+//             body: recurse(body.body),
+//           };
+//
+//         case 'DualExpression':
+//           return {
+//             ...body,
+//             left: recurse(body.left),
+//             right: recurse(body.right),
+//           };
+//
+//         case 'ReadRecordPropertyExpression':
+//           return {
+//             ...body,
+//             record: recurse(body.record),
+//           };
+//
+//         case 'ReadDataPropertyExpression':
+//           return {
+//             ...body,
+//             dataValue: recurse(body.dataValue),
+//           };
+//
+//         case 'PatternMatchExpression':
+//           return {
+//
+//           }
+//
+//         default:
+//           return assertNever(body);
+//       }
+//     },
+//     expression,
+//   );
+// };
 
 export const evaluateExpression = (scope: EvaluationScope) => (expression: Expression): Value | undefined => {
   switch (expression.kind) {
@@ -223,6 +227,29 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
       return dataValue.parameters[expression.property];
     }
 
+    case 'PatternMatchExpression': {
+      const value = evaluateExpression(scope)(expression.value);
+      if (!value) {
+        return undefined;
+      }
+
+      const patterns = expression.patterns.map(({ test, value }) => ({
+        test: evaluateExpression(scope)(test),
+        value: evaluateExpression(scope)(value),
+      }));
+      if (!everyIs(patterns, (pattern): pattern is { test: Value, value: Value } => (
+        isDefined(pattern.test) && isDefined(pattern.value)
+      ))) {
+        return undefined;
+      }
+
+      return simplify({
+        value,
+        patterns,
+        kind: 'PatternMatchValue',
+      });
+    }
+
     default:
       return assertNever(expression);
   }
@@ -242,7 +269,7 @@ export const simplify = visitValue({
           : value;
 
       case 'ApplicationValue': {
-        if (!(value.callee.kind === 'FunctionLiteral' || value.callee.kind === 'ImplicitFunctionLiteral')) {
+        if (value.callee.kind !== 'FunctionLiteral' && value.callee.kind !== 'ImplicitFunctionLiteral') {
           return value;
         }
 
@@ -252,6 +279,20 @@ export const simplify = visitValue({
         }
 
         return simplify(applyReplacements(replacements)(value.callee.body));
+      }
+
+      case 'PatternMatchValue': {
+        if (extractFreeVariableNames(value.value).length !== 0) {
+          return value;
+        }
+
+        const found = findWithResult(value.patterns, ({ test }) => converge(scope(), test, value.value));
+        if (!found) {
+          return value;
+        }
+
+        const [{ value: matched }, replacements] = found;
+        return simplify(applyReplacements(replacements)(matched));
       }
 
       case 'FunctionLiteral':

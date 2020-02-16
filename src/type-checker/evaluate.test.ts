@@ -1,17 +1,33 @@
+import parse from '../parser/parse';
 import {
-  apply,
-  data, dataValue,
   evaluationScope,
-  identifier,
 } from './constructors';
 import { evaluateExpression } from './evaluate';
-import { Expression } from './types/expression';
+import { runTypePhase } from './run-type-phase';
+import { stripNode } from './strip-nodes';
 import { Value } from './types/value';
 
 describe('evaluate', () => {
   it('a', () => {
     expect(true).toBe(true);
   });
+
+  it('evaluates a pattern match expression', () => {
+    const { value: expression } = parse('let a = 5 match a | 3 = 300 | 5 = 500 | _ = 0');
+    expect(expression).toBeDefined();
+    if (expression) {
+      const [typeMessages, typedNode] = runTypePhase(expression);
+      expect(typeMessages).toHaveLength(0);
+
+      const evaluated = evaluateExpression(evaluationScope())(stripNode(typedNode));
+      const expected: Value = {
+        kind: 'NumberLiteral',
+        value: 500,
+      };
+      expect(evaluated).toEqual(expected);
+    }
+  });
+
   // it.each<[string, Expression, Value]>([
   //   ['number', { kind: 'NumberExpression', value: 1 }, { kind: 'NumberLiteral', value: 1 }],
   //   ['string', { kind: 'BooleanExpression', value: true }, { kind: 'BooleanLiteral', value: true }],

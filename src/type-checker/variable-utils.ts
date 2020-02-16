@@ -19,7 +19,7 @@ import {
   checkedZip,
   spreadApply,
 } from './utils';
-import { unfoldExplicitParameters, visitValue } from './visitor-utils';
+import { unfoldExplicitParameters, visitValue, visitValueForState } from './visitor-utils';
 
 export interface VariableReplacement {
   from: string;
@@ -109,19 +109,15 @@ export const recursivelyApplyReplacements = (replacements: VariableReplacement[]
           dataValue: recurse(expression.dataValue),
         };
 
-      // case 'ImplementExpression':
-      //   return {
-      //     ...expression,
-      //     parameters: expression.parameters.map(recurse),
-      //     body: recurse(expression.body),
-      //   };
-
-      // case 'DataDeclaration':
-      //   return {
-      //     ...expression,
-      //     parameters: expression.parameters.map(recurse),
-      //     body: recurse(expression.body),
-      //   };
+      case 'PatternMatchExpression':
+        return {
+          ...expression,
+          value: recurse(expression.value),
+          patterns: expression.patterns.map(({ test, value }) => ({
+            test: recurse(test),
+            value: recurse(value),
+          })),
+        };
 
       default:
         return assertNever(expression);
@@ -182,18 +178,17 @@ export function getBindingsFromValue(value: Value): VariableReplacement[] {
     case 'RecordLiteral':
       return flatMap(value.properties, getBindingsFromValue);
 
-    case 'ApplicationValue':
-      return [];
-
-    case 'FunctionLiteral':
-    case 'ImplicitFunctionLiteral':
-      return [];
-
     case 'ReadDataValueProperty':
       return getBindingsFromValue(value.dataValue);
 
     case 'ReadRecordProperty':
       return getBindingsFromValue(value.record);
+
+    case 'ApplicationValue':
+    case 'FunctionLiteral':
+    case 'ImplicitFunctionLiteral':
+    case 'PatternMatchValue':
+      return [];
 
     default:
       return assertNever(value);
@@ -245,6 +240,7 @@ export function getBindingsFromPair(left: Value, right: Value): VariableReplacem
     case 'ImplicitFunctionLiteral':
     case 'ReadDataValueProperty':
     case 'ReadRecordProperty':
+    case 'PatternMatchValue':
       return [];
 
     default:
@@ -327,6 +323,7 @@ export function areValuesEqual(left: Value, right: Value): boolean {
     case 'FunctionLiteral':
     case 'ReadDataValueProperty':
     case 'ReadRecordProperty':
+    case 'PatternMatchValue':
       return false;
 
     default:

@@ -120,6 +120,24 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
       return [newScopes, { ...expression, dataValue }];
     }
 
+    case 'PatternMatchExpression': {
+      const [newScopes, value] = renameFreeVariablesInScope(scopes, expression.value);
+      const patterns: { test: Expression, value: Expression }[] = [];
+      const newScopes2 = expression.patterns.reduce(
+        (newScopes, { test, value }) => {
+          const [resultScopes, [newTest, newValue]] = withNewScope(newScopes, childScopes => mapWithState(
+            [test, value],
+            childScopes,
+            renameFreeVariablesInScope,
+          ));
+          patterns.push({ test: newTest, value: newValue });
+          return resultScopes;
+        },
+        newScopes,
+      );
+      return [newScopes2, { ...expression, value, patterns }];
+    }
+
     default:
       return assertNever(expression);
   }

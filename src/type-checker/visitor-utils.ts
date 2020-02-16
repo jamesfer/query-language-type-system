@@ -88,10 +88,21 @@ export const visitExpressionNodes = (visitor: Visitor<TypedNode>) => (expression
         dataValue: visitNodes(visitor)(expression.dataValue),
       };
 
+    case 'PatternMatchExpression':
+      return {
+        ...expression,
+        value: visitNodes(visitor)(expression.value),
+        patterns: expression.patterns.map(({ test, value }) => ({
+          test: visitNodes(visitor)(test),
+          value: visitNodes(visitor)(value),
+        })),
+      };
+
     default:
       return assertNever(expression);
   }
 };
+
 export const visitNodes = (visitor: Visitor<TypedNode>) => (node: TypedNode): TypedNode => {
   const beforeNode = visitor.before?.(node) || node;
   const transformedNode = {
@@ -99,6 +110,164 @@ export const visitNodes = (visitor: Visitor<TypedNode>) => (node: TypedNode): Ty
     expression: visitExpressionNodes(visitor)(beforeNode.expression),
   };
   return visitor.after?.(transformedNode) || transformedNode;
+};
+
+const visitAndTransformChildExpression = <T>(callback: (expression: Expression) => T extends void ? Expression : T) => (expression: Expression): Expression<T> => {
+  switch (expression.kind) {
+    case 'SymbolExpression':
+    case 'NumberExpression':
+    case 'BooleanExpression':
+    case 'Identifier':
+      return expression;
+
+    case 'RecordExpression':
+      return {
+        ...expression,
+        properties: mapValues(expression.properties, callback),
+      };
+
+    case 'Application':
+      return {
+        ...expression,
+        callee: callback(expression.callee),
+        parameter: callback(expression.parameter),
+      };
+
+    case 'FunctionExpression':
+      return {
+        ...expression,
+        body: callback(expression.body),
+      };
+
+    case 'DataInstantiation':
+      return {
+        ...expression,
+        callee: callback(expression.callee),
+        parameters: expression.parameters.map(callback),
+      };
+
+    case 'BindingExpression':
+      return {
+        ...expression,
+        value: callback(expression.value),
+        body: callback(expression.body),
+      };
+
+    case 'DualExpression':
+      return {
+        ...expression,
+        left: callback(expression.left),
+        right: callback(expression.right),
+      };
+
+    case 'ReadRecordPropertyExpression':
+      return {
+        ...expression,
+        record: callback(expression.record),
+      };
+
+    case 'ReadDataPropertyExpression':
+      return {
+        ...expression,
+        dataValue: callback(expression.dataValue),
+      };
+
+    case 'PatternMatchExpression':
+      return {
+        ...expression,
+        value: callback(expression.value),
+        patterns: expression.patterns.map(({ test, value }) => ({
+          test: callback(test),
+          value: callback(value),
+        })),
+      };
+
+    default:
+      return assertNever(expression);
+  }
+};
+
+export const visitAndTransformExpression = <T>(visitor: (value: Expression<T>) => T extends void ? Expression : T) => (expression: Expression): T extends void ? Expression : T => {
+  return visitor(visitAndTransformChildExpression(visitAndTransformExpression(visitor))(expression));
+};
+
+const visitAndTransformChildExpressionPre = <T, U>(callback: (expression: T extends void ? Expression : T) => U extends void ? Expression : U) => (expression: Expression<T>): Expression<U> => {
+  switch (expression.kind) {
+    case 'SymbolExpression':
+    case 'NumberExpression':
+    case 'BooleanExpression':
+    case 'Identifier':
+      return expression;
+
+    case 'RecordExpression':
+      return {
+        ...expression,
+        properties: mapValues(expression.properties, callback),
+      };
+
+    case 'Application':
+      return {
+        ...expression,
+        callee: callback(expression.callee),
+        parameter: callback(expression.parameter),
+      };
+
+    case 'FunctionExpression':
+      return {
+        ...expression,
+        body: callback(expression.body),
+      };
+
+    case 'DataInstantiation':
+      return {
+        ...expression,
+        callee: callback(expression.callee),
+        parameters: expression.parameters.map(callback),
+      };
+
+    case 'BindingExpression':
+      return {
+        ...expression,
+        value: callback(expression.value),
+        body: callback(expression.body),
+      };
+
+    case 'DualExpression':
+      return {
+        ...expression,
+        left: callback(expression.left),
+        right: callback(expression.right),
+      };
+
+    case 'ReadRecordPropertyExpression':
+      return {
+        ...expression,
+        record: callback(expression.record),
+      };
+
+    case 'ReadDataPropertyExpression':
+      return {
+        ...expression,
+        dataValue: callback(expression.dataValue),
+      };
+
+    case 'PatternMatchExpression':
+      return {
+        ...expression,
+        value: callback(expression.value),
+        patterns: expression.patterns.map(({ test, value }) => ({
+          test: callback(test),
+          value: callback(value),
+        })),
+      };
+
+    default:
+      return assertNever(expression);
+  }
+};
+
+export const visitAndTransformExpressionBefore = <T>(visitor: (value: T extends void ? Expression : T) => Expression<T>) => (expression: T extends void ? Expression : T): Expression => {
+  return visitAndTransformChildExpressionPre<T, Expression>(visitAndTransformExpressionBefore(visitor))(visitor(expression));
 };
 
 export const visitChildValues = (visitor: Visitor<Value>) => (value: Value): Value => {
@@ -154,6 +323,16 @@ export const visitChildValues = (visitor: Visitor<Value>) => (value: Value): Val
       return {
         ...value,
         record: visitValue(visitor)(value.record),
+      };
+
+    case 'PatternMatchValue':
+      return {
+        ...value,
+        value: visitValue(visitor)(value.value),
+        patterns: value.patterns.map(({ test, value }) => ({
+          test: visitValue(visitor)(test),
+          value: visitValue(visitor)(value),
+        })),
       };
 
     default:
@@ -220,6 +399,16 @@ const visitAndTransformChildValues = <T>(callback: (value: Value) => T extends v
       return {
         ...value,
         record: callback(value.record),
+      };
+
+    case 'PatternMatchValue':
+      return {
+        ...value,
+        value: callback(value.value),
+        patterns: value.patterns.map(({ test, value }) => ({
+          test: callback(test),
+          value: callback(value),
+        })),
       };
 
     default:

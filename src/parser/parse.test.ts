@@ -1,3 +1,4 @@
+import { PatternMatchExpression } from '../type-checker/types/expression';
 import parse from './parse';
 
 describe('parse', () => {
@@ -121,5 +122,49 @@ describe('parse', () => {
         value: 10,
       },
     });
+  });
+
+  it('recognises a pattern match expression', () => {
+    const withMessages = parse('match 10 | 5 = true | 10 = true | _ = false');
+    const expected: PatternMatchExpression = {
+      kind: 'PatternMatchExpression',
+      value: {
+        kind: 'NumberExpression',
+        value: 10,
+      },
+      patterns: [
+        {
+          test: {
+            kind: 'NumberExpression',
+            value: 5,
+          },
+          value: {
+            kind: 'BooleanExpression',
+            value: true,
+          },
+        },
+        {
+          test: {
+            kind: 'NumberExpression',
+            value: 10,
+          },
+          value: {
+            kind: 'BooleanExpression',
+            value: true,
+          },
+        },
+        {
+          test: {
+            kind: 'Identifier',
+            name: '_',
+          },
+          value: {
+            kind: 'BooleanExpression',
+            value: false,
+          },
+        },
+      ],
+    };
+    expect(withMessages.value).toEqual(expected);
   });
 });

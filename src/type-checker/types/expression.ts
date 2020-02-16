@@ -67,21 +67,14 @@ export interface ReadDataPropertyExpression<T = Expression> {
   property: number;
 }
 
-// export interface ImplementExpression<T = Expression> {
-//   kind: 'ImplementExpression';
-//   callee: string;
-//   identifier: string;
-//   parameters: T[];
-//   body: T;
-// }
-
-// export interface DataDeclaration<T = Expression> {
-//   kind: 'DataDeclaration';
-//   callee: string;
-//   // TODO this shouldn't be a T as they are constraints. Probably rename to constraints too
-//   parameters: T[];
-//   body: T;
-// }
+export interface PatternMatchExpression<T = Expression> {
+  kind: 'PatternMatchExpression';
+  value: T;
+  patterns: {
+    test: T;
+    value: T;
+  }[];
+}
 
 export type Expression<T = void> =
   | Identifier
@@ -98,5 +91,4 @@ export type Expression<T = void> =
   | DualExpression<T extends void ? Expression : T>
   | ReadRecordPropertyExpression<T extends void ? Expression : T>
   | ReadDataPropertyExpression<T extends void ? Expression : T>
-  // | ImplementExpression<T extends void ? Expression : T>
-  // | DataDeclaration<T extends void ? Expression : T>;
+  | PatternMatchExpression<T extends void ? Expression : T>;
