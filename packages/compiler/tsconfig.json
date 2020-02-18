@@ -4,7 +4,8 @@
     "types": [
       "lodash",
       "moo",
-      "node"
+      "node",
+      "jest"
     ]
   },
   "include": [
