@@ -1,4 +1,4 @@
-import { PatternMatchExpression } from '../type-checker/types/expression';
+import { FunctionExpression, PatternMatchExpression } from '../type-checker/types/expression';
 import parse from './parse';
 
 describe('parse', () => {
@@ -166,5 +166,29 @@ describe('parse', () => {
       ],
     };
     expect(withMessages.value).toEqual(expected);
+  });
+
+  it('correctly applies precedence', () => {
+    const expected: FunctionExpression = {
+      kind: 'FunctionExpression',
+      implicit: false,
+      parameter: {
+        kind: 'DualExpression',
+        left: {
+          kind: 'Identifier',
+          name: 'a',
+        },
+        right: {
+          kind: 'Identifier',
+          name: 'b',
+        },
+      },
+      body: {
+        kind: 'NumberExpression',
+        value: 1,
+      },
+    };
+    const result = parse('a:b -> 1');
+    expect(result.value).toEqual(expected);
   });
 });
