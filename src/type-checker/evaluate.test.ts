@@ -1,3 +1,4 @@
+import { evaluate } from '../api';
 import parse from '../parser/parse';
 import {
   evaluationScope,
@@ -13,19 +14,12 @@ describe('evaluate', () => {
   });
 
   it('evaluates a pattern match expression', () => {
-    const { value: expression } = parse('let a = 5 match a | 3 = 300 | 5 = 500 | _ = 0');
-    expect(expression).toBeDefined();
-    if (expression) {
-      const [typeMessages, typedNode] = runTypePhase(expression);
-      expect(typeMessages).toHaveLength(0);
-
-      const evaluated = evaluateExpression(evaluationScope())(stripNode(typedNode));
-      const expected: Value = {
-        kind: 'NumberLiteral',
-        value: 500,
-      };
-      expect(evaluated).toEqual(expected);
-    }
+    const evaluated = evaluate('let a = 5 match a | 3 = 300 | 5 = 500 | _ = 0');
+    const expected: Value = {
+      kind: 'NumberLiteral',
+      value: 500,
+    };
+    expect(evaluated).toEqual(expected);
   });
 
   // it.each<[string, Expression, Value]>([
