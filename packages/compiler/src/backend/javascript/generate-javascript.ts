@@ -48,12 +48,12 @@ const destructureExpression = (base: Expression) => (value: Expression): [string
   }
 };
 
-interface PatternConditions {
-  bindings: { name: string; value: types.Expression }[];
-  conditions: { left: types.Expression, right: types.Expression }[];
+interface PatternCondition {
+  left: types.Expression,
+  right: types.Expression
 }
 
-function convertPatternMatchToConditions(value: types.Expression, test: Expression): PatternConditions['conditions'] {
+function convertPatternMatchToConditions(value: types.Expression, test: Expression): PatternCondition[] {
   switch (test.kind) {
     case 'NumberExpression':
     case 'BooleanExpression':

@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "outDir": "build",
     "strict": true,
     "target": "es2018",
     "module": "commonjs",
@@ -12,7 +11,7 @@
     ]
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.test.ts"
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.test.ts"
   ]
 }
