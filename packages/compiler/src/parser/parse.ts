@@ -1,4 +1,4 @@
-import { Expression } from '../type-checker/types/expression';
+import { Expression } from '..';
 import interpretExpression, { WithMessages } from './interpret-expression';
 import tokenize from './tokenize';
 

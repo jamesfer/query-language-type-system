@@ -1,4 +1,4 @@
-import { flatMap, map, max, maxBy, partition } from 'lodash';
+import { flatMap, map, max, maxBy, partition, isEqual } from 'lodash';
 import {
   BindingExpression,
   BooleanExpression,
@@ -221,18 +221,39 @@ const withoutPrevious: Interpreter<null> = interpreter('withoutPrevious', (_, pr
   withMessages([], previous === undefined ? [withTokens([], null)] : [])
 ));
 
-function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T> {
-  let lastTokens: Token[] | undefined;
-  let lastPrevious: Expression | undefined;
-  return interpreter(undefined, (tokens, previous, precedence) => doWithState((state) => {
-    if (lastTokens && tokens.length === lastTokens.length && previous === lastPrevious) {
-      throw new Error(`Loop detected. Tokens: ${JSON.stringify(lastTokens)}`);
-    }
+interface InterpreterState {
+  tokens: Token[];
+  previous?: Expression;
+  precedence: Precedence;
+}
 
-    lastTokens = tokens;
-    lastPrevious = previous;
-    return state.run(runInterpreter)(wrapped, tokens, previous, precedence);
-  }));
+function withRecursiveState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => R]): (...args: T) => R {
+  let state: S | undefined = undefined;
+  return (...args) => {
+    const [newState, continuation] = f(state, ...args);
+    const previousState = state;
+    state = newState;
+    const result = continuation();
+    state = previousState;
+    return result;
+  }
+}
+
+function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T> {
+  let lastState: InterpreterState | undefined = undefined;
+  // let lastTokens: Token[] | undefined = undefined;
+  // let lastPrevious: Expression | undefined = undefined;
+  // let lastPrecedence: Precedence | undefined = undefined;
+  return interpreter(
+    undefined,
+    withRecursiveState((state: InterpreterState | undefined, tokens, previous, precedence) => {
+      const newState: InterpreterState = { tokens, previous, precedence };
+      if (isEqual(lastState, newState)) {
+        throw new Error(`Loop detected. Tokens: ${JSON.stringify(lastState?.tokens)}`);
+      }
+      return [newState, () => runInterpreter(wrapped, tokens, previous, precedence)];
+    })
+  );
 }
 
 function recursivelyMatchExpression(): Interpreter<Expression> {
