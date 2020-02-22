@@ -1,14 +1,26 @@
 {
   "compilerOptions": {
-    "strict": true,
-    "target": "es2018",
-    "module": "commonjs",
-    "esModuleInterop": true,
+    "alwaysStrict": true,
+    "declaration": true,
+    "declarationMap": true,
     "downlevelIteration": true,
-    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "importHelpers": true,
     "lib": [
-      "es2018"
-    ]
+      "es2018",
+      "esnext.asynciterable",
+      "dom"
+    ],
+    "module": "es6",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "outDir": "build",
+    "sourceMap": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "suppressImplicitAnyIndexErrors": true,
+    "target": "es6"
   },
   "include": [
     "packages/*/src/**/*.ts",
