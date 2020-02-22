@@ -256,6 +256,9 @@ function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T> {
   );
 }
 
+/**
+ * This has to be a function because it is referenced inside the other interpret function
+ */
 function recursivelyMatchExpression(): Interpreter<Expression> {
   return interpreter('recursivelyMatchExpression', (tokens: Token[], previous: Expression | undefined, precedence: Precedence): WithMessages<WithTokens<Expression>[]> => {
     return doWithState((state) => {
@@ -399,15 +402,14 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretPatternMatch,
 ));
 
-
-/**
- * This has to be a function because it is referenced inside the other interpret function
- */
+function skipSilentTokens(tokens: Token[]) {
+  return tokens.filter(({ kind }) => kind !== TokenKind.whitespace && kind !== TokenKind.unknown);
+}
 
 export default function interpretExpression(tokens: Token[]): WithMessages<Expression | undefined> {
   const { messages, value: results } = runInterpreter(
     matchExpression(Precedence.none),
-    tokens,
+    skipSilentTokens(tokens),
     undefined,
     Precedence.none,
   );

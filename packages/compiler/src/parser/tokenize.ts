@@ -17,6 +17,7 @@ export enum TokenKind {
   closeParen = 'closeParen',
   // openBracket,
   // closeBracket,
+  unknown = 'unknown',
 }
 
 export interface Token {
@@ -24,7 +25,7 @@ export interface Token {
   value: string;
 }
 
-const rules: moo.Rules = {
+export const rules: moo.Rules = {
   [TokenKind.whitespace]: { match: /\s+/, lineBreaks: true },
   [TokenKind.identifier]: {
     match: /[a-zA-Z_][a-zA-Z0-9_]*/,
@@ -43,6 +44,7 @@ const rules: moo.Rules = {
   [TokenKind.bar]: '|',
   [TokenKind.openParen]: '(',
   [TokenKind.closeParen]: ')',
+  [TokenKind.unknown]: /./,
 };
 
 const lexer = moo.compile(rules);
@@ -52,9 +54,7 @@ export default function * tokenize(code: string): Iterable<Token> {
   for (const { type, value } of lexer) {
     if (type) {
       const kind = type as unknown as TokenKind;
-      if (kind !== TokenKind.whitespace) {
-        yield { kind, value };
-      }
+      yield { kind, value };
     }
   }
 }
