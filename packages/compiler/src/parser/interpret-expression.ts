@@ -1,5 +1,6 @@
 import { flatMap, map, max, maxBy, partition, isEqual } from 'lodash';
 import {
+  Application,
   BindingExpression,
   BooleanExpression,
   DualExpression,
@@ -58,6 +59,8 @@ enum Precedence {
   bindingEquals,
   functionArrow,
   patternMatch,
+  application,
+  application2,
   dual,
   readProperty,
 }
@@ -147,6 +150,7 @@ function matchAny<T1, T2, T3, T4, T5, T6, T7>(i1: Interpreter<T1>, i2: Interpret
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11>;
 function matchAny<T, R>(...interpreters: Interpreter<T>[]): Interpreter<T> {
   return interpreter(undefined, (...interpreterParams) => doWithState((state) => {
     return flatMap(interpreters, interpreter => (
@@ -331,6 +335,14 @@ const interpretImplicitFunction = interpreter('interpretImplicitFunction', match
   implicit: true,
 })));
 
+const interpretApplication = interpreter('interpretApplication', matchAll(
+  withPrevious(Precedence.application),
+  matchExpression(Precedence.application2),
+)(([callee, parameter]): Application => ({
+  callee,
+  parameter,
+  kind: 'Application',
+})));
 
 const interpretBinding = interpreter('interpretBinding', matchAll(
   withoutPrevious,
@@ -400,6 +412,7 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretRecordProperty,
   interpretDataProperty,
   interpretPatternMatch,
+  interpretApplication,
 ));
 
 function skipSilentTokens(tokens: Token[]) {
