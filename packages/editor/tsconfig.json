@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig",
+  "compilerOptions": {
+    "downlevelIteration": true,
+    "types": [
+      "jest",
+      "lodash",
+      "moo"
+    ]
+  },
+  "files": [
+    "src/index.ts"
+  ]
+}
