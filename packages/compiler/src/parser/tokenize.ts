@@ -1,6 +1,7 @@
 import * as moo from 'moo';
 
 export enum TokenKind {
+  lineBreak = 'lineBreak',
   whitespace = 'whitespace',
   keyword = 'keyword',
   identifier = 'identifier',
@@ -20,13 +21,16 @@ export enum TokenKind {
   unknown = 'unknown',
 }
 
-export interface Token {
-  kind: TokenKind;
+export interface GenericToken<K> {
+  kind: K;
   value: string;
 }
 
+export interface Token extends GenericToken<TokenKind> {}
+
 export const rules: moo.Rules = {
-  [TokenKind.whitespace]: { match: /\s+/, lineBreaks: true },
+  [TokenKind.lineBreak]: { match: /(?:\r\n?|\n)+/, lineBreaks: true },
+  [TokenKind.whitespace]: / +/,
   [TokenKind.identifier]: {
     match: /[a-zA-Z_][a-zA-Z0-9_]*/,
     type: moo.keywords({

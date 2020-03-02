@@ -14,7 +14,7 @@ describe('evaluate', () => {
   });
 
   it('evaluates a pattern match expression', () => {
-    const evaluated = evaluate('let a = 5 match a | 3 = 300 | 5 = 500 | _ = 0');
+    const evaluated = evaluate('let a = 5\nmatch a | 3 = 300 | 5 = 500 | _ = 0');
     const expected: Value = {
       kind: 'NumberLiteral',
       value: 500,
