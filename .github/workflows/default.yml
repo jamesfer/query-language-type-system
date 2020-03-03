@@ -1,18 +1,7 @@
 name: CI
 on: push
 jobs:
-  build-compiler:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-node@v1
-        with:
-          node-version: 12
-      - run: yarn install
-        working-directory: packages/compiler
-      - run: yarn build
-        working-directory: packages/compiler
-  test-compiler:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -23,3 +12,15 @@ jobs:
         working-directory: packages/compiler
       - run: yarn test
         working-directory: packages/compiler
+      - name: Build compiler
+        run: yarn build
+        working-directory: packages/compiler
+      - name: Build editor
+        run: yarn build
+        working-directory: packages/editor
+      - name: Deploy
+        if: github.ref == 'master'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: packages/editor/build

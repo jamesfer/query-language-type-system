@@ -1,12 +1,10 @@
 {
   "extends": "../../tsconfig",
   "compilerOptions": {
+    "outDir": "build",
     "downlevelIteration": true,
-    "types": [
-      "jest",
-      "lodash",
-      "moo"
-    ]
+    "module": "commonjs",
+    "sourceMap": true
   },
   "files": [
     "src/index.ts"
