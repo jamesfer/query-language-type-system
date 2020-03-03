@@ -48,20 +48,23 @@ export default class Highlighter implements Mode<HighlighterState> {
       case TokenKind.identifier:
         return 'variable-1';
 
+      case TokenKind.boolean:
+        return 'atom';
+
       case TokenKind.number:
         return 'number';
 
-      case TokenKind.boolean:
-        return 'atom';
+      case TokenKind.string:
+        return 'string';
 
       // case TokenKind.comment:
       //   return 'comment';
 
-      // case TokenKind.openBrace:
-      //   return '{';
+      case TokenKind.openBrace:
+        return '{';
 
-      // case TokenKind.CloseBrace:
-      //   return '}';
+      case TokenKind.closeBrace:
+        return '}';
 
       case TokenKind.openParen:
         return '(';
@@ -75,8 +78,8 @@ export default class Highlighter implements Mode<HighlighterState> {
       // case TokenKind.CloseBracket:
       //   return ']';
 
-      // case TokenKind.comma:
-      //   return ',';
+      case TokenKind.comma:
+        return ',';
 
       case TokenKind.bar:
         return '|';

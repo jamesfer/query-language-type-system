@@ -32,9 +32,11 @@ interface Visitor<T> {
 export const visitExpressionNodes = (visitor: Visitor<TypedNode>) => (expression: Expression<TypedNode>): Expression<TypedNode> => {
   switch (expression.kind) {
     case 'SymbolExpression':
-    case 'NumberExpression':
     case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
     case 'Identifier':
+    case 'NativeExpression':
       return expression;
 
     case 'RecordExpression':
@@ -115,9 +117,11 @@ export const visitNodes = (visitor: Visitor<TypedNode>) => (node: TypedNode): Ty
 const visitAndTransformChildExpression = <T>(callback: (expression: Expression) => T extends void ? Expression : T) => (expression: Expression): Expression<T> => {
   switch (expression.kind) {
     case 'SymbolExpression':
-    case 'NumberExpression':
     case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
     case 'Identifier':
+    case 'NativeExpression':
       return expression;
 
     case 'RecordExpression':
@@ -194,9 +198,11 @@ export const visitAndTransformExpression = <T>(visitor: (value: Expression<T>) =
 const visitAndTransformChildExpressionPre = <T, U>(callback: (expression: T extends void ? Expression : T) => U extends void ? Expression : U) => (expression: Expression<T>): Expression<U> => {
   switch (expression.kind) {
     case 'SymbolExpression':
-    case 'NumberExpression':
     case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
     case 'Identifier':
+    case 'NativeExpression':
       return expression;
 
     case 'RecordExpression':
@@ -273,8 +279,9 @@ export const visitAndTransformExpressionBefore = <T>(visitor: (value: T extends 
 export const visitChildValues = (visitor: Visitor<Value>) => (value: Value): Value => {
   switch (value.kind) {
     case 'SymbolLiteral':
-    case 'NumberLiteral':
     case 'BooleanLiteral':
+    case 'NumberLiteral':
+    case 'StringLiteral':
     case 'FreeVariable':
       return value;
 
@@ -349,8 +356,9 @@ export const visitValue = (visitor: Visitor<Value>) => (value: Value): Value => 
 const visitAndTransformChildValues = <T>(callback: (value: Value) => T extends void ? Value : T) => (value: Value): Value<T> => {
   switch (value.kind) {
     case 'SymbolLiteral':
-    case 'NumberLiteral':
     case 'BooleanLiteral':
+    case 'NumberLiteral':
+    case 'StringLiteral':
     case 'FreeVariable':
       return value;
 

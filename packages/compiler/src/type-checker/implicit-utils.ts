@@ -1,8 +1,7 @@
-import { flatMap, map, partition } from 'lodash';
+import { flatMap, partition } from 'lodash';
 import { functionType } from './constructors';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
-import { Scope } from './types/scope';
 import { ExplicitValue, Value } from './types/value';
 import { assertNever } from './utils';
 import { extractFreeVariableNames, usesVariable } from './variable-utils';
@@ -20,9 +19,11 @@ const extractImplicitParametersFromExpression = (depth: number) => (expression: 
   const extractNextImplicits = extractImplicitParametersFromNode(depth);
   switch (expression.kind) {
     case 'Identifier':
-    case 'NumberExpression':
     case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
     case 'SymbolExpression':
+    case 'NativeExpression':
       return [];
 
     case 'RecordExpression':

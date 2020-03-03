@@ -1,4 +1,4 @@
-import { flatMap, map, max, maxBy, partition, isEqual } from 'lodash';
+import { flatMap, map, max, maxBy, partition, isEqual, fromPairs } from 'lodash';
 import {
   Application,
   BindingExpression,
@@ -6,11 +6,11 @@ import {
   DualExpression,
   Expression,
   FunctionExpression,
-  Identifier,
+  Identifier, NativeExpression,
   NumberExpression,
   PatternMatchExpression,
   ReadDataPropertyExpression,
-  ReadRecordPropertyExpression,
+  ReadRecordPropertyExpression, StringExpression,
 } from '..';
 import { Message } from '..';
 import { checkedZip } from '../type-checker/utils';
@@ -152,6 +152,7 @@ function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9>(i1: Interpreter<T1>, i2: I
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13>;
 function matchAny<T, R>(...interpreters: Interpreter<T>[]): Interpreter<T> {
   return interpreter(undefined, (...interpreterParams) => doWithState((state) => {
     return flatMap(interpreters, interpreter => (
@@ -298,6 +299,14 @@ const interpretNumber = interpreter('interpretNumber', matchAll(
   value: +token.value,
 })));
 
+const interpretString = interpreter('interpretString', matchAll(
+  withoutPrevious,
+  matchTokens('string'),
+)(([, [token]]): StringExpression => ({
+  kind: 'StringExpression',
+  value: token.value.slice(1, -1),
+})));
+
 const interpretIdentifier = interpreter('interpretIdentifier', matchAll(
   withoutPrevious,
   matchTokens('identifier'),
@@ -372,7 +381,7 @@ const interpretDual = interpreter('interpretDual', matchAll(
 
 const interpretDataProperty = interpreter('interpretDataProperty', matchAll(
   withPrevious(Precedence.readProperty),
-  matchTokens('hash', 'number'),
+  matchTokens('dot', 'number'),
 )(([dataValue, [, property]]): ReadDataPropertyExpression => ({
   dataValue,
   kind: 'ReadDataPropertyExpression',
@@ -404,15 +413,24 @@ const interpretPatternMatch = interpreter('interpretPatternMatch', matchAll(
   patterns: patterns.map(([, test, , value]) => ({ test, value })),
 })));
 
-// const interpretBreak = interpreter('interpretBreak', matchAll(
-//   withoutPrevious,
-//   matchTokens('break'),
-//   matchExpression(Precedence.none),
-// )(([_1, _2, expression]) => expression));
+const interpretNative = interpreter('interpretNative', matchAll(
+  withoutPrevious,
+  matchTokens('hash', 'openBrace'),
+  matchRepeated(interpreter(undefined, matchAll(
+    matchTokens('identifier', 'equals'),
+    matchAny(interpretNumber, interpretString),
+    matchTokens('comma'),
+  )(a => a))),
+  matchTokens('closeBrace'),
+)(([_1, _2, properties]): NativeExpression => ({
+  kind: 'NativeExpression',
+  data: fromPairs(properties.map(([[identifier], value]) => [identifier.value, value.value])),
+})));
 
 const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoops(matchAny(
   interpretBoolean,
   interpretNumber,
+  interpretString,
   interpretIdentifier,
   interpretFunction,
   interpretImplicitFunction,
@@ -422,6 +440,7 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretDataProperty,
   interpretPatternMatch,
   interpretApplication,
+  interpretNative,
 ));
 
 export default function interpretExpression(tokens: ExpressionToken[]): WithMessages<Expression | undefined> {

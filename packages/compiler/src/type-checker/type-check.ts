@@ -9,7 +9,7 @@ import {
   node,
   numberLiteral,
   recordLiteral,
-  scopeBinding,
+  scopeBinding, stringLiteral,
   symbol,
 } from './constructors';
 import { evaluateExpression } from './evaluate';
@@ -90,14 +90,20 @@ function getImplicitsForBinding(valueNode: TypedNode): Value[] {
 export const typeExpression = (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
   const state = new TypeWriter(scope);
   switch (expression.kind) {
-    case 'NumberExpression':
-      return state.wrap(typeNode(expression, scope, numberLiteral(expression.value)));
+    case 'SymbolExpression':
+      return state.wrap(typeNode(expression, scope, symbol(expression.name)));
 
     case 'BooleanExpression':
       return state.wrap(typeNode(expression, scope, booleanLiteral(expression.value)));
 
-    case 'SymbolExpression':
-      return state.wrap(typeNode(expression, scope, symbol(expression.name)));
+    case 'NumberExpression':
+      return state.wrap(typeNode(expression, scope, numberLiteral(expression.value)));
+
+    case 'StringExpression':
+      return state.wrap(typeNode(expression,scope, stringLiteral(expression.value)));
+
+    case 'NativeExpression':
+      return state.wrap(typeNode(expression, scope, newFreeVariable('native')));
 
     case 'DataInstantiation': {
       const callee = state.run(typeExpression)(expression.callee);

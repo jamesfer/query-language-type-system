@@ -1,4 +1,3 @@
-import { flatMap, flatten, mapValues, partition } from 'lodash';
 import { functionType, identifier, node } from './constructors';
 import {
   extractImplicitsParameters,
@@ -6,7 +5,7 @@ import {
   stripImplicits,
 } from './implicit-utils';
 import { findMatchingImplementations } from './scope-utils';
-import { TypedDecoration, TypedNode } from './type-check';
+import { TypedNode } from './type-check';
 import { areAllPairsSubtypes } from './type-utils';
 import { Application } from './types/expression';
 import { Message } from './types/message';

@@ -13,8 +13,11 @@ export type ExpressionTokenKind =
   | 'hash'
   | 'equals'
   | 'bar'
+  | 'comma'
   | 'openParen'
-  | 'closeParen';
+  | 'closeParen'
+  | 'openBrace'
+  | 'closeBrace';
 
 export interface ExpressionToken extends GenericToken<ExpressionTokenKind> {}
 

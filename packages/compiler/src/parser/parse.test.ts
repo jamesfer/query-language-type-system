@@ -1,4 +1,4 @@
-import { FunctionExpression, PatternMatchExpression } from '..';
+import { Expression, FunctionExpression, NativeExpression, PatternMatchExpression } from '..';
 import parse from './parse';
 
 describe('parse', () => {
@@ -160,7 +160,7 @@ describe('parse', () => {
   });
 
   it('recognises a data value property', () => {
-    const withMessages = parse('10#10');
+    const withMessages = parse('10.10');
     expect(withMessages.value).toEqual({
       kind: 'ReadDataPropertyExpression',
       property: 10,
@@ -236,6 +236,25 @@ describe('parse', () => {
       },
     };
     const result = parse('a:b -> 1');
+    expect(result.value).toEqual(expected);
+  });
+
+  it('parses a native expression', () => {
+    const result = parse('let a = #{ name = "window", }\na');
+    const expected: Expression = {
+      kind: 'BindingExpression',
+      name: 'a',
+      value: {
+        kind: 'NativeExpression',
+        data: {
+          name: 'window',
+        },
+      },
+      body: {
+        kind: 'Identifier',
+        name: 'a',
+      },
+    };
     expect(result.value).toEqual(expected);
   });
 });

@@ -1,6 +1,6 @@
-import { chunk, map, uniqueId } from 'lodash';
+import { uniqueId } from 'lodash';
 import { Expression } from './types/expression';
-import { assertNever, checkedZipWith, mapValuesWithState, mapWithState } from './utils';
+import { assertNever, mapValuesWithState, mapWithState } from './utils';
 
 export type RenameScopes = { [k: string]: string }[]
 
@@ -35,8 +35,10 @@ function withNewScope<T>(scopes: RenameScopes, f: (childScopes: RenameScopes) =>
 function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expression: Expression): [{ [k: string]: string }[], Expression] {
   switch (expression.kind) {
     case 'SymbolExpression':
-    case 'NumberExpression':
     case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
+    case 'NativeExpression':
       return [scopes, expression];
 
     case 'Identifier': {

@@ -59,9 +59,11 @@ export const recursivelyApplyReplacements = (replacements: VariableReplacement[]
     switch (expression.kind) {
       case 'SymbolExpression':
       case 'Identifier':
-      case 'NumberExpression':
       case 'BooleanExpression':
+      case 'NumberExpression':
+      case 'StringExpression':
       case 'FunctionExpression':
+      case 'NativeExpression':
         return expression;
 
       case 'Application':
@@ -164,8 +166,9 @@ export function renameTakenVariables(takenVariables: string[], replacements: Var
 export function getBindingsFromValue(value: Value): VariableReplacement[] {
   switch (value.kind) {
     case 'SymbolLiteral':
-    case 'NumberLiteral':
     case 'BooleanLiteral':
+    case 'NumberLiteral':
+    case 'StringLiteral':
     case 'FreeVariable':
       return [];
 
@@ -214,8 +217,9 @@ export function getBindingsFromPair(left: Value, right: Value): VariableReplacem
 
   switch (left.kind) {
     case 'SymbolLiteral':
-    case 'NumberLiteral':
     case 'BooleanLiteral':
+    case 'NumberLiteral':
+    case 'StringLiteral':
       return [];
 
     case 'DataValue': {
@@ -275,8 +279,9 @@ export function areValuesEqual(left: Value, right: Value): boolean {
   }
 
   switch (left.kind) {
-    case 'NumberLiteral':
     case 'BooleanLiteral':
+    case 'NumberLiteral':
+    case 'StringLiteral':
       return true;
 
     case 'SymbolLiteral':
