@@ -48,11 +48,14 @@ const prettyPrintValue = visitAndTransformValue<string>((value): string => {
     case 'SymbolLiteral':
       return `\`${value.name}\``;
 
+    case 'BooleanLiteral':
+      return value.value ? 'true' : 'false';
+
     case 'NumberLiteral':
       return value.value.toString();
 
-    case 'BooleanLiteral':
-      return value.value ? 'true' : 'false';
+    case 'StringLiteral':
+      return value.value;
 
     case 'PatternMatchValue': {
       const patterns = value.patterns.map(({ test, value }) => `  | ${test} = ${value}`);

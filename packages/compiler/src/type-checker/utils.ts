@@ -1,15 +1,15 @@
-import { AssertionError } from 'assert';
+// import { AssertionError } from 'assert';
 import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith, concat } from 'lodash';
 
 export function assertNever(x: never): never {
   throw new Error('Assert never was actually called');
 }
 
-export function assert(condition: any, message: string): asserts condition {
-  if (!condition) {
-    throw new AssertionError({ message: `Assertion failed: ${message}` });
-  }
-}
+// export function assert(condition: any, message: string): asserts condition {
+//   if (!condition) {
+//     throw new AssertionError({ message: `Assertion failed: ${message}` });
+//   }
+// }
 
 export function clipArrays<T, U>(array1: T[], array2: U[]): [T[], U[]] {
   if (array1.length > array2.length) {

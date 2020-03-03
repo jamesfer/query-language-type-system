@@ -91,11 +91,14 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
     case 'SymbolExpression':
       return { kind: 'SymbolLiteral', name: expression.name };
 
+    case 'BooleanExpression':
+      return { kind: 'BooleanLiteral', value: expression.value };
+
     case 'NumberExpression':
       return { kind: 'NumberLiteral', value: expression.value };
 
-    case 'BooleanExpression':
-      return { kind: 'BooleanLiteral', value: expression.value };
+    case 'StringExpression':
+      return { kind: 'StringLiteral', value: expression.value };
 
     case 'DualExpression': {
       const left = evaluateExpression(scope)(expression.left);
@@ -250,6 +253,9 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
       });
     }
 
+    case 'NativeExpression':
+      return undefined;
+
     default:
       return assertNever(expression);
   }
@@ -300,6 +306,7 @@ export const simplify = visitValue({
       case 'FreeVariable':
       case 'SymbolLiteral':
       case 'NumberLiteral':
+      case 'StringLiteral':
       case 'BooleanLiteral':
       case 'DataValue':
       case 'RecordLiteral':

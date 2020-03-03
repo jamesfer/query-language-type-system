@@ -1,0 +1,29 @@
+{
+  "name": "query-language-editor",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "author": "James Ferguson",
+  "license": "MIT",
+  "scripts": {
+    "build:tsc": "tsc --project tsconfig.json",
+    "build": "rollup --config rollup.config.js"
+  },
+  "dependencies": {
+    "@types/codemirror": "^0.0.81",
+    "@types/lodash": "^4.14.149",
+    "buffer": "^5.4.3",
+    "codemirror": "^5.49.2",
+    "lodash": "^4.17.15",
+    "query-language-compiler": "^1.0.0",
+    "rollup": "^1.27.8",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-commonjs": "^10.1.0",
+    "rollup-plugin-node-globals": "^1.4.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-typescript": "^1.0.1",
+    "rxjs": "^6.5.3",
+    "tslint": "^5.20.1",
+    "tslint-config-airbnb": "^5.11.2",
+    "typescript": "^3.7.3"
+  }
+}

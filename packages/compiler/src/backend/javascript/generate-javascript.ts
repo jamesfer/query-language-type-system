@@ -8,8 +8,9 @@ import { assertNever } from '../../type-checker/utils';
 const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
   switch (value.kind) {
     case 'SymbolExpression':
-    case 'NumberExpression':
     case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
       return [];
 
     case 'Identifier':
@@ -41,6 +42,7 @@ const destructureExpression = (base: Expression) => (value: Expression): [string
     case 'ReadRecordPropertyExpression':
     case 'BindingExpression':
     case 'PatternMatchExpression':
+    case 'NativeExpression':
       return [];
 
     default:
@@ -55,9 +57,10 @@ interface PatternCondition {
 
 function convertPatternMatchToConditions(value: types.Expression, test: Expression): PatternCondition[] {
   switch (test.kind) {
-    case 'NumberExpression':
-    case 'BooleanExpression':
     case 'SymbolExpression':
+    case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
       return [{
         left: value,
         right: convertExpressionToCode(test),
@@ -88,7 +91,11 @@ function convertPatternMatchToConditions(value: types.Expression, test: Expressi
     case 'FunctionExpression':
     case 'DataInstantiation':
     case 'BindingExpression':
+    case 'NativeExpression':
       return [];
+
+    default:
+      return assertNever(test);
   }
 }
 
@@ -97,9 +104,10 @@ function convertPatternMatchToBindings(value: types.Expression, test: Expression
     case 'Identifier':
       return [{ value, name: test.name }];
 
-    case 'NumberExpression':
-    case 'BooleanExpression':
     case 'SymbolExpression':
+    case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
       return [];
 
     case 'RecordExpression':
@@ -120,7 +128,11 @@ function convertPatternMatchToBindings(value: types.Expression, test: Expression
     case 'ReadRecordPropertyExpression':
     case 'ReadDataPropertyExpression':
     case 'PatternMatchExpression':
+    case 'NativeExpression':
       return [];
+
+    default:
+      return assertNever(test);
   }
 }
 
@@ -129,14 +141,17 @@ function convertExpressionToCode(expression: Expression): types.Expression {
     case 'Identifier':
       return types.identifier(expression.name);
 
-    case 'NumberExpression':
-      return types.numericLiteral(expression.value);
+    case 'SymbolExpression':
+      return types.stringLiteral(`$SYMBOL$${expression.name}`);
 
     case 'BooleanExpression':
       return types.booleanLiteral(expression.value);
 
-    case 'SymbolExpression':
-      return types.stringLiteral(`$SYMBOL$${expression.name}`);
+    case 'NumberExpression':
+      return types.numericLiteral(expression.value);
+
+    case 'StringExpression':
+      return types.stringLiteral(expression.value);
 
     case 'RecordExpression':
       return types.objectExpression(map(expression.properties, (property, key) => (
@@ -211,6 +226,18 @@ function convertExpressionToCode(expression: Expression): types.Expression {
       );
     }
 
+    case 'NativeExpression': {
+      const { name } = expression.data;
+      if (!name) {
+        throw new Error('Native expression is missing a name');
+      }
+
+      if (typeof name === 'number') {
+        throw new Error('Name should not be a number');
+      }
+
+      return types.identifier(name);
+    }
 
     default:
       return assertNever(expression);

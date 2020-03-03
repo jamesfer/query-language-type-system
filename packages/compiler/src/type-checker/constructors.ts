@@ -23,7 +23,7 @@ import {
   DualBinding,
   FreeVariable,
   NumberLiteral,
-  RecordLiteral,
+  RecordLiteral, StringLiteral,
   SymbolLiteral,
   Value,
 } from './types/value';
@@ -155,6 +155,13 @@ export function numberLiteral(value: number): NumberLiteral {
   return {
     value,
     kind: 'NumberLiteral',
+  }
+}
+
+export function stringLiteral(value: string): StringLiteral {
+  return {
+    value,
+    kind: 'StringLiteral',
   }
 }
 

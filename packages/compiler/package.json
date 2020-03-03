@@ -1,7 +1,8 @@
 {
-  "name": "query-language-type-system",
+  "name": "query-language-compiler",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
   "license": "MIT",
   "scripts": {
     "build": "tsc --project tsconfig.json",

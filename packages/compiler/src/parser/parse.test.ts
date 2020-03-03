@@ -1,4 +1,4 @@
-import { FunctionExpression, PatternMatchExpression } from '../type-checker/types/expression';
+import { Expression, FunctionExpression, NativeExpression, PatternMatchExpression } from '..';
 import parse from './parse';
 
 describe('parse', () => {
@@ -19,7 +19,7 @@ describe('parse', () => {
     });
   });
 
-  it('recognises a dual expression', () => {
+  it('recognises an identifier', () => {
     expect(parse('a').value).toEqual({
       kind: 'Identifier',
       name: 'a',
@@ -50,7 +50,24 @@ describe('parse', () => {
   });
 
   it('recognises an implicit function expression', () => {
-    expect(parse('implicit a -> implicit b -> c').value).toEqual({
+    const withMessages = parse('implicit a -> b');
+    expect(withMessages.value).toEqual({
+      kind: 'FunctionExpression',
+      implicit: true,
+      parameter: {
+        kind: 'Identifier',
+        name: 'a',
+      },
+      body: {
+        kind: 'Identifier',
+        name: 'b',
+      },
+    });
+  });
+
+  it('recognises an implicit function expression inside an implicit function', () => {
+    const withMessages = parse('implicit a -> implicit b -> c');
+    expect(withMessages.value).toEqual({
       kind: 'FunctionExpression',
       implicit: true,
       parameter: {
@@ -73,12 +90,42 @@ describe('parse', () => {
   });
 
   it('recognises a binding expression', () => {
-    expect(parse('let a = 5 a').value).toEqual({
+    expect(parse('let a = 5\na').value).toEqual({
       kind: 'BindingExpression',
       name: 'a',
       value: {
         kind: 'NumberExpression',
         value: 5,
+      },
+      body: {
+        kind: 'Identifier',
+        name: 'a',
+      },
+    });
+  });
+
+  it('recognises a function application in a binding expression', () => {
+    const actual = parse('let a = add 5 6\na');
+    expect(actual.value).toEqual({
+      kind: 'BindingExpression',
+      name: 'a',
+      value: {
+        kind: 'Application',
+        callee: {
+          kind: 'Application',
+          callee: {
+            kind: 'Identifier',
+            name: 'add',
+          },
+          parameter: {
+            kind: 'NumberExpression',
+            value: 5,
+          },
+        },
+        parameter: {
+          kind: 'NumberExpression',
+          value: 6,
+        },
       },
       body: {
         kind: 'Identifier',
@@ -113,7 +160,7 @@ describe('parse', () => {
   });
 
   it('recognises a data value property', () => {
-    const withMessages = parse('10#10');
+    const withMessages = parse('10.10');
     expect(withMessages.value).toEqual({
       kind: 'ReadDataPropertyExpression',
       property: 10,
@@ -189,6 +236,25 @@ describe('parse', () => {
       },
     };
     const result = parse('a:b -> 1');
+    expect(result.value).toEqual(expected);
+  });
+
+  it('parses a native expression', () => {
+    const result = parse('let a = #{ name = "window", }\na');
+    const expected: Expression = {
+      kind: 'BindingExpression',
+      name: 'a',
+      value: {
+        kind: 'NativeExpression',
+        data: {
+          name: 'window',
+        },
+      },
+      body: {
+        kind: 'Identifier',
+        name: 'a',
+      },
+    };
     expect(result.value).toEqual(expected);
   });
 });

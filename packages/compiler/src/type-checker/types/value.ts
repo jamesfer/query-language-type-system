@@ -68,14 +68,19 @@ export interface RecordLiteral<T = Value> {
   properties: { [k: string]: T };
 }
 
+export interface BooleanLiteral {
+  kind: 'BooleanLiteral';
+  value: boolean;
+}
+
 export interface NumberLiteral {
   kind: 'NumberLiteral';
   value: number;
 }
 
-export interface BooleanLiteral {
-  kind: 'BooleanLiteral';
-  value: boolean;
+export interface StringLiteral {
+  kind: 'StringLiteral';
+  value: string;
 }
 
 export type Value<T = void> =
@@ -90,8 +95,9 @@ export type Value<T = void> =
   | PatternMatchValue<T extends void ? Value : T>
   | FreeVariable
   | SymbolLiteral
+  | BooleanLiteral
   | NumberLiteral
-  | BooleanLiteral;
+  | StringLiteral;
 
 export type ExplicitValue<T = void> =
   | DataValue<T extends void ? ExplicitValue : T>
@@ -104,6 +110,7 @@ export type ExplicitValue<T = void> =
   | PatternMatchValue<T extends void ? ExplicitValue : T>
   | FreeVariable
   | SymbolLiteral
+  | BooleanLiteral
   | NumberLiteral
-  | BooleanLiteral;
+  | StringLiteral;
 

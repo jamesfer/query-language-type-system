@@ -8,6 +8,11 @@ export interface NumberExpression {
   value: number;
 }
 
+export interface StringExpression {
+  kind: 'StringExpression';
+  value: string;
+}
+
 export interface BooleanExpression {
   kind: 'BooleanExpression';
   value: boolean;
@@ -76,10 +81,16 @@ export interface PatternMatchExpression<T = Expression> {
   }[];
 }
 
+export interface NativeExpression {
+  kind: 'NativeExpression';
+  data: { [k: string]: string | number };
+}
+
 export type Expression<T = void> =
   | Identifier
-  | NumberExpression
   | BooleanExpression
+  | NumberExpression
+  | StringExpression
   | SymbolExpression
   // This is because we want the default behaviour of an expression to contain an expression, but we
   // can't just add Expression as the default to T because it is recursive.
@@ -91,4 +102,5 @@ export type Expression<T = void> =
   | DualExpression<T extends void ? Expression : T>
   | ReadRecordPropertyExpression<T extends void ? Expression : T>
   | ReadDataPropertyExpression<T extends void ? Expression : T>
-  | PatternMatchExpression<T extends void ? Expression : T>;
+  | PatternMatchExpression<T extends void ? Expression : T>
+  | NativeExpression;

@@ -1,7 +1,7 @@
 import { find, flatten, map, uniqueId } from 'lodash';
 import { freeVariable, scopeBinding } from './constructors';
 import { TypeResult, TypeWriter } from './monad-utils';
-import { addReplacementsToScope, findBinding } from './scope-utils';
+import { findBinding } from './scope-utils';
 import { Message } from './types/message';
 import { Scope } from './types/scope';
 import {
@@ -32,12 +32,13 @@ function convergeDualBinding(scope: Scope, shape: DualBinding, child: Value): Va
 
 function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, child: Exclude<Value, FreeVariable>): VariableReplacement[] | undefined {
   switch (shape.kind) {
-    case 'NumberLiteral':
-    case 'BooleanLiteral':
-      return child.kind === shape.kind && child.value === shape.value ? [] : undefined;
-
     case 'SymbolLiteral':
       return child.kind === shape.kind && child.name === shape.name ? [] : undefined;
+
+    case 'BooleanLiteral':
+    case 'NumberLiteral':
+    case 'StringLiteral':
+      return child.kind === shape.kind && child.value === shape.value ? [] : undefined;
 
     case 'DualBinding':
       return convergeDualBinding(scope, shape, child);
@@ -180,8 +181,9 @@ export function destructureValue(shape: Value, value: Value): VariableReplacemen
     case 'SymbolLiteral':
       return value.kind === 'SymbolLiteral' && value.name === shape.kind ? [] : undefined;
 
-    case 'NumberLiteral':
     case 'BooleanLiteral':
+    case 'NumberLiteral':
+    case 'StringLiteral':
       return value.kind === shape.kind && value.value === shape.value ? [] : undefined;
 
     case 'FreeVariable':
