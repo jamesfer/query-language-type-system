@@ -12,11 +12,14 @@ jobs:
         working-directory: packages/compiler
       - run: yarn test
         working-directory: packages/compiler
-      - run: yarn build
+      - name: Build compiler
+        run: yarn build
         working-directory: packages/compiler
-      - run: yarn build
+      - name: Build editor
+        run: yarn build
         working-directory: packages/editor
       - name: Deploy
+        if: github.ref == 'master'
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
