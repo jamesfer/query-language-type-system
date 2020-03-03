@@ -1,0 +1,1 @@
+{"version":3,"file":"strip-nodes.d.ts","sourceRoot":"","sources":["../../../../../compiler/src/type-checker/strip-nodes.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,UAAU,EAAE,MAAM,oBAAoB,CAAC;AAChD,OAAO,EAAE,IAAI,EAAE,MAAM,cAAc,CAAC;AAGpC,wBAAgB,SAAS,CAAC,CAAC,EAAE,IAAI,EAAE,IAAI,CAAC,CAAC,CAAC,GAAG,UAAU,CAEtD"}

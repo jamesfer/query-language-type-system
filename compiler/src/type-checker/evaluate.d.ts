@@ -1,0 +1,6 @@
+import { EvaluationScope } from './types/evaluation-scope';
+import { Expression } from './types/expression';
+import { DataValue, Value } from './types/value';
+export declare const evaluateExpression: (scope: EvaluationScope) => (expression: Expression<void>) => import("./types/value").FreeVariable | import("./types/value").SymbolLiteral | import("./types/value").BooleanLiteral | import("./types/value").NumberLiteral | import("./types/value").StringLiteral | DataValue<Value<void>> | import("./types/value").RecordLiteral<Value<void>> | import("./types/value").DualBinding<Value<void>> | import("./types/value").ApplicationValue<Value<void>> | import("./types/value").ReadDataValueProperty<Value<void>> | import("./types/value").ReadRecordPropertyValue<Value<void>> | import("./types/value").FunctionLiteral<Value<void>> | import("./types/value").ImplicitFunctionLiteral<Value<void>> | import("./types/value").PatternMatchValue<Value<void>> | undefined;
+export declare const simplify: (value: Value<void>) => Value<void>;
+//# sourceMappingURL=evaluate.d.ts.map
