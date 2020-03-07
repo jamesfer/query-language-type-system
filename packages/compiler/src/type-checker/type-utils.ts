@@ -95,21 +95,54 @@ function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, chi
     }
 
     case 'ApplicationValue': {
-      if (child.kind !== shape.kind) {
-        return undefined;
-      }
+      switch (child.kind) {
+        case 'ApplicationValue': {
+          const calleeReplacements = converge(scope, shape.callee, child.callee);
+          if (!calleeReplacements) {
+            return undefined;
+          }
 
-      const calleeReplacements = converge(scope, shape.callee, child.callee);
-      if (!calleeReplacements) {
-        return undefined;
-      }
+          const parameterReplacements = converge(scope, shape.parameter, child.parameter);
+          if (!parameterReplacements) {
+            return undefined;
+          }
 
-      const parameterReplacements = converge(scope, shape.parameter, child.parameter);
-      if (!parameterReplacements) {
-        return undefined;
-      }
+          return [...calleeReplacements, ...parameterReplacements];
+        }
 
-      return [...calleeReplacements, ...parameterReplacements];
+        case 'DataValue': {
+          if (child.parameters.length === 0) {
+            // Cannot destructure a data value if it has no parameters
+            return undefined;
+          }
+
+          const temporaryParameter = newFreeVariable('parameter');
+          const calleeReplacements = converge(scope, shape.callee, {
+            kind: 'FunctionLiteral',
+            parameter: temporaryParameter,
+            body: {
+              ...child,
+              parameters: [
+                ...child.parameters.slice(0, -1),
+                temporaryParameter,
+              ],
+            },
+          });
+          if (!calleeReplacements) {
+            return undefined;
+          }
+
+          const parameterReplacements = converge(scope, shape.parameter, child.parameters[child.parameters.length - 1]);
+          if (!parameterReplacements) {
+            return undefined;
+          }
+
+          return [...calleeReplacements, ...parameterReplacements];
+        }
+
+        default:
+          return undefined;
+      }
     }
 
     case 'PatternMatchValue':

@@ -218,22 +218,19 @@ export const implement = (name: string, parameters: MaybeExpression[] = []) => (
   bind(uniqueId(`${name}Implementation`), parameters.length > 0 ? apply(identifier(name), parameters) : identifier(name))
 );
 
+function defaultExplicit<T>(parameters: (T | [T, boolean])[]): [T, boolean][] {
+  return parameters.map(parameter => Array.isArray(parameter) ? parameter : [parameter, false]);
+}
+
 export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean])[], body: MaybeExpression<T>): Expression
 export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean])[], body: T): T | Expression {
-  return parameters.reduceRight(
-    (body, parameter): FunctionExpression => Array.isArray(parameter)
-      ? {
-        body,
-        kind: 'FunctionExpression',
-        implicit: parameter[1],
-        parameter: toExpression(parameter[0]),
-      }
-      : {
-        body,
-        parameter: toExpression(parameter),
-        kind: 'FunctionExpression',
-        implicit: false,
-      },
+  return defaultExplicit(parameters).reduceRight(
+    (body, [parameter, implicit]): FunctionExpression => ({
+      body,
+      implicit,
+      kind: 'FunctionExpression',
+      parameter: toExpression(parameter),
+    }),
     toExpression(body) as any,
   );
 }
@@ -277,12 +274,15 @@ export function record(properties: { [k: string]: Expression }): RecordExpressio
   };
 }
 
-export function dataInstantiation(name: MaybeExpression, parameters: MaybeExpression[]): DataInstantiation;
-export function dataInstantiation<T extends object = Expression>(name: MaybeExpression, parameters: MaybeExpression<T>[]): DataInstantiation<T> {
+export function dataInstantiation(name: MaybeExpression, parameters: MaybeExpression[], parameterShapes: (MaybeExpression | [MaybeExpression, boolean])[]): DataInstantiation;
+export function dataInstantiation<T extends object = Expression>(name: MaybeExpression, parameters: MaybeExpression<T>[], parameterShapes: (MaybeExpression | [MaybeExpression, boolean])[]): DataInstantiation<T> {
   return {
     kind: 'DataInstantiation',
     callee: typeof name === 'string' && name[0].toUpperCase() === name[0] ? symbolExpression(name) : toExpression(name) as any,
     parameters: allToExpression(parameters) as any,
+    parameterShapes: defaultExplicit(parameterShapes).map(([parameter, implicit]) => (
+      [toExpression(parameter), implicit]
+    )),
   };
 }
 
@@ -294,8 +294,12 @@ export function dual(left: MaybeExpression, right: MaybeExpression): DualExpress
   };
 }
 
-export const data = (name: string, parameterNames: string[] = [], parameters: MaybeExpression[] = parameterNames) => (
-  bind(name, lambda(parameters, dataInstantiation(name, parameterNames.map(identifier))))
+export const data = (name: string, parameterNames: string[] = [], parameters: (MaybeExpression | [MaybeExpression, boolean])[] = parameterNames) => (
+  bind(name, lambda(parameters, dataInstantiation(
+    name,
+    parameterNames.map(identifier),
+    parameters,
+  )))
 );
 
 export function readRecordProperty(record: MaybeExpression, property: string): ReadRecordPropertyExpression {

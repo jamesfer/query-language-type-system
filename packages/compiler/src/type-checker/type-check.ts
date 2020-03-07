@@ -74,18 +74,18 @@ const copyFreeVariables = visitValueWithState<{ [k: string]: FreeVariable }>({},
   },
 });
 
-function getImplicitsForBinding(valueNode: TypedNode): Value[] {
-  const valueList = extractImplicitParameters(valueNode);
-  let variableNames = extractFreeVariableNames(valueNode.decoration.type);
-  let allRelated: Value[] = [];
-  let [related, unrelated] = partition(valueList, usesVariable(variableNames));
-  while (related.length > 0) {
-    allRelated = [...allRelated, ...related];
-    variableNames = [...variableNames, ...flatMap(related, extractFreeVariableNames)];
-    ([related, unrelated] = partition(unrelated, usesVariable(variableNames)));
-  }
-  return allRelated;
-}
+// function getImplicitsForBinding(valueNode: TypedNode): Value[] {
+//   const valueList = extractImplicitParameters(valueNode);
+//   let variableNames = extractFreeVariableNames(valueNode.decoration.type);
+//   let allRelated: Value[] = [];
+//   let [related, unrelated] = partition(valueList, usesVariable(variableNames));
+//   while (related.length > 0) {
+//     allRelated = [...allRelated, ...related];
+//     variableNames = [...variableNames, ...flatMap(related, extractFreeVariableNames)];
+//     ([related, unrelated] = partition(unrelated, usesVariable(variableNames)));
+//   }
+//   return allRelated;
+// }
 
 export const typeExpression = (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
   const state = new TypeWriter(scope);
@@ -189,24 +189,35 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       const parameter = state.run(typeExpression)(expression.parameter);
       const expressionNode: Expression<TypedNode> = { ...expression, callee, parameter };
 
-      const calleeType = callee.decoration.type;
-      if (calleeType.kind !== 'FunctionLiteral') {
-        state.log(`Cannot call a ${calleeType.kind}`);
+      // Converge the callee type with a function type
+      const parameterTypeVariable = newFreeVariable('p');
+      const bodyTypeVariable = newFreeVariable('b');
+      const calleeReplacements = converge(state.scope, callee.decoration.type, {
+        kind: 'FunctionLiteral',
+        parameter: parameterTypeVariable,
+        body: bodyTypeVariable,
+      });
+      if (!calleeReplacements) {
+        state.log(`Cannot call a ${callee.decoration.type.kind}`);
         return state.wrap(typeNode(expressionNode, scope, dataValue('Any')));
       }
 
-      const replacements = converge(state.scope, calleeType.parameter, parameter.decoration.type);
-      if (!replacements) {
+      state.recordReplacements(calleeReplacements);
+      const parameterType = applyReplacements(calleeReplacements)(parameterTypeVariable);
+      const bodyType = applyReplacements(calleeReplacements)(bodyTypeVariable);
+
+      const parameterReplacements = converge(state.scope, parameterType, parameter.decoration.type);
+      if (!parameterReplacements) {
         state.log('Given parameter did not match expected shape');
         return state.wrap(typeNode(expressionNode, scope, dataValue('Any')));
       }
 
       // Apply replacements to all children and implicits
-      state.recordReplacements(replacements);
+      state.recordReplacements(parameterReplacements);
       return state.wrap(typeNode(
         recursivelyApplyReplacements(state.replacements)(expressionNode),
         scope,
-        applyReplacements(state.replacements)(calleeType.body),
+        applyReplacements(state.replacements)(bodyType),
       ));
     }
 

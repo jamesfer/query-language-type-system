@@ -1,4 +1,5 @@
-import { runTypePhase } from './run-type-phase';
+import { renameFreeVariables } from './rename-free-variables';
+import { runTypePhase, runTypePhaseWithoutRename } from './run-type-phase';
 import { stripNode } from './strip-nodes';
 import { typeExpression } from './type-check';
 import {
@@ -10,7 +11,7 @@ import {
   numberExpression,
   evaluationScope,
   bind,
-  dual, dataInstantiation, identifier, readRecordProperty,
+  dual, dataInstantiation, identifier, readRecordProperty, scope,
 } from './constructors';
 import { evaluateExpression, simplify } from './evaluate';
 import { pipe } from './utils';
@@ -36,7 +37,8 @@ describe('typeExpression', () => {
   it('fails on an implement declaration when children do not match the constraints', () => {
     const [messages] = runTypePhase(pipe(
       data('Serial', ['s']),
-      bind('Color', lambda([[apply('Serial', ['t']), true], 't'], dataInstantiation('Color', [identifier('t')]))),
+      data('Color', ['t'], [[apply('Serial', ['t']), true], 't']),
+      // bind('Color', lambda([[apply('Serial', ['t']), true], 't'], dataInstantiation('Color', [identifier('t')]))),
       data('Red'),
       implement('Color', ['Red']),
       blank,
@@ -47,8 +49,8 @@ describe('typeExpression', () => {
   it('fails when children do not match an existing implementation', () => {
     const [messages] = runTypePhase(pipe(
       data('Serial', ['c']),
-      // data('Color', ['c'], [apply('Serial', ['c']), 'c']),
-      bind('Color', lambda([[apply('Serial', ['t']), true], 't'], dataInstantiation('Color', [identifier('t')]))),
+      data('Color', ['t'], [[apply('Serial', ['t']), true], 't']),
+      // bind('Color', lambda([[apply('Serial', ['t']), true], 't'], dataInstantiation('Color', [identifier('t')]))),
       data('Red'),
       data('Green'),
       implement('Serial', ['Green']),
@@ -144,27 +146,37 @@ describe('typeExpression', () => {
     const expression = pipe(
       data('Int', ['c']),
       // Declare type class
-      bind('Serializable', lambda(
-        [
-          'a',
-          dual('c', record({
-            valueOf: lambda(
-              [
-                [dataInstantiation('Int', ['result']), true],
-                [dataInstantiation('a', ['object']), true],
-                'object',
-              ],
-              'result',
-            ),
-          })),
-        ],
-        dataInstantiation('Serializable', ['a', 'c']),
-      )),
+      data('Serializable', ['a', 'c'], ['a', dual('c', record({
+        valueOf: lambda(
+          [
+            [apply('Int', ['result']), true],
+            [apply('a', ['object']), true],
+            'object',
+          ],
+          'result',
+        ),
+      }))]),
+      // bind('Serializable', lambda(
+      //   [
+      //     'a',
+      //     dual('c', record({
+      //       valueOf: lambda(
+      //         [
+      //           [apply('Int', ['result']), true],
+      //           [apply('a', ['object']), true],
+      //           'object',
+      //         ],
+      //         'result',
+      //       ),
+      //     })),
+      //   ],
+      //   apply('Serializable', ['a', 'c']),
+      // )),
       // Declare usable implementation of type class
       bind('valueOf', lambda(
         [
-          [apply('Serializable', [dataInstantiation('a', ['object']), 'z']), true],
-          [dataInstantiation('a', ['object']), true],
+          [apply('Serializable', [apply('a', ['object']), 'z']), true],
+          [apply('a', ['object']), true],
           // TODO if functions were correctly curried in all places, then we probably wouldn't need
           //      to accept an 'value' parameter here, which would mean this method acts kind of
           //      like a "summon" method which is cool.
