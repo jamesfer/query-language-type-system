@@ -10,7 +10,7 @@ import {
   NumberExpression,
   PatternMatchExpression,
   ReadDataPropertyExpression,
-  ReadRecordPropertyExpression, StringExpression,
+  ReadRecordPropertyExpression, RecordExpression, StringExpression,
 } from '..';
 import { Message } from '..';
 import { checkedZip } from '../type-checker/utils';
@@ -57,6 +57,7 @@ function withMessages<T>(messages: Message[], value: T): WithMessages<T> {
 enum Precedence {
   none,
   bindingEquals,
+  record,
   functionArrow,
   patternMatch,
   application,
@@ -163,6 +164,7 @@ function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(i1: Interpreter<
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>, i14: Interpreter<T14>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13 | T14>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>, i14: Interpreter<T14>, i15: Interpreter<T15>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13 | T14 | T15>;
 function matchAny<T, R>(...interpreters: Interpreter<T>[]): Interpreter<T> {
   return interpreter(undefined, (...interpreterParams) => doWithState((state) => {
     return flatMap(interpreters, interpreter => (
@@ -430,6 +432,20 @@ const interpretDual = interpreter('interpretDual', matchAll(
   kind: 'DualExpression',
 })));
 
+const interpretRecord = interpreter('interpretRecord', matchAll(
+  withoutPrevious,
+  matchTokens('openBrace'),
+  matchRepeated(interpreter(undefined, matchAll(
+    matchTokens('identifier', 'equals'),
+    matchExpression(Precedence.record),
+    matchTokens('comma'),
+  )(a => a))),
+  matchTokens('closeBrace'),
+)(([, , properties]): RecordExpression => ({
+  kind: 'RecordExpression',
+  properties: fromPairs(properties.map(([[name], value]) => ([name.value, value]))),
+})));
+
 const interpretDataProperty = interpreter('interpretDataProperty', matchAll(
   withPrevious(Precedence.readProperty),
   matchTokens('dot', 'number'),
@@ -484,6 +500,7 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretNumber,
   interpretString,
   interpretIdentifier,
+  interpretRecord,
   interpretFunction,
   interpretImplicitFunction,
   interpretBinding,

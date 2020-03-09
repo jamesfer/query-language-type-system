@@ -197,10 +197,11 @@ function convertExpressionToCode(expression: Expression): types.Expression {
       return convertExpressionToCode(expression.right);
 
     case 'ReadRecordPropertyExpression':
-      return types.memberExpression(convertExpressionToCode(expression.record), expression.property);
+      // return types.memberExpression(convertExpressionToCode(expression.record), expression.property);
+      return types.memberExpression(convertExpressionToCode(expression.record), types.identifier(expression.property));
 
     case 'ReadDataPropertyExpression':
-      return types.memberExpression(convertExpressionToCode(expression.dataValue), expression.property);
+      return types.memberExpression(convertExpressionToCode(expression.dataValue), types.identifier(`${expression.property}`));
 
     case 'PatternMatchExpression': {
       const jsValue = convertExpressionToCode(expression.value);
