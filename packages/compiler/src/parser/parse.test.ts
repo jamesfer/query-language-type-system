@@ -1,4 +1,5 @@
 import { Expression, FunctionExpression, NativeExpression, PatternMatchExpression } from '..';
+import { identifier } from '../type-checker/constructors';
 import parse from './parse';
 
 describe('parse', () => {
@@ -257,4 +258,34 @@ describe('parse', () => {
     };
     expect(result.value).toEqual(expected);
   });
+
+  it('parses a data expression', () => {
+    const result = parse('data T = implicit a, b, c\n5');
+    const expected: Expression = {
+      kind: 'BindingExpression',
+      name: 'T',
+      value: {
+        kind: 'DataInstantiation',
+        callee: {
+          kind: 'SymbolExpression',
+          name: 'T',
+        },
+        parameters: [
+          identifier('a'),
+          identifier('b'),
+          identifier('c'),
+        ],
+        parameterShapes: [
+          [identifier('a'), true],
+          [identifier('b'), false],
+          [identifier('c'), false],
+        ],
+      },
+      body: {
+        kind: 'NumberExpression',
+        value: 5,
+      },
+    };
+    expect(result.value).toEqual(expected);
+  })
 });

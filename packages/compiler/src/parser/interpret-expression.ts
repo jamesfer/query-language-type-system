@@ -2,7 +2,7 @@ import { flatMap, map, max, maxBy, partition, isEqual, fromPairs } from 'lodash'
 import {
   Application,
   BindingExpression,
-  BooleanExpression,
+  BooleanExpression, DataInstantiation,
   DualExpression,
   Expression,
   FunctionExpression,
@@ -121,11 +121,20 @@ class MessageState {
   }
 }
 
+function matchOption<T>(childInterpreter: Interpreter<T>): Interpreter<T | undefined> {
+  return interpreter('matchOption', (tokens, previous, precedence) => doWithState((state) => {
+    const result = state.run(runInterpreter)(childInterpreter, tokens, previous, precedence);
+    return result.length > 0 ? result : [withTokens([], undefined)];
+  }));
+}
+
 function matchAll<T1>(i1: Interpreter<T1>): <R>(f: (args: [T1]) => R) => InterpreterFunction<R>;
 function matchAll<T1, T2>(i1: Interpreter<T1>, i2: Interpreter<T2>): <R>(f: (args: [T1, T2]) => R) => InterpreterFunction<R>;
 function matchAll<T1, T2, T3>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>): <R>(f: (args: [T1, T2, T3]) => R) => InterpreterFunction<R>;
 function matchAll<T1, T2, T3, T4>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>): <R>(f: (args: [T1, T2, T3, T4]) => R) => InterpreterFunction<R>;
 function matchAll<T1, T2, T3, T4, T5>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>): <R>(f: (args: [T1, T2, T3, T4, T5]) => R) => InterpreterFunction<R>;
+function matchAll<T1, T2, T3, T4, T5, T6>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, i6: Interpreter<T6>): <R>(f: (args: [T1, T2, T3, T4, T5, T6]) => R) => InterpreterFunction<R>;
+function matchAll<T1, T2, T3, T4, T5, T6, T7>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, i6: Interpreter<T6>, i7: Interpreter<T7>): <R>(f: (args: [T1, T2, T3, T4, T5, T6, T7]) => R) => InterpreterFunction<R>;
 function matchAll<T, R>(...interpreters: Interpreter<T>[]): (f: (args: T[]) => R) => InterpreterFunction<R> {
   return f => (tokens, ...interpreterParams) => doWithState(state => (
     interpreters.reduce<WithTokens<T[]>[]>(
@@ -153,6 +162,7 @@ function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10>(i1: Interpreter<T1>, 
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>, i14: Interpreter<T14>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13 | T14>;
 function matchAny<T, R>(...interpreters: Interpreter<T>[]): Interpreter<T> {
   return interpreter(undefined, (...interpreterParams) => doWithState((state) => {
     return flatMap(interpreters, interpreter => (
@@ -369,6 +379,39 @@ const interpretBinding = interpreter('interpretBinding', matchAll(
   name: name.value,
 })));
 
+const interpretData = interpreter('interpretData', matchAll(
+  withoutPrevious,
+  matchKeyword('data'),
+  matchTokens('identifier', 'equals'),
+  matchOption(matchKeyword('implicit')),
+  matchExpression(Precedence.bindingEquals),
+  matchRepeated(interpreter(undefined, matchAll(
+    matchTokens('comma'),
+    matchOption(matchKeyword('implicit')),
+    matchExpression(Precedence.bindingEquals),
+  )(a => a))),
+  matchBrokenExpression(Precedence.none),
+)(([, , [name], implicitFirstParameter, firstParameter, otherParameters, body]): BindingExpression => {
+  const parameters: [Expression, boolean][] = [
+    [firstParameter, !!implicitFirstParameter],
+    ...otherParameters.map<[Expression, boolean]>(([, implicit, parameter]) => [parameter, !!implicit])
+  ];
+  return {
+    body,
+    kind: 'BindingExpression',
+    name: name.value,
+    value: {
+      kind: 'DataInstantiation',
+      callee: {
+        kind: 'SymbolExpression',
+        name: name.value,
+      },
+      parameters: map(parameters, 0),
+      parameterShapes: parameters,
+    },
+  };
+}));
+
 const interpretDual = interpreter('interpretDual', matchAll(
   withPrevious(Precedence.dual),
   matchTokens('colon'),
@@ -428,6 +471,7 @@ const interpretNative = interpreter('interpretNative', matchAll(
 })));
 
 const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoops(matchAny(
+  interpretData,
   interpretBoolean,
   interpretNumber,
   interpretString,

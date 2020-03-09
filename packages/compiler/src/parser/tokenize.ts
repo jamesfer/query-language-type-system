@@ -37,7 +37,7 @@ export const rules: moo.Rules = {
   [TokenKind.identifier]: {
     match: /[a-zA-Z_][a-zA-Z0-9_]*/,
     type: moo.keywords({
-      [TokenKind.keyword]: ['let', 'implicit', 'match'],
+      [TokenKind.keyword]: ['let', 'implicit', 'match', 'data'],
       [TokenKind.boolean]: ['true', 'false'],
     }),
   },
