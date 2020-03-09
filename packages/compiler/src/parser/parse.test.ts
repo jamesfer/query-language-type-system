@@ -149,6 +149,22 @@ describe('parse', () => {
     });
   });
 
+  it('recognises a record literal', () => {
+    expect(parse('{ a = 1, b = 2, }').value).toEqual({
+      kind: 'RecordExpression',
+      properties: {
+        a: {
+          kind: 'NumberExpression',
+          value: 1,
+        },
+        b: {
+          kind: 'NumberExpression',
+          value: 2,
+        },
+      },
+    });
+  });
+
   it('recognises a record property', () => {
     expect(parse('10.property').value).toEqual({
       kind: 'ReadRecordPropertyExpression',

@@ -56,11 +56,24 @@ describe('generateJavascript', () => {
     }
   });
 
-  it.skip('translates a read record property expression', () => {
-    const result = compile('a.word');
+  it('translates a record literal expression', () => {
+    const result = compile('{ a = 1, b = 2, }');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('a.word');
+      expect(generateJavascript(stripNode(result.node))).toEqual(`{
+  a: 1,
+  b: 2
+}`);
+    }
+  });
+
+  it('translates a read record property expression', () => {
+    const result = compile('{ word = 10, }.word');
+    expect(result.node).toBeDefined();
+    if (result.node) {
+      expect(generateJavascript(stripNode(result.node))).toEqual(`{
+  word: 10
+}.word`);
     }
   });
 
