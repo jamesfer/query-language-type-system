@@ -265,21 +265,45 @@ describe('parse', () => {
       kind: 'BindingExpression',
       name: 'T',
       value: {
-        kind: 'DataInstantiation',
-        callee: {
-          kind: 'SymbolExpression',
-          name: 'T',
+        kind: 'FunctionExpression',
+        implicit: true,
+        parameter: {
+          kind: 'Identifier',
+          name: 'a',
         },
-        parameters: [
-          identifier('a'),
-          identifier('b'),
-          identifier('c'),
-        ],
-        parameterShapes: [
-          [identifier('a'), true],
-          [identifier('b'), false],
-          [identifier('c'), false],
-        ],
+        body: {
+          kind: 'FunctionExpression',
+          implicit: false,
+          parameter: {
+            kind: 'Identifier',
+            name: 'b',
+          },
+          body: {
+            kind: 'FunctionExpression',
+            implicit: false,
+            parameter: {
+              kind: 'Identifier',
+              name: 'c',
+            },
+            body: {
+              kind: 'DataInstantiation',
+              callee: {
+                kind: 'SymbolExpression',
+                name: 'T',
+              },
+              parameters: [
+                identifier('a'),
+                identifier('b'),
+                identifier('c'),
+              ],
+              parameterShapes: [
+                [identifier('a'), true],
+                [identifier('b'), false],
+                [identifier('c'), false],
+              ],
+            },
+          },
+        },
       },
       body: {
         kind: 'NumberExpression',

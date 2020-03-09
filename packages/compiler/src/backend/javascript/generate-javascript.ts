@@ -2,7 +2,7 @@ import generate from '@babel/generator';
 import * as types from '@babel/types';
 import { flatMap, initial, last, map } from 'lodash';
 import { identifier } from '../../type-checker/constructors';
-import { Expression, PatternMatchExpression } from '../../type-checker/types/expression';
+import { Expression, PatternMatchExpression } from '../..';
 import { assertNever } from '../../type-checker/utils';
 
 const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
@@ -155,7 +155,7 @@ function convertExpressionToCode(expression: Expression): types.Expression {
 
     case 'RecordExpression':
       return types.objectExpression(map(expression.properties, (property, key) => (
-        types.objectProperty(key, convertExpressionToCode(property))
+        types.objectProperty(types.identifier(key), convertExpressionToCode(property))
       )));
 
     case 'Application':
@@ -181,8 +181,10 @@ function convertExpressionToCode(expression: Expression): types.Expression {
 
     case 'DataInstantiation':
       return types.objectExpression([
-        types.objectProperty(`$DATA_NAME$`, convertExpressionToCode(expression.callee)),
-        ...expression.parameters.map((value, index) => types.objectProperty(index, convertExpressionToCode(value))),
+        types.objectProperty(types.identifier('$DATA_NAME$'), convertExpressionToCode(expression.callee)),
+        ...expression.parameters.map((value, index) => (
+          types.objectProperty(types.identifier(`${index}`), convertExpressionToCode(value))
+        )),
       ]);
 
     case 'BindingExpression':

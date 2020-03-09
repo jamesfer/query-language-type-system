@@ -400,15 +400,23 @@ const interpretData = interpreter('interpretData', matchAll(
     body,
     kind: 'BindingExpression',
     name: name.value,
-    value: {
-      kind: 'DataInstantiation',
-      callee: {
-        kind: 'SymbolExpression',
-        name: name.value,
+    value: parameters.reduceRight<Expression>(
+      (body, [parameter, implicit]): FunctionExpression => ({
+        implicit,
+        parameter,
+        body,
+        kind: 'FunctionExpression',
+      }),
+      {
+        kind: 'DataInstantiation',
+        callee: {
+          kind: 'SymbolExpression',
+          name: name.value,
+        },
+        parameters: map(parameters, 0),
+        parameterShapes: parameters,
       },
-      parameters: map(parameters, 0),
-      parameterShapes: parameters,
-    },
+    ),
   };
 }));
 
