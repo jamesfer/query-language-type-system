@@ -12,12 +12,13 @@ export interface WithMessages<T> {
 declare enum Precedence {
     none = 0,
     bindingEquals = 1,
-    functionArrow = 2,
-    patternMatch = 3,
-    application = 4,
-    application2 = 5,
-    dual = 6,
-    readProperty = 7
+    record = 2,
+    functionArrow = 3,
+    patternMatch = 4,
+    application = 5,
+    application2 = 6,
+    dual = 7,
+    readProperty = 8
 }
 declare type InterpreterFunction<T> = (tokens: ExpressionToken[], previous: Expression | undefined, precedence: Precedence) => WithMessages<WithTokens<T>[]>;
 export interface Interpreter<T> {
