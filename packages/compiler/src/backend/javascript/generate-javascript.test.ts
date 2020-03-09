@@ -79,4 +79,17 @@ describe('generateJavascript', () => {
       expect(generateJavascript(stripNode(result.node))).toEqual('5 === 3 ? (true) : 5 === 5 ? (true) : false');
     }
   });
+
+  it('translates a data declaration', () => {
+    const result = compile('data a = x, y, z\na 1 2 3');
+    expect(result.node).toBeDefined();
+    if (result.node) {
+      expect(generateJavascript(stripNode(result.node))).toEqual(`a = x$rename$7 => y$rename$8 => z$rename$9 => ({
+  $DATA_NAME$: "$SYMBOL$a",
+  0: x$rename$7,
+  1: y$rename$8,
+  2: z$rename$9
+}), a(1)(2)(3)`);
+    }
+  });
 });

@@ -45,6 +45,7 @@ export interface DataInstantiation<T = Expression> {
   kind: 'DataInstantiation';
   callee: T;
   parameters: T[];
+  parameterShapes: [Expression, boolean][];
 }
 
 export interface BindingExpression<T = Expression> {
