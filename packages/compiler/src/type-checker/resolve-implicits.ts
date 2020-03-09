@@ -7,7 +7,7 @@ import {
 import { findMatchingImplementations } from './scope-utils';
 import { TypedNode } from './type-check';
 import { areAllPairsSubtypes } from './type-utils';
-import { Application } from './types/expression';
+import { Application, Expression } from './types/expression';
 import { Message } from './types/message';
 import { Scope, ScopeBinding } from './types/scope';
 import { Value } from './types/value';
@@ -15,6 +15,7 @@ import {
   checkedZipWith,
   permuteArrays,
   accumulateStatesWithResult,
+  withStateStack, withParentExpressionKind,
 } from './utils';
 import { visitNodes } from './visitor-utils';
 
@@ -106,11 +107,7 @@ import { visitNodes } from './visitor-utils';
 // }
 //
 
-function strictResolveImplicitParameters(typedNode: TypedNode): [Message[], TypedNode] {
-  return shallowResolveImplicitParameters(typedNode);
-}
-
-function getImplicitImplementations(scope: Scope, value: Value): { result: Value, implementations: ScopeBinding[], skippedImplicits: Value[], messages: Message[] } {
+function getImplicitImplementations(scope: Scope, value: Value, allowUnresolvedImplicits: boolean): { result: Value, implementations: ScopeBinding[], skippedImplicits: Value[], messages: Message[] } {
   // Find all the implicit parts of the type
   const [implicitParameters, result] = extractImplicitsParameters(value);
   if (implicitParameters.length === 0) {
@@ -164,11 +161,9 @@ function getImplicitImplementations(scope: Scope, value: Value): { result: Value
   }
 }
 
-export function shallowResolveImplicitParameters(typedNode: TypedNode, allowedUnresolved = false): [Message[], TypedNode] {
-  // TODO use allowed unresolved
-
+function shallowResolveImplicitParameters(parentKind: Expression['kind'] | undefined, typedNode: TypedNode): [Message[], TypedNode] {
   const { expression, decoration: { scope, implicitType: type } } = typedNode;
-  const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type);
+  const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type, parentKind === 'BindingExpression');
 
   // Recurse through the rest of the tree
   // const [expressionMessages, resolvedExpression] = iterateExpression(expression, result);
@@ -197,7 +192,9 @@ export function shallowResolveImplicitParameters(typedNode: TypedNode, allowedUn
 }
 
 export function resolveImplicitParameters(node: TypedNode): [string[], TypedNode] {
-  const [getState, visitor] = accumulateStatesWithResult(strictResolveImplicitParameters);
+  const [getState, visitor] = accumulateStatesWithResult(
+    withParentExpressionKind(shallowResolveImplicitParameters),
+  );
   const newNode = visitNodes({ after: visitor })(node);
   return [getState(), newNode];
 }
