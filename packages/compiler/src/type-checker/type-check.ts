@@ -1,4 +1,4 @@
-import { find, flatMap, map, partition, some, zipObject } from 'lodash';
+import { find, flatMap, map, some, zipObject, merge } from 'lodash';
 import {
   booleanLiteral,
   dataValue,
@@ -9,12 +9,15 @@ import {
   node,
   numberLiteral,
   recordLiteral,
-  scopeBinding, stringLiteral,
+  scopeBinding,
+  stringLiteral,
   symbol,
 } from './constructors';
 import { evaluateExpression } from './evaluate';
 import {
-  extractImplicitParameters,
+  deepExtractImplicitParameters,
+  deepExtractImplicitParametersFromExpression,
+  extractImplicitsParameters,
   partitionUnrelatedValues,
   stripImplicits,
 } from './implicit-utils';
@@ -32,13 +35,11 @@ import {
 import { Node } from './types/node';
 import { Scope } from './types/scope';
 import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
-import { assertNever } from './utils';
+import { assertNever, withParentExpressionKind } from './utils';
 import {
   applyReplacements,
-  extractFreeVariableNames,
   getBindingsFromValue,
   recursivelyApplyReplacements,
-  usesVariable,
 } from './variable-utils';
 import { visitNodes, visitValueWithState } from './visitor-utils';
 
@@ -75,7 +76,7 @@ const copyFreeVariables = visitValueWithState<{ [k: string]: FreeVariable }>({},
 });
 
 // function getImplicitsForBinding(valueNode: TypedNode): Value[] {
-//   const valueList = extractImplicitParameters(valueNode);
+//   const valueList = deepExtractImplicitParameters(valueNode);
 //   let variableNames = extractFreeVariableNames(valueNode.decoration.type);
 //   let allRelated: Value[] = [];
 //   let [related, unrelated] = partition(valueList, usesVariable(variableNames));
@@ -222,40 +223,47 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     }
 
     case 'BindingExpression': {
-      const valueNode = state.run(typeExpression)(expression.value);
-
-      // Extract implicit parameters from all children on the value
-      const valueList = extractImplicitParameters(valueNode);
-      const [valueImplicits] = partitionUnrelatedValues(valueList, valueNode.decoration.type);
-      const implicitParameters = valueImplicits.map(value => (
-        dualBinding(newFreeVariable('implicitBinding$'), value)
-      ));
-
-      // Add implicits to every scope so they can be discovered by the `resolveImplicitParameters`
-      // function
-      const implicitBindings = flatMap(implicitParameters, getBindingsFromValue)
-        .map(({ from, to }) => scopeBinding(from, scope, to));
-      const newValueNode = visitNodes({
-        after: (node: TypedNode) => ({
-          ...node,
-          decoration: {
-            ...node.decoration,
-            scope: expandScope(node.decoration.scope, { bindings: implicitBindings }),
-          },
-        }),
-      })(valueNode);
-
-      // Add the binding to the scope so that it can be used in the body
-      const newType = functionType(valueNode.decoration.type, implicitParameters.map(parameter => [parameter, true]));
-      const bodyNode = state.withChildScope((innerState) => {
-        const binding = scopeBinding(expression.name, newValueNode.decoration.scope, newType, stripNode(newValueNode));
-        innerState.expandScope({ bindings: [binding] });
-        return innerState.run(typeExpression)(expression.body);
-      });
-
       if (some(scope.bindings, { name: expression.name })) {
         state.log(`A variable with the name ${expression.name} already exists`)
       }
+
+      // Extract implicit parameters from all children on the value
+      const valueNode = state.run(typeExpression)(expression.value);
+      const [shallowImplicits] = extractImplicitsParameters(valueNode.decoration.implicitType);
+      const [relatedShallowImplicits, unrelatedShallowImplicits] = partitionUnrelatedValues(shallowImplicits, valueNode.decoration.type);
+      const deepImplicits = deepExtractImplicitParametersFromExpression(valueNode.expression);
+      const [relatedDeepImplicits, unrelatedDeepImplicits] = partitionUnrelatedValues(deepImplicits, valueNode.decoration.type);
+      const allRelatedImplicits = [...relatedShallowImplicits, ...relatedDeepImplicits];
+      const allUnrelatedImplicits = [...unrelatedShallowImplicits, ...unrelatedDeepImplicits];
+      const relatedImplicitParameters = allRelatedImplicits.map(value => (
+        dualBinding(newFreeVariable('implicitBinding$'), value)
+      ));
+      const unrelatedImplicitParameters = allUnrelatedImplicits.map(value => (
+        dualBinding(newFreeVariable('implicitBinding$'), value)
+      ));
+
+      // Add all implicits to every scope so they can be discovered by the resolveImplicitParameters
+      // function
+      const allImplicitParameters = [...relatedImplicitParameters, ...unrelatedImplicitParameters];
+      const implicitBindings = flatMap(allImplicitParameters, getBindingsFromValue)
+        .map(({ from, to }) => scopeBinding(from, scope, to));
+      const newValueNode = visitNodes({
+        after: withParentExpressionKind((parentKind: Expression['kind'] | undefined, node: TypedNode) => (
+          !parentKind ? node : merge(node, {
+            decoration: {
+              scope: expandScope(node.decoration.scope, { bindings: implicitBindings }),
+            },
+          })
+        )),
+      })(valueNode);
+
+      // Add the binding to the scope so that it can be used in the body
+      const bodyNode = state.withChildScope((innerState) => {
+        const scopeType = functionType(valueNode.decoration.type, relatedImplicitParameters.map(parameter => [parameter, true]));
+        const binding = scopeBinding(expression.name, newValueNode.decoration.scope, scopeType, stripNode(newValueNode));
+        innerState.expandScope({ bindings: [binding] });
+        return innerState.run(typeExpression)(expression.body);
+      });
 
       const expressionNode = {
         ...expression,
@@ -263,7 +271,12 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
           ...newValueNode,
           decoration: {
             ...newValueNode.decoration,
-            implicitType: newType,
+            // The node type includes all the bindings because we want the unrelated implicits to be
+            // resolved
+            implicitType: functionType(
+              valueNode.decoration.type,
+              [...shallowImplicits, ...relatedDeepImplicits].map(parameter => [parameter, true]),
+            ),
           },
         },
         body: bodyNode,

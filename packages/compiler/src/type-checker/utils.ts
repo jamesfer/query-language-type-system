@@ -1,5 +1,7 @@
 // import { AssertionError } from 'assert';
-import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith, concat } from 'lodash';
+import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith, concat, last } from 'lodash';
+import { TypedNode } from './type-check';
+import { Expression } from './types/expression';
 
 export function assertNever(x: never): never {
   throw new Error('Assert never was actually called');
@@ -160,6 +162,51 @@ export function accumulateStatesUsingAnd<S, T>(func: (arg: T) => boolean): [() =
 
 export function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
   return accumulateStateWith<boolean, T, T>(false, (left, right) => left || right)(resultWithArg(func));
+}
+
+// export function maintainState<S, T>(func: (state: S | undefined, arg: T) => [S, () => T]): (arg: T) => T {
+//   const state: S | undefined = undefined;
+//   return (arg) => {
+//     const [newState, compute] = func(state, arg);
+//
+//   }
+// }
+
+export function withRecursiveState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => R]): (...args: T) => R {
+  let state: S | undefined = undefined;
+  return (...args) => {
+    const [newState, continuation] = f(state, ...args);
+    const previousState = state;
+    state = newState;
+    const result = continuation();
+    state = previousState;
+    return result;
+  }
+}
+
+export function withStateStack<S, T extends any[], R>(f: (pushState: (state: S) => void, state: S | undefined, ...args: T) => R): (...args: T) => R {
+  let stateStack: S[] = [];
+  const pushState = (state: S) => stateStack.push(state);
+  return (...args) => {
+    const oldState = [...stateStack];
+    const result = f(pushState, last(stateStack), ...args);
+    stateStack = oldState;
+    return result;
+  }
+}
+
+/**
+ * Automatically tracks the parent kind of each expression and provides its to the given callback.
+ */
+export function withParentExpressionKind<R>(f: (parentKind: Expression['kind'] | undefined, node: TypedNode) => R): (node: TypedNode) => R {
+  return withStateStack((
+    pushState: (state: Expression['kind']) => void,
+    parentKind: Expression['kind'] | undefined,
+    node: TypedNode,
+  ): R => {
+    pushState(node.expression.kind);
+    return f(parentKind, node);
+  });
 }
 
 export function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined): [T, R] | undefined {

@@ -7,16 +7,14 @@ import { assertNever } from './utils';
 import { extractFreeVariableNames, usesVariable } from './variable-utils';
 import { unfoldParameters, visitAndTransformValue } from './visitor-utils';
 
-const extractImplicitParametersFromNode = (depth: number) => (node: TypedNode): Value[] => {
-  const [implicits] = depth > 0 ? extractImplicitsParameters(node.decoration.implicitType) : [[]];
-  const childImplicits = extractImplicitParametersFromExpression(depth)(node.expression);
+export function deepExtractImplicitParameters(node: TypedNode): Value[] {
+  const [implicits] = extractImplicitsParameters(node.decoration.implicitType);
+  const childImplicits = deepExtractImplicitParametersFromExpression(node.expression);
   return [...implicits, ...childImplicits];
-};
+}
 
-export const extractImplicitParameters = extractImplicitParametersFromNode(1);
-
-const extractImplicitParametersFromExpression = (depth: number) => (expression: Expression<TypedNode>): Value[] => {
-  const extractNextImplicits = extractImplicitParametersFromNode(depth);
+export function deepExtractImplicitParametersFromExpression(expression: Expression<TypedNode>): Value[] {
+  const extractNextImplicits = deepExtractImplicitParameters;
   switch (expression.kind) {
     case 'Identifier':
     case 'BooleanExpression':
@@ -60,7 +58,7 @@ const extractImplicitParametersFromExpression = (depth: number) => (expression: 
     default:
       return assertNever(expression);
   }
-};
+}
 
 export function extractImplicitsParameters(type: Value): [Value[], Value] {
   // Strips any implicit values from the result type and stores them in a separate array.

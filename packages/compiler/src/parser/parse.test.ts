@@ -308,7 +308,6 @@ describe('parse', () => {
                 name: 'T',
               },
               parameters: [
-                identifier('a'),
                 identifier('b'),
                 identifier('c'),
               ],
@@ -327,5 +326,29 @@ describe('parse', () => {
       },
     };
     expect(result.value).toEqual(expected);
-  })
+  });
+
+  it('parses a data expression with no parameters', () => {
+    const result = parse('data T\n5');
+    const expected: Expression = {
+      kind: 'BindingExpression',
+      name: 'T',
+      value: {
+        kind: 'DataInstantiation',
+        callee: {
+          kind: 'SymbolExpression',
+          name: 'T',
+        },
+        parameters: [
+        ],
+        parameterShapes: [
+        ],
+      },
+      body: {
+        kind: 'NumberExpression',
+        value: 5,
+      },
+    };
+    expect(result.value).toEqual(expected);
+  });
 });

@@ -13,7 +13,7 @@ import {
   ReadRecordPropertyExpression, RecordExpression, StringExpression,
 } from '..';
 import { Message } from '..';
-import { checkedZip } from '../type-checker/utils';
+import { checkedZip, withRecursiveState } from '../type-checker/utils';
 import { ExpressionToken, ExpressionTokenKind } from './produce-expression-tokens';
 
 export interface WithTokens<T> {
@@ -176,10 +176,9 @@ function matchAny<T, R>(...interpreters: Interpreter<T>[]): Interpreter<T> {
 function matchRepeated<T>(childInterpreter: Interpreter<T>): Interpreter<T[]> {
   return interpreter(undefined, (tokens, ...interpreterParams) => doWithState((state) => {
     let completedMatches: WithTokens<T[]>[] = [];
-    let previousMatches: WithTokens<T[]>[] = [];
 
     // Initially run the interpreter against the tokens
-    previousMatches = state.run(runInterpreter)(childInterpreter, tokens, ...interpreterParams)
+    let previousMatches = state.run(runInterpreter)(childInterpreter, tokens, ...interpreterParams)
       .map(({ tokens, value }) => withTokens(tokens, [value]));
 
     while (previousMatches.length > 0) {
@@ -243,18 +242,6 @@ interface InterpreterState {
   tokens: ExpressionToken[];
   previous?: Expression;
   precedence: Precedence;
-}
-
-function withRecursiveState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => R]): (...args: T) => R {
-  let state: S | undefined = undefined;
-  return (...args) => {
-    const [newState, continuation] = f(state, ...args);
-    const previousState = state;
-    state = newState;
-    const result = continuation();
-    state = previousState;
-    return result;
-  }
 }
 
 function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T> {
@@ -384,20 +371,27 @@ const interpretBinding = interpreter('interpretBinding', matchAll(
 const interpretData = interpreter('interpretData', matchAll(
   withoutPrevious,
   matchKeyword('data'),
-  matchTokens('identifier', 'equals'),
-  matchOption(matchKeyword('implicit')),
-  matchExpression(Precedence.bindingEquals),
-  matchRepeated(interpreter(undefined, matchAll(
-    matchTokens('comma'),
+  matchTokens('identifier'),
+  matchOption(interpreter(undefined, matchAll(
+    matchTokens('equals'),
     matchOption(matchKeyword('implicit')),
     matchExpression(Precedence.bindingEquals),
+    matchOption(matchRepeated(interpreter(undefined, matchAll(
+      matchTokens('comma'),
+      matchOption(matchKeyword('implicit')),
+      matchExpression(Precedence.bindingEquals),
+    )(a => a)))),
   )(a => a))),
   matchBrokenExpression(Precedence.none),
-)(([, , [name], implicitFirstParameter, firstParameter, otherParameters, body]): BindingExpression => {
-  const parameters: [Expression, boolean][] = [
-    [firstParameter, !!implicitFirstParameter],
-    ...otherParameters.map<[Expression, boolean]>(([, implicit, parameter]) => [parameter, !!implicit])
-  ];
+)(([, , [name], option, body]): BindingExpression => {
+  let parameters: [Expression, boolean][] = [];
+  if (option) {
+    const [, implicitFirstParameter, firstParameter, otherParameters = []] = option;
+    parameters = [
+      [firstParameter, !!implicitFirstParameter],
+      ...otherParameters.map<[Expression, boolean]>(([, implicit, parameter]) => [parameter, !!implicit])
+    ];
+  }
   return {
     body,
     kind: 'BindingExpression',
@@ -415,7 +409,7 @@ const interpretData = interpreter('interpretData', matchAll(
           kind: 'SymbolExpression',
           name: name.value,
         },
-        parameters: map(parameters, 0),
+        parameters: map(parameters.filter(([, implicit]) => !implicit), 0),
         parameterShapes: parameters,
       },
     ),
