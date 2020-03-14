@@ -1,7 +1,7 @@
-import { Editor as CMEditor, EditorChangeLinkedList } from 'codemirror';
-import { Subject } from 'rxjs';
+import { EditorChangeLinkedList } from 'codemirror';
 import 'codemirror/mode/htmlmixed/htmlmixed';
 export interface EditorSettings {
+    mode?: string;
     readOnly?: boolean;
     theme?: string;
     code?: string;
@@ -9,9 +9,12 @@ export interface EditorSettings {
 export default class Editor {
     private readonly element;
     private readonly settings;
-    editor: CMEditor;
-    changes$: Subject<EditorChangeLinkedList[]>;
+    private readonly editor;
+    private changesSubject$;
+    changes$: import("rxjs").Observable<EditorChangeLinkedList[]>;
     constructor(element: HTMLTextAreaElement, settings?: EditorSettings);
+    getValue(): string;
+    setValue(code: string): void;
     private createEditor;
     private registerListeners;
     private makeListener;
