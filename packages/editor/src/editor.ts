@@ -4,14 +4,16 @@ import { MODE_NAME, initializeMode } from './mode';
 import 'codemirror/mode/htmlmixed/htmlmixed';
 
 export interface EditorSettings {
+  mode?: string;
   readOnly?: boolean;
   theme?: string;
   code?: string;
 }
 
 export default class Editor {
-  public editor: CMEditor;
-  public changes$ = new Subject<EditorChangeLinkedList[]>();
+  private readonly editor: CMEditor;
+  private changesSubject$ = new Subject<EditorChangeLinkedList[]>();
+  public changes$ = this.changesSubject$.asObservable();
 
   constructor(
     private readonly element: HTMLTextAreaElement,
@@ -22,9 +24,17 @@ export default class Editor {
     this.registerListeners(this.editor);
   }
 
+  getValue() {
+    return this.editor.getValue();
+  }
+
+  setValue(code: string) {
+    this.editor.setValue(code);
+  }
+
   private createEditor(): CMEditor {
     return fromTextArea(this.element, {
-      mode: MODE_NAME,
+      mode: this.settings.mode || MODE_NAME,
       theme: this.settings.theme || 'monokai',
       // lineNumbers: true, // TODO this doesn't work for some reason
       inputStyle: 'contenteditable',
@@ -35,7 +45,7 @@ export default class Editor {
   }
 
   private registerListeners(editor: CMEditor) {
-    editor.on('changes', this.makeListener(this.changes$));
+    editor.on('changes', this.makeListener(this.changesSubject$));
   }
 
   private makeListener<T>(subject: Subject<T>): (_: CMEditor, value: T) => void {

@@ -2,33 +2,41 @@ import compileTo from './compile-to';
 import Editor from './editor';
 
 export default class App {
-  private editor: Editor;
+  private editor = new Editor(this.inputElement);
+  private outputEditor = new Editor(this.outputElement, {
+    readOnly: true,
+    mode: 'javascript',
+  });
 
   private displayCompiledCode = () => {
-    const code = this.editor.editor.getValue();
+    const code = this.editor.getValue();
     if (/^\s*$/m.test(code)) {
-      this.outputElement.value = '';
-    } else {
-      try {
-        const { messages, output } = compileTo(this.editor.editor.getValue(), { backend: 'javascript' });
-        if (output) {
-          this.outputElement.value = output;
-        } else {
-          const formattedMessages = messages.map(message => `  ✖ ${message}`);
-          this.outputElement.value = `Code failed to compile:\n${formattedMessages.join('\n')}`;
-        }
-      } catch (error) {
-        this.outputElement.value = `Compiler threw an exception: ${error}`;
+      this.outputEditor.setValue('');
+      return;
+    }
+
+    try {
+      const { messages, output } = compileTo(code, { backend: 'javascript' });
+      if (output) {
+        this.outputEditor.setValue(output);
+      } else {
+        const formattedMessages = messages.map(message => `    ✖ ${message}`);
+        this.outputEditor.setValue(`/**
+  Code failed to compile:
+${formattedMessages.join('\n')}
+*/`);
       }
+    } catch (error) {
+      this.outputEditor.setValue(`/**
+  Compiler threw an exception: ${error}
+*/`);
     }
   };
 
   constructor(
     private inputElement: HTMLTextAreaElement,
-    private outputElement: HTMLInputElement,
+    private outputElement: HTMLTextAreaElement,
   ) {
-    this.editor = new Editor(inputElement);
-
     this.editor.changes$.subscribe(this.displayCompiledCode);
   }
 }
