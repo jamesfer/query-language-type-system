@@ -1,9 +1,9 @@
 import generate from '@babel/generator';
 import * as types from '@babel/types';
-import { flatMap, initial, last, map } from 'lodash';
+import { flatMap, initial, last, map, flatten } from 'lodash';
 import { identifier } from '../../type-checker/constructors';
 import { Expression, PatternMatchExpression } from '../..';
-import { assertNever } from '../../type-checker/utils';
+import { assertNever, unzip } from '../../type-checker/utils';
 
 const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
   switch (value.kind) {
@@ -61,9 +61,11 @@ function convertPatternMatchToConditions(value: types.Expression, test: Expressi
     case 'BooleanExpression':
     case 'NumberExpression':
     case 'StringExpression':
+      // We ignore statements in pattern matches because they are weird
+      const [rightStatements, right] = convertExpressionToCode(test);
       return [{
         left: value,
-        right: convertExpressionToCode(test),
+        right: right,
       }];
 
     case 'RecordExpression':
@@ -136,97 +138,141 @@ function convertPatternMatchToBindings(value: types.Expression, test: Expression
   }
 }
 
-function convertExpressionToCode(expression: Expression): types.Expression {
+function makePatternConsequent(valueIdentifier: types.Identifier, test: Expression, value: Expression): types.BlockStatement {
+  const [valueStatements, convertedValue] = convertExpressionToCode(value);
+  const variables = convertPatternMatchToBindings(valueIdentifier, test)
+    .map(({ name, value }) => types.variableDeclaration('const', [
+      types.variableDeclarator(types.identifier(name), value)
+    ]));
+  return types.blockStatement([
+    ...variables,
+    ...valueStatements,
+    types.returnStatement(convertedValue),
+  ]);
+}
+
+function makePatternIfStatement(valueIdentifier: types.Identifier, test: Expression, value: Expression, alternative: types.Statement): types.Statement {
+  const consequent = makePatternConsequent(valueIdentifier, test, value);
+  const condition = convertPatternMatchToConditions(valueIdentifier, test)
+    .map(({ left, right }): types.Expression => types.binaryExpression('===', left, right))
+    .reduce((left, right) => types.logicalExpression('&&', left, right));
+  return types.ifStatement(condition, consequent, alternative);
+}
+
+function convertExpressionToCode(expression: Expression): [types.Statement[], types.Expression] {
   switch (expression.kind) {
     case 'Identifier':
-      return types.identifier(expression.name);
+      return [[], types.identifier(expression.name)];
 
     case 'SymbolExpression':
-      return types.stringLiteral(`$SYMBOL$${expression.name}`);
+      return [[], types.stringLiteral(`$SYMBOL$${expression.name}`)];
 
     case 'BooleanExpression':
-      return types.booleanLiteral(expression.value);
+      return [[], types.booleanLiteral(expression.value)];
 
     case 'NumberExpression':
-      return types.numericLiteral(expression.value);
+      return [[], types.numericLiteral(expression.value)];
 
     case 'StringExpression':
-      return types.stringLiteral(expression.value);
+      return [[], types.stringLiteral(expression.value)];
 
     case 'RecordExpression':
-      return types.objectExpression(map(expression.properties, (property, key) => (
-        types.objectProperty(types.identifier(key), convertExpressionToCode(property))
-      )));
+      const [childStatements = [], properties = []] = unzip(map(expression.properties, (property, key) => {
+        const [propertyStatements, value] = convertExpressionToCode(property);
+        return [propertyStatements, types.objectProperty(types.identifier(key), value)];
+      }));
+      return [flatten([[], ...childStatements]), types.objectExpression(properties)];
 
-    case 'Application':
-      return types.callExpression(convertExpressionToCode(expression.callee), [convertExpressionToCode(expression.parameter)]);
+    case 'Application': {
+      const [calleeStatements, callee] = convertExpressionToCode(expression.callee);
+      const [parameterStatements, parameter] = convertExpressionToCode(expression.parameter);
+      return [[...calleeStatements, ...parameterStatements], types.callExpression(callee, [parameter])];
+    }
 
     case 'FunctionExpression': {
+      const [bodyStatements, body] = convertExpressionToCode(expression.body);
+
       if (expression.parameter.kind === 'Identifier') {
-        return types.arrowFunctionExpression(
+        return [[], types.arrowFunctionExpression(
           [types.identifier(expression.parameter.name)],
-          convertExpressionToCode(expression.body),
-        );
+          bodyStatements.length === 0 ? body : types.blockStatement([
+            ...bodyStatements,
+            types.returnStatement(body),
+          ]),
+        )];
       }
 
       const parameterName = `$PARAMETER$1`;
       const destructuredParameters = destructureExpression(identifier(parameterName))(expression.parameter);
-      return types.functionExpression(null, [types.identifier(parameterName)], types.blockStatement([
-        ...destructuredParameters.map(([name, expression]) => types.variableDeclaration('const', [
-          types.variableDeclarator(types.identifier(name), convertExpressionToCode(expression))
-        ])),
-        types.returnStatement(convertExpressionToCode(expression.body)),
-      ]));
+      const destructuringStatements = flatMap(destructuredParameters, ([name, expression]) => {
+        const [parameterStatements, parameter] = convertExpressionToCode(expression);
+        return [...parameterStatements, types.variableDeclaration('const', [
+          types.variableDeclarator(types.identifier(name), parameter)
+        ])];
+      });
+      return [[], types.arrowFunctionExpression(
+        [types.identifier(parameterName)],
+        types.blockStatement([
+          ...destructuringStatements,
+          types.returnStatement(body),
+        ]),
+      )];
     }
 
     case 'DataInstantiation':
-      return types.objectExpression([
-        types.objectProperty(types.identifier('$DATA_NAME$'), convertExpressionToCode(expression.callee)),
-        ...expression.parameters.map((value, index) => (
-          types.objectProperty(types.identifier(`${index}`), convertExpressionToCode(value))
-        )),
-      ]);
+      const [calleeStatements, callee] = convertExpressionToCode(expression.callee);
+      const [allPropertyStatements = [], objectProperties = []] = unzip(
+        expression.parameters.map((value, index) => {
+          const [propertyStatements, property] = convertExpressionToCode(value);
+          return [propertyStatements, types.objectProperty(types.identifier(`${index}`), property)];
+        })
+      );
+      return [flatten([calleeStatements, ...allPropertyStatements]), types.objectExpression([
+        types.objectProperty(types.identifier('$DATA_NAME$'), callee),
+        ...objectProperties,
+      ])];
 
     case 'BindingExpression':
-      return types.sequenceExpression([
-        types.assignmentExpression('=', types.identifier(expression.name), convertExpressionToCode(expression.value)),
-        convertExpressionToCode(expression.body),
+      const [valueStatements, value] = convertExpressionToCode(expression.value);
+      const [bodyStatements, body] = convertExpressionToCode(expression.body);
+      const declaration = types.variableDeclaration('const', [
+        types.variableDeclarator(types.identifier(expression.name), value),
       ]);
+      return [[...valueStatements, declaration, ...bodyStatements], body];
 
     case 'DualExpression':
       return convertExpressionToCode(expression.right);
 
     case 'ReadRecordPropertyExpression':
       // return types.memberExpression(convertExpressionToCode(expression.record), expression.property);
-      return types.memberExpression(convertExpressionToCode(expression.record), types.identifier(expression.property));
+      const [recordStatements, record] = convertExpressionToCode(expression.record);
+      return [recordStatements, types.memberExpression(record, types.identifier(expression.property))];
 
     case 'ReadDataPropertyExpression':
-      return types.memberExpression(convertExpressionToCode(expression.dataValue), types.identifier(`${expression.property}`));
+      const [dataValueStatements, dataValue] = convertExpressionToCode(expression.dataValue);
+      return [dataValueStatements, types.memberExpression(dataValue, types.identifier(`${expression.property}`))];
 
     case 'PatternMatchExpression': {
-      const jsValue = convertExpressionToCode(expression.value);
-      const patterns = expression.patterns.map(({ test, value }) => ({
-        test,
-        value: convertExpressionToCode(value),
-      }));
-
-      const fallback = last(patterns);
-      if (!fallback) {
+      const [valueStatements, jsValue] = convertExpressionToCode(expression.value);
+      const valueIdentifier = types.identifier(`$patternValue`);
+      const lastPattern = last(expression.patterns);
+      if (!lastPattern) {
         throw new Error('Tried to print a pattern expression with no viable patterns');
       }
 
-      return initial(patterns).reduceRight<types.Expression>(
-        (fallback, { test, value }): types.Expression => {
-          const conditions = convertPatternMatchToConditions(jsValue, test)
-            .map(({ left, right }): types.Expression => types.binaryExpression('===', left, right))
-            .reduce((left, right) => types.logicalExpression('&&', left, right));
-          const bindings = convertPatternMatchToBindings(jsValue, test)
-            .map(({ name, value }) => types.assignmentExpression('=', types.identifier(name), value));
-          const valueWithBindings = types.sequenceExpression([...bindings, value]);
-          return types.conditionalExpression(conditions, valueWithBindings, fallback);
-        },
-        fallback.value,
+      const lastPatternBlock = makePatternConsequent(valueIdentifier, lastPattern.test, lastPattern.value);
+      const body = initial(expression.patterns).reduceRight<types.Statement>(
+        (alternative, { test, value }) => makePatternIfStatement(valueIdentifier, test, value, alternative),
+        lastPatternBlock,
       );
+
+      return [valueStatements, types.callExpression(
+        types.arrowFunctionExpression(
+          [valueIdentifier],
+          types.isBlockStatement(body) ? body : types.blockStatement([body]),
+        ),
+        [jsValue],
+      )];
     }
 
     case 'NativeExpression': {
@@ -239,7 +285,7 @@ function convertExpressionToCode(expression: Expression): types.Expression {
         throw new Error('Name should not be a number');
       }
 
-      return types.identifier(name);
+      return [[], types.identifier(name)];
     }
 
     default:
@@ -248,5 +294,10 @@ function convertExpressionToCode(expression: Expression): types.Expression {
 }
 
 export function generateJavascript(expression: Expression): string {
-  return generate(convertExpressionToCode(expression)).code;
+  const [statements, value] = convertExpressionToCode(expression);
+  const program = types.program([
+    ...statements,
+    types.exportDefaultDeclaration(value as any),
+  ]);
+  return generate(program).code;
 }
