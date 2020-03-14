@@ -23,5 +23,5 @@ if (!editorElement || !outputElement) {
   throw new Error('Failed to find #editor and #output elements');
 }
 
-const app = new App(editorElement as HTMLTextAreaElement, outputElement as HTMLInputElement);
+const app = new App(editorElement as HTMLTextAreaElement, outputElement as HTMLTextAreaElement);
 
