@@ -7,7 +7,7 @@ describe('generateJavascript', () => {
     const result = compile('5');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('5');
+      expect(generateJavascript(stripNode(result.node))).toEqual('export default 5;');
     }
   });
 
@@ -15,15 +15,18 @@ describe('generateJavascript', () => {
     const result = compile('true');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('true');
+      expect(generateJavascript(stripNode(result.node))).toEqual('export default true;');
     }
   });
 
-  it.skip('translates a record expression', () => {
-    const result = compile('{ a: 1, b: 2 }');
+  it('translates a record expression', () => {
+    const result = compile('{ a = 1, b = 2, }');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('true');
+      expect(generateJavascript(stripNode(result.node))).toEqual(`export default {
+  a: 1,
+  b: 2
+};`);
     }
   });
 
@@ -31,7 +34,7 @@ describe('generateJavascript', () => {
     const result = compile('a -> b -> 1');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('a$rename$1 => b$rename$2 => 1');
+      expect(generateJavascript(stripNode(result.node))).toEqual('export default (a$rename$1 => b$rename$2 => 1);');
     }
   });
 
@@ -39,11 +42,11 @@ describe('generateJavascript', () => {
     const result = compile('a:b -> a');
     expect(result.node).toBeDefined();
     if (result.node) {
-      const expected = `function ($PARAMETER$1) {
+      const expected = `export default ($PARAMETER$1 => {
   const a$rename$3 = $PARAMETER$1;
   const b$rename$4 = $PARAMETER$1;
   return a$rename$3;
-}`;
+});`;
       expect(generateJavascript(stripNode(result.node))).toEqual(expected);
     }
   });
@@ -52,7 +55,7 @@ describe('generateJavascript', () => {
     const result = compile('let a = 1\na');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('a = 1, a');
+      expect(generateJavascript(stripNode(result.node))).toEqual('const a = 1;\nexport default a;');
     }
   });
 
@@ -60,10 +63,10 @@ describe('generateJavascript', () => {
     const result = compile('{ a = 1, b = 2, }');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`{
+      expect(generateJavascript(stripNode(result.node))).toEqual(`export default {
   a: 1,
   b: 2
-}`);
+};`);
     }
   });
 
@@ -71,9 +74,9 @@ describe('generateJavascript', () => {
     const result = compile('{ word = 10, }.word');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`{
+      expect(generateJavascript(stripNode(result.node))).toEqual(`export default {
   word: 10
-}.word`);
+}.word;`);
     }
   });
 
@@ -86,10 +89,19 @@ describe('generateJavascript', () => {
   });
 
   it('translates a pattern match expression', () => {
-    const result = compile('match 5 | 3 = true | 5 = true | _ = false');
+    const result = compile('match 5 | 3 = "three" | 5 = "five" | _ = "something else"');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('5 === 3 ? (true) : 5 === 5 ? (true) : false');
+      expect(generateJavascript(stripNode(result.node))).toEqual(`export default ($patternValue => {
+  if ($patternValue === 3) {
+    return "three";
+  } else if ($patternValue === 5) {
+    return "five";
+  } else {
+    const _$rename$6 = $patternValue;
+    return "something else";
+  }
+})(5);`);
     }
   });
 
@@ -97,12 +109,14 @@ describe('generateJavascript', () => {
     const result = compile('data a = x, y, z\na 1 2 3');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`a = x$rename$7 => y$rename$8 => z$rename$9 => ({
+      expect(generateJavascript(stripNode(result.node))).toEqual(`const a = x$rename$7 => y$rename$8 => z$rename$9 => ({
   $DATA_NAME$: "$SYMBOL$a",
   0: x$rename$7,
   1: y$rename$8,
   2: z$rename$9
-}), a(1)(2)(3)`);
+});
+
+export default a(1)(2)(3);`);
     }
   });
 });
