@@ -1,6 +1,8 @@
 import { TypedNode } from './type-check';
+import { Expression } from './types/expression';
 import { ExplicitValue, Value } from './types/value';
-export declare const extractImplicitParameters: (node: TypedNode) => Value<void>[];
+export declare function deepExtractImplicitParameters(node: TypedNode): Value[];
+export declare function deepExtractImplicitParametersFromExpression(expression: Expression<TypedNode>): Value[];
 export declare function extractImplicitsParameters(type: Value): [Value[], Value];
 export declare const stripImplicits: (value: Value<void>) => ExplicitValue<void>;
 export declare function stripAllImplicits(types: Value[]): ExplicitValue[];

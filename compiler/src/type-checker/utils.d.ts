@@ -1,3 +1,5 @@
+import { TypedNode } from './type-check';
+import { Expression } from './types/expression';
 export declare function assertNever(x: never): never;
 export declare function clipArrays<T, U>(array1: T[], array2: U[]): [T[], U[]];
 export declare function checkedZip<T, U>(array1: T[], array2: U[]): [T, U][];
@@ -57,5 +59,11 @@ export declare function accumulateStates<S, T>(func: (arg: T) => S[]): [() => S[
 export declare function accumulateStatesWithResult<S, T, R>(func: (arg: T) => [S[], R]): [() => S[], (arg: T) => R];
 export declare function accumulateStatesUsingAnd<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T];
 export declare function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T];
+export declare function withRecursiveState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => R]): (...args: T) => R;
+export declare function withStateStack<S, T extends any[], R>(f: (pushState: (state: S) => void, state: S | undefined, ...args: T) => R): (...args: T) => R;
+/**
+ * Automatically tracks the parent kind of each expression and provides its to the given callback.
+ */
+export declare function withParentExpressionKind<R>(f: (parentKind: Expression['kind'] | undefined, node: TypedNode) => R): (node: TypedNode) => R;
 export declare function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined): [T, R] | undefined;
 //# sourceMappingURL=utils.d.ts.map
