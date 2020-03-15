@@ -18,7 +18,8 @@ declare enum Precedence {
     application = 5,
     application2 = 6,
     dual = 7,
-    readProperty = 8
+    readProperty = 8,
+    parenthesis = 9
 }
 declare type InterpreterFunction<T> = (tokens: ExpressionToken[], previous: Expression | undefined, precedence: Precedence) => WithMessages<WithTokens<T>[]>;
 export interface Interpreter<T> {
