@@ -1,4 +1,10 @@
-import { Expression, FunctionExpression, NativeExpression, PatternMatchExpression } from '..';
+import {
+  Application,
+  Expression,
+  FunctionExpression,
+  NativeExpression,
+  PatternMatchExpression,
+} from '..';
 import { identifier } from '../type-checker/constructors';
 import parse from './parse';
 
@@ -347,6 +353,29 @@ describe('parse', () => {
       body: {
         kind: 'NumberExpression',
         value: 5,
+      },
+    };
+    expect(result.value).toEqual(expected);
+  });
+
+  it('parses a parenthesis expression', () => {
+    const result = parse('a (b c)');
+    const expected: Application = {
+      kind: 'Application',
+      callee: {
+        kind: 'Identifier',
+        name: 'a',
+      },
+      parameter: {
+        kind: 'Application',
+        callee: {
+          kind: 'Identifier',
+          name: 'b',
+        },
+        parameter: {
+          kind: 'Identifier',
+          name: 'c',
+        },
       },
     };
     expect(result.value).toEqual(expected);
