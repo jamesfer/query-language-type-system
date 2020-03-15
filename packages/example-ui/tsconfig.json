@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig",
+  "compilerOptions": {
+    "outDir": "build",
+    "downlevelIteration": true,
+    "module": "commonjs",
+    "sourceMap": true
+  },
+  "files": [
+    "src/index.ts"
+  ]
+}

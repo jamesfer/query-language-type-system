@@ -119,4 +119,41 @@ describe('generateJavascript', () => {
 export default a(1)(2)(3);`);
     }
   });
+
+  describe('given a native expression', () => {
+    it('translates it to a variable', () => {
+      const result = compile('#{ name = "window", }');
+      expect(result.node).toBeDefined();
+      if (result.node) {
+        expect(generateJavascript(stripNode(result.node))).toEqual(`export default window;`);
+      }
+    });
+
+    it('translates it to a binary expression', () => {
+      const result = compile('#{ kind = "binaryOperation", operator = "+", }');
+      expect(result.node).toBeDefined();
+      if (result.node) {
+        expect(generateJavascript(stripNode(result.node)))
+          .toEqual(`export default ($leftBinaryParam => $rightBinaryParam => $leftBinaryParam + $rightBinaryParam);`);
+      }
+    });
+
+    it('translates it to a member call', () => {
+      const result = compile('#{ kind = "memberCall", name = "delete", arity = 2, }');
+      expect(result.node).toBeDefined();
+      if (result.node) {
+        expect(generateJavascript(stripNode(result.node)))
+          .toEqual(`export default ($nativeObject => $nativeParameter$0 => $nativeParameter$1 => $nativeObject.delete($nativeParameter$0, $nativeParameter$1));`);
+      }
+    });
+
+    it('translates it to a member', () => {
+      const result = compile('#{ kind = "member", object = "document", name = "createElement", arity = 2, }');
+      expect(result.node).toBeDefined();
+      if (result.node) {
+        expect(generateJavascript(stripNode(result.node)))
+          .toEqual(`export default ($nativeParameter$0 => $nativeParameter$1 => document.createElement($nativeParameter$0, $nativeParameter$1));`);
+      }
+    });
+  });
 });

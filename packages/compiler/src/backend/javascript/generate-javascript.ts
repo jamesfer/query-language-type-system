@@ -276,16 +276,63 @@ function convertExpressionToCode(expression: Expression): [types.Statement[], ty
     }
 
     case 'NativeExpression': {
-      const { name } = expression.data;
-      if (!name) {
-        throw new Error('Native expression is missing a name');
-      }
+      const { kind } = expression.data;
+      switch (kind) {
+        case 'member': {
+          const { object, name, arity } = expression.data;
+          if (typeof object !== 'string' || typeof name !== 'string' || typeof arity !== 'number') {
+            throw new Error('Cannot output member native expression with incorrect data');
+          }
 
-      if (typeof name === 'number') {
-        throw new Error('Name should not be a number');
-      }
+          const callee = types.memberExpression(types.identifier(object), types.identifier(name));
+          const parameterNames = Array(arity).fill(0).map((_, index) => `$nativeParameter$${index}`);
+          const result = parameterNames.reduceRight<types.Expression>(
+            (body, name) => types.arrowFunctionExpression([types.identifier(name)], body),
+            types.callExpression(callee, parameterNames.map(parameterName => types.identifier(parameterName))),
+          );
+          return [[], result];
+        }
 
-      return [[], types.identifier(name)];
+        case 'memberCall': {
+          const { name, arity } = expression.data;
+          if (typeof name !== 'string' || typeof arity !== 'number') {
+            throw new Error('Cannot output member call native expression with incorrect data');
+          }
+
+          const objectName = '$nativeObject';
+          const callee = types.memberExpression(types.identifier(objectName), types.identifier(name));
+          const parameterNames = Array(arity).fill(0).map((_, index) => `$nativeParameter$${index}`);
+          const result = [objectName, ...parameterNames].reduceRight<types.Expression>(
+            (body, name) => types.arrowFunctionExpression([types.identifier(name)], body),
+            types.callExpression(callee, parameterNames.map(parameterName => types.identifier(parameterName))),
+          );
+          return [[], result];
+        }
+
+        case 'binaryOperation': {
+          const { operator } = expression.data;
+          if (typeof operator !== 'string') {
+            throw new Error('Cannot output a binary operation without an operator');
+          }
+
+          const left = types.identifier(`$leftBinaryParam`);
+          const right = types.identifier(`$rightBinaryParam`);
+          const result = [left, right].reduceRight<types.Expression>(
+            (body, identifier) => types.arrowFunctionExpression([identifier], body),
+            types.binaryExpression(operator as any, left, right),
+          );
+          return [[], result];
+        }
+
+        default: {
+          const { name } = expression.data;
+          if (typeof name !== 'string') {
+            throw new Error('Native expression is missing a name');
+          }
+
+          return [[], types.identifier(name)];
+        }
+      }
     }
 
     default:
