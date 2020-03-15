@@ -64,6 +64,7 @@ enum Precedence {
   application2,
   dual,
   readProperty,
+  parenthesis,
 }
 
 type InterpreterFunction<T> = (tokens: ExpressionToken[], previous: Expression | undefined, precedence: Precedence) => WithMessages<WithTokens<T>[]>
@@ -165,6 +166,7 @@ function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12>(i1: Interpr
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>, i14: Interpreter<T14>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13 | T14>;
 function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>, i14: Interpreter<T14>, i15: Interpreter<T15>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13 | T14 | T15>;
+function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>(i1: Interpreter<T1>, i2: Interpreter<T2>, i3: Interpreter<T3>, i4: Interpreter<T4>, i5: Interpreter<T5>, t6: Interpreter<T6>, i7: Interpreter<T7>, i8: Interpreter<T8>, i9: Interpreter<T9>, i10: Interpreter<T10>, i11: Interpreter<T11>, i12: Interpreter<T12>, i13: Interpreter<T13>, i14: Interpreter<T14>, i15: Interpreter<T15>, i16: Interpreter<T16>): Interpreter<T1 | T2 | T3 | T4 | T5 | T6 | T7 | T8 | T9 | T10 | T11 | T12 | T13 | T14 | T15 | T16>;
 function matchAny<T, R>(...interpreters: Interpreter<T>[]): Interpreter<T> {
   return interpreter(undefined, (...interpreterParams) => doWithState((state) => {
     return flatMap(interpreters, interpreter => (
@@ -488,6 +490,13 @@ const interpretNative = interpreter('interpretNative', matchAll(
   data: fromPairs(properties.map(([[identifier], value]) => [identifier.value, value.value])),
 })));
 
+const interpretParenthesis = interpreter('interpretParenthesis', matchAll(
+  matchOption(withPrevious(Precedence.parenthesis)),
+  matchTokens('openParen'),
+  matchExpression(Precedence.none),
+  matchTokens('closeParen'),
+)(([, , expression]) => expression));
+
 const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoops(matchAny(
   interpretData,
   interpretBoolean,
@@ -504,6 +513,7 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretPatternMatch,
   interpretApplication,
   interpretNative,
+  interpretParenthesis,
 ));
 
 export default function interpretExpression(tokens: ExpressionToken[]): WithMessages<Expression | undefined> {
