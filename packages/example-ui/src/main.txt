@@ -1,0 +1,8 @@
+data Element
+data Void
+let getElementById = (String -> Element):#{ type = "member", object = "document", name = "getElementById", arity = 1, }
+let createElement = (String -> Element):#{ type = "member", object = "document", name = "createElement", arity = 1, }
+let appendElement = (Element -> Element -> Void):#{ type = "memberCall", name = "appendChild", arity = 2, }
+let root = getElementById 'root'
+let div = createElement 'div'
+appendElement root div
