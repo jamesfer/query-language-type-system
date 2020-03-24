@@ -67,7 +67,7 @@ enum Precedence {
   parenthesis,
 }
 
-type InterpreterFunction<T> = (tokens: ExpressionToken[], previous: Expression | undefined, precedence: Precedence) => WithMessages<WithTokens<T>[]>
+type InterpreterFunction<T> = (tokens: ExpressionToken[], previous: Expression | undefined, precedence: Precedence) => WithDebugging<WithTokens<T>[]>
 
 export interface Interpreter<T> {
   name: string | undefined;
@@ -81,25 +81,43 @@ function interpreter<T>(
   return { name, interpret };
 }
 
+export interface DebugLog {
+  name: string;
+  matched: string[];
+  tokens: string;
+  previous?: string;
+  children?: DebugLog[];
+}
+
+export interface WithDebugging<T> {
+  logs: DebugLog[];
+  value: T;
+}
+
 function runInterpreter<T>(
   interpreter: Interpreter<T>,
   tokens: ExpressionToken[],
   previous: Expression | undefined,
   precedence: Precedence,
-): WithMessages<WithTokens<T>[]> {
+): WithDebugging<WithTokens<T>[]> {
   if (!interpreter.name) {
     return interpreter.interpret(tokens, previous, precedence);
   }
 
-  const { messages, value: results } = interpreter.interpret(tokens, previous, precedence);
-  const indentedMessages = messages.map(message => `  ${message}`);
-  const debugMessage = `${interpreter.name} running on: ${map(tokens, 'value').join(', ')}`;
-  const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${max(map(results, 'tokens.length'))} tokens)` : 'failed'}`;
-  return withMessages([debugMessage, ...indentedMessages, resultMessage], results);
+  const { logs, value } = interpreter.interpret(tokens, previous, precedence);
+
+  const wrappedLog: DebugLog = {
+    name: interpreter.name,
+    matched: value.map(v => map(v.tokens, 'value').join(', ')),
+    tokens: map(tokens, 'value').join(', '),
+    ...previous ? { previous: previous.kind } : {},
+    ...logs.length > 0 ? { children: logs } : {},
+  };
+  return { logs: [wrappedLog], value };
 }
 
-function doWithState<T>(f: (state: MessageState) => T): WithMessages<T> {
-  const state = new MessageState();
+function doWithState<T>(f: (state: DebugState) => T): WithDebugging<T> {
+  const state = new DebugState();
   return state.wrap(f(state));
 }
 
@@ -120,6 +138,23 @@ class MessageState {
 
   log(...messages: Message[]): void {
     this.messages.push(...messages);
+  }
+}
+
+class DebugState {
+  private messages: Message[] = [];
+  private logs: DebugLog[] = [];
+
+  run<T extends any[], R>(f: (...args: T) => WithDebugging<R>): (...args: T) => R {
+    return (...args) => {
+      const { logs, value } = f(...args);
+      this.logs.push(...logs);
+      return value;
+    }
+  }
+
+  wrap<T>(value: T): WithDebugging<T> {
+    return { logs: this.logs, value };
   }
 }
 
@@ -228,16 +263,15 @@ const matchTokens = (...kinds: ExpressionTokenKind[]): Interpreter<ExpressionTok
 );
 
 const withPrevious = (precedence: Precedence): Interpreter<Expression> => (
-  interpreter('withPrevious', (_, previous, previousPrecedence) => withMessages(
-    [],
+  interpreter('withPrevious', (_, previous, previousPrecedence) => doWithState(() => (
     previous !== undefined && precedence >= previousPrecedence
       ? [withTokens([], previous)]
-      : [],
-  ))
+      : []
+  )))
 );
 
 const withoutPrevious: Interpreter<null> = interpreter('withoutPrevious', (_, previous) => (
-  withMessages([], previous === undefined ? [withTokens([], null)] : [])
+  doWithState(() => previous === undefined ? [withTokens([], null)] : [])
 ));
 
 interface InterpreterState {
@@ -491,7 +525,8 @@ const interpretNative = interpreter('interpretNative', matchAll(
 })));
 
 const interpretParenthesis = interpreter('interpretParenthesis', matchAll(
-  matchOption(withPrevious(Precedence.parenthesis)),
+  // matchOption(withPrevious(Precedence.parenthesis)),
+  withoutPrevious,
   matchTokens('openParen'),
   matchExpression(Precedence.none),
   matchTokens('closeParen'),
@@ -516,13 +551,13 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretParenthesis,
 ));
 
-export default function interpretExpression(tokens: ExpressionToken[]): WithMessages<Expression | undefined> {
-  const { messages, value: results } = runInterpreter(
+export default function interpretExpression(tokens: ExpressionToken[]): WithDebugging<Expression | undefined> {
+  const { logs, value: results } = runInterpreter(
     matchExpression(Precedence.none),
     tokens,
     undefined,
     Precedence.none,
   );
   const longestMatch = maxBy(results, 'tokens.length');
-  return withMessages(messages, longestMatch?.value);
+  return { logs, value: longestMatch?.value };
 }

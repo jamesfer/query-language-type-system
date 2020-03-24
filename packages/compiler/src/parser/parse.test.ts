@@ -380,4 +380,41 @@ describe('parse', () => {
     };
     expect(result.value).toEqual(expected);
   });
+
+  it('recognizes two parenthesis expressions after each other', () => {
+    const result = parse('a (b c) (b c)');
+    const expected: Application = {
+      kind: 'Application',
+      callee: {
+        kind: 'Application',
+        callee: {
+          kind: 'Identifier',
+          name: 'a',
+        },
+        parameter: {
+          kind: 'Application',
+          callee: {
+            kind: 'Identifier',
+            name: 'b',
+          },
+          parameter: {
+            kind: 'Identifier',
+            name: 'c',
+          },
+        },
+      },
+      parameter: {
+        kind: 'Application',
+        callee: {
+          kind: 'Identifier',
+          name: 'b',
+        },
+        parameter: {
+          kind: 'Identifier',
+          name: 'c',
+        },
+      },
+    };
+    expect(result.value).toEqual(expected);
+  });
 });
