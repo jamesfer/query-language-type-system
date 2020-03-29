@@ -132,7 +132,7 @@ export function permuteArrays<T>(arrays: T[][]): T[][] {
   return permuteArraysRecursive(rest, current.map(value => [value]));
 }
 
-const accumulateStateWith = <S, T, R>(initial: S, accumulate: (left: S, right: S) => S) => (func: (arg: T) => [S, R]): [() => S, (arg: T) => R] => {
+export const accumulateStateWith = <S, T, R, N>(initial: S, accumulate: (state: S, newState: N) => S) => (func: (arg: T) => [N, R]): [() => S, (arg: T) => R] => {
   let state = initial;
   return [
     () => state,
@@ -144,24 +144,24 @@ const accumulateStateWith = <S, T, R>(initial: S, accumulate: (left: S, right: S
   ];
 };
 
-function resultWithArg<A, T>(f: (arg: A) => T): (arg: A) => [T, A] {
+export function resultWithArg<A, T>(f: (arg: A) => T): (arg: A) => [T, A] {
   return arg => [f(arg), arg];
 }
 
 export function accumulateStates<S, T>(func: (arg: T) => S[]): [() => S[], (arg: T) => T] {
-  return accumulateStateWith<S[], T, T>([], concat)(resultWithArg(func));
+  return accumulateStateWith<S[], T, T, S[]>([], concat)(resultWithArg(func));
 }
 
 export function accumulateStatesWithResult<S, T, R>(func: (arg: T) => [S[], R]): [() => S[], (arg: T) => R] {
-  return accumulateStateWith<S[], T, R>([], concat)(func);
+  return accumulateStateWith<S[], T, R, S[]>([], concat)(func);
 }
 
 export function accumulateStatesUsingAnd<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
-  return accumulateStateWith<boolean, T, T>(true, (left, right) => left && right)(resultWithArg(func));
+  return accumulateStateWith<boolean, T, T, boolean>(true, (left, right) => left && right)(resultWithArg(func));
 }
 
 export function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T] {
-  return accumulateStateWith<boolean, T, T>(false, (left, right) => left || right)(resultWithArg(func));
+  return accumulateStateWith<boolean, T, T, boolean>(false, (left, right) => left || right)(resultWithArg(func));
 }
 
 // export function maintainState<S, T>(func: (state: S | undefined, arg: T) => [S, () => T]): (arg: T) => T {

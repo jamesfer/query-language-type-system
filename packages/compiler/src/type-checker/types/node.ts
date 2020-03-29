@@ -6,6 +6,12 @@ export interface Node<T> {
   decoration: T;
 }
 
+export interface NodeWithChild<T, C> {
+  kind: 'Node';
+  expression: Expression<C>;
+  decoration: T;
+}
+
 export function getDecoration<T>(node: Node<T>): T {
   return node.decoration;
 }

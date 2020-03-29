@@ -1,6 +1,7 @@
 import { mapValues } from 'lodash';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
+import { Node, NodeWithChild } from './types/node';
 import { Value } from './types/value';
 import { assertNever } from './utils';
 
@@ -29,7 +30,7 @@ interface Visitor<T> {
   after?(t: T): T;
 }
 
-export const visitExpressionNodes = (visitor: Visitor<TypedNode>) => (expression: Expression<TypedNode>): Expression<TypedNode> => {
+export const visitExpressionNodes = <T>(visitor: Visitor<Node<T>>) => (expression: Expression<Node<T>>): Expression<Node<T>> => {
   switch (expression.kind) {
     case 'SymbolExpression':
     case 'BooleanExpression':
@@ -105,7 +106,7 @@ export const visitExpressionNodes = (visitor: Visitor<TypedNode>) => (expression
   }
 };
 
-export const visitNodes = (visitor: Visitor<TypedNode>) => (node: TypedNode): TypedNode => {
+export const visitNodes = <T>(visitor: Visitor<Node<T>>) => (node: Node<T>): Node<T> => {
   const beforeNode = visitor.before?.(node) || node;
   const transformedNode = {
     ...node,
@@ -114,7 +115,12 @@ export const visitNodes = (visitor: Visitor<TypedNode>) => (node: TypedNode): Ty
   return visitor.after?.(transformedNode) || transformedNode;
 };
 
-const visitAndTransformChildExpression = <T>(callback: (expression: Expression) => T extends void ? Expression : T) => (expression: Expression): Expression<T> => {
+export const visitAndTransformNode = <D, B>(visitor: (value: NodeWithChild<D, B>) => B extends void ? Expression : B) => (node: Node<D>): B extends void ? Expression : B => {
+  const expression = visitAndTransformChildExpression(visitAndTransformNode(visitor))(node.expression);
+  return visitor({ ...node, expression });
+};
+
+const visitAndTransformChildExpression = <A, T>(callback: (expression: A extends void ? Expression : A) => T extends void ? Expression : T) => (expression: Expression<A>): Expression<T> => {
   switch (expression.kind) {
     case 'SymbolExpression':
     case 'BooleanExpression':
