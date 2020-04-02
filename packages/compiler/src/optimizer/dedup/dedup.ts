@@ -1,12 +1,24 @@
 import { flatMap, fromPairs, isEqual, map, maxBy, partition, sortBy, sum, zipObject, mapValues } from 'lodash';
-import { Application, BindingExpression, Expression, Node, NodeWithChild, TypedNode } from '../..';
+import {
+  Application,
+  BindingExpression,
+  Expression,
+  Node,
+  NodeWithChild,
+  stripNode,
+  TypedNode,
+} from '../..';
+import { evaluationScope, scope } from '../../type-checker/constructors';
+import { evaluateExpression } from '../../type-checker/evaluate';
 import { TypedDecoration } from '../../type-checker/type-check';
 import {
+  accumulateStates,
   accumulateStatesWithResult,
   accumulateStateWith,
   assertNever,
   permuteArrays,
 } from '../../type-checker/utils';
+import { getBindingsFromValue, usesVariable } from '../../type-checker/variable-utils';
 import { visitAndTransformNode, visitNodes } from '../../type-checker/visitor-utils';
 import {
   constructPath,
@@ -716,27 +728,83 @@ function updatePatternIndex(usedPattern: Pattern, patterns: Pattern[]): Pattern[
   });
 }
 
-function insertPattern(identifier: string, base: TypedNodeWithPath, extracted: TypedNodeWithPath, patterns: Pattern[]): [TypedNodeWithPath, Pattern[]] {
+function findIdentifiers(node: Node<any>): string[] {
+  const getIdentifierName = (node: Node<string[]>) => {
+    switch (node.expression.kind) {
+      case 'Identifier':
+        return [node.expression.name];
+
+      default:
+        return [];
+    }
+  };
+  const [getNames, visitor] = accumulateStates(getIdentifierName);
+  visitAndTransformNode<string[], any>(visitor)(node);
+  return getNames();
+}
+
+function findIdentifierDeclarationPath(base: TypedNodeWithPath, path: string[], identifier: string): string[] {
+  for (let i = 0; i < path.length; i += 1) {
+    const currentPath = path.slice(0, i);
+    const currentNode = getNodeAt(base, currentPath);
+    if (currentNode.expression.kind === 'BindingExpression') {
+      if (currentNode.expression.name === identifier) {
+        return [...currentPath, 'body'];
+      }
+    }
+    else if (currentNode.expression.kind === 'FunctionExpression') {
+      const value = evaluateExpression(evaluationScope({}))(currentNode.expression.parameter);
+      if (!value) {
+        throw new Error('Failed to evaluate value');
+      }
+
+      if (usesVariable([identifier])(value)) {
+        return [...currentPath, 'body'];
+      }
+    }
+  }
+
+  return [];
+}
+
+function findInsertionPath(base: TypedNodeWithPath, extracted: TypedNodeWithPath, extractedPaths: string[][]): string[] {
+  const identifiers = findIdentifiers(extracted);
+  const declarationPaths = flatMap(identifiers, identifier => extractedPaths.map(extractedPath => (
+    findIdentifierDeclarationPath(base, extractedPath, identifier)
+  )));
+  return maxBy(declarationPaths, 'length') || [];
+}
+
+function insertPattern(identifier: string, base: TypedNodeWithPath, extracted: TypedNodeWithPath, insertionPath: string[], patterns: Pattern[]): [TypedNodeWithPath, Pattern[]] {
   // Insert the extracted expression into the base and then update all the paths of the pattern so
   // they remain correct
-  const baseWithCorrectPath = visitAndTransformNode<TypeAndPathDecoration, TypedNodeWithPath>((node) => prependPath(node, 'body'))(base);
-  const newNode: TypedNodeWithPath = {
-    kind: 'Node',
-    expression: {
-      kind: 'BindingExpression',
-      name: identifier,
-      value: extracted,
-      body: baseWithCorrectPath,
-    },
-    decoration: {
-      type: base.decoration.type,
-      path: [],
-    },
-  };
+  const newNode = mapNodeAt(base, insertionPath, (oldNode): TypedNodeWithPath => {
+    const baseWithCorrectPath = visitAndTransformNode<TypeAndPathDecoration, TypedNodeWithPath>((node) => prependPath(node, 'body'))(oldNode);
+    return {
+      kind: 'Node',
+      expression: {
+        kind: 'BindingExpression',
+        name: identifier,
+        value: extracted,
+        body: baseWithCorrectPath,
+      },
+      decoration: {
+        type: base.decoration.type,
+        path: [],
+      },
+    };
+  });
 
   const updatedIndex = patterns.map(pattern => ({
     ...pattern,
-    usages: pattern.usages.map(usage => ({ path: ['body', ...usage.path] })),
+    usages: pattern.usages.map(usage => (
+      pathIsChild(insertionPath, usage.path)
+        ? ({
+          ...usage,
+          path: ['body', ...usage.path],
+        })
+        : usage
+    )),
   }));
 
   return [newNode, updatedIndex];
@@ -745,8 +813,9 @@ function insertPattern(identifier: string, base: TypedNodeWithPath, extracted: T
 function applyBestPattern(identifier: string, node: TypedNodeWithPath, patterns: Pattern[]): [TypedNodeWithPath, Pattern[]] {
   const [bestPattern, otherPatterns] = findBestPattern(patterns);
   const reindexedPatterns = updatePatternIndex(bestPattern, otherPatterns);
-  const { extracted, base } = extractPattern(bestPattern, identifier, node);
-  return insertPattern(identifier, base, extracted, reindexedPatterns);
+  const { base, extracted } = extractPattern(bestPattern, identifier, node);
+  const insertionPath = findInsertionPath(base, extracted, bestPattern.usages.map(({ path }) => path));
+  return insertPattern(identifier, base, extracted, insertionPath, reindexedPatterns);
 }
 
 function toString(patternNode: PatternNode): string {

@@ -40,4 +40,20 @@ export default a$rename$25($extracted$0(10))($extracted$0(11));`);
       console.log(generateJavascript(b));
     }
   });
+
+  it('does not extract a pattern higher than its variable usages allow', () => {
+    const { value: expression } = parse('b -> a (b 1 2) (b 1 2)');
+    expect(expression).toBeDefined();
+    if (expression) {
+      const [, node] = runTypePhase(expression);
+      console.log(generateJavascript(stripNode(node)));
+      expect(generateJavascript(stripNode(dedup(node)))).toBe(`export default (b$rename$47 => {
+  const $extracted$0 = b$rename$47(1)(2);
+  return a$rename$48($extracted$0)($extracted$0);
+});`);
+      const a = dedup(node);
+      const b = stripNode(a);
+      console.log(generateJavascript(b));
+    }
+  });
 });
