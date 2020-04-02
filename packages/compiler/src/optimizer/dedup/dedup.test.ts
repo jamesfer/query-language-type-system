@@ -21,8 +21,6 @@ export default a$rename$1($extracted$0)($extracted$0);`);
       const [, node] = runTypePhase(expression);
       expect(generateJavascript(stripNode(dedup(node)))).toBe(`const $extracted$0 = b$rename$12(1)(2);
 export default a$rename$11($extracted$0)($extracted$0);`);
-      console.log(generateJavascript(stripNode(node)));
-      console.log(generateJavascript(stripNode(dedup(node))));
     }
   });
 
@@ -31,13 +29,9 @@ export default a$rename$11($extracted$0)($extracted$0);`);
     expect(expression).toBeDefined();
     if (expression) {
       const [, node] = runTypePhase(expression);
-      console.log(generateJavascript(stripNode(node)));
       expect(generateJavascript(stripNode(dedup(node)))).toBe(`const $extracted$0 = $extracted$0$placeholder$0 => b$rename$26(1)($extracted$0$placeholder$0)(4)(5);
 
 export default a$rename$25($extracted$0(10))($extracted$0(11));`);
-      const a = dedup(node);
-      const b = stripNode(a);
-      console.log(generateJavascript(b));
     }
   });
 
@@ -46,14 +40,10 @@ export default a$rename$25($extracted$0(10))($extracted$0(11));`);
     expect(expression).toBeDefined();
     if (expression) {
       const [, node] = runTypePhase(expression);
-      console.log(generateJavascript(stripNode(node)));
       expect(generateJavascript(stripNode(dedup(node)))).toBe(`export default (b$rename$47 => {
   const $extracted$0 = b$rename$47(1)(2);
   return a$rename$48($extracted$0)($extracted$0);
 });`);
-      const a = dedup(node);
-      const b = stripNode(a);
-      console.log(generateJavascript(b));
     }
   });
 });

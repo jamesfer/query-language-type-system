@@ -1,14 +1,13 @@
-import { flatMap, fromPairs, isEqual, map, maxBy, partition, sortBy, sum, zipObject, mapValues } from 'lodash';
+import { flatMap, fromPairs, isEqual, map, maxBy, partition, sum, zipObject, mapValues } from 'lodash';
 import {
   Application,
   BindingExpression,
   Expression,
   Node,
   NodeWithChild,
-  stripNode,
   TypedNode,
 } from '../..';
-import { evaluationScope, scope } from '../../type-checker/constructors';
+import { evaluationScope } from '../../type-checker/constructors';
 import { evaluateExpression } from '../../type-checker/evaluate';
 import { TypedDecoration } from '../../type-checker/type-check';
 import {
@@ -18,7 +17,7 @@ import {
   assertNever,
   permuteArrays,
 } from '../../type-checker/utils';
-import { getBindingsFromValue, usesVariable } from '../../type-checker/variable-utils';
+import { usesVariable } from '../../type-checker/variable-utils';
 import { visitAndTransformNode, visitNodes } from '../../type-checker/visitor-utils';
 import {
   constructPath,
@@ -419,7 +418,6 @@ function groupChildPossibilities(possibilitiesPerPath: [string[], Dictionary<num
 
 function resolvePossibilityIndexes(possiblity: Dictionary<number>, possiblePatternsPerSegment: Dictionary<[PatternNode, string[][]][]>): Dictionary<PatternNode> {
   return mapValues(possiblity, (index, key) => {
-    console.log(key, 1, index, 0);
     const pattern = possiblePatternsPerSegment[key];
     if (!pattern) {
       throw new Error(`Could not find key ${key} in possibilities`);
@@ -433,17 +431,14 @@ function findCommonPatternsFromChildSegments(nodesWithPaths: [string[], TypedNod
     segmentsToFill,
     segmentsToFill.map(segment => findCommonPatternsAtPath(nodesWithPaths, [segment])),
   );
-  console.log('possiblePattensPerSegment', JSON.stringify(possiblePatternsPerSegment, undefined, 2));
 
   // Permute the possible combinations in each path
   const possibleIndexesPerPath = nodesWithPaths.map<[string[], Dictionary<number>[]]>(([path]) => (
     [path, findChildPatternPermutations(path, possiblePatternsPerSegment)]
   ));
-  console.log('possibleIndexesPerPath', JSON.stringify(possibleIndexesPerPath, undefined, 2));
 
   // Dedup combinations of paths and indexes
   const childPossibilities = groupChildPossibilities(possibleIndexesPerPath);
-  console.log('childPossibilities', JSON.stringify(childPossibilities, undefined, 2));
 
   // Convert the array based segments to an object
   return childPossibilities.map(([possiblity, paths]) => {
@@ -524,11 +519,7 @@ function recordPatterns(node: TypedNodeWithPath): Pattern[] {
   const finalVisitor = insertPlaceholders(patternNodeConverter);
   visitAndTransformNode<TypeAndPathDecoration, PatternNode[]>(finalVisitor)(node);
 
-  const index = getPartialIndex();
-  const strings = Object.values(getPartialIndex()).map(s => `${s.usages.length}  ${toString(s.node)}`);
-  console.log(sortBy(strings).join('\n'));
-
-  return convertToFullIndex2(node, index);
+  return convertToFullIndex2(node, getPartialIndex());
 }
 
 function visitAndTransformPatternNode<T>(visitor: (node: PatternNode<T>) => T extends void ? PatternNode : T): (node: PatternNode) => T extends void ? PatternNode : T {
@@ -866,14 +857,7 @@ export function dedup(node: TypedNode): TypedNode {
   })(nodeWithEmptyPath);
 
   // Iterate over the tree and record every combination of each tree.
-  let patterns = recordPatterns(nodeWithPath);
-  // let patterns = removeIrrelevantPatterns(patterns1);
-
-  const costed = patterns.map(({ node, usages }) => {
-    return ({ node, usages, cost: patternCost(node) * usages.length });
-  });
-  const sorted = sortBy(costed, 'cost');
-  console.log(sorted.map((pattern) => `Usages ${`${pattern.usages.length}`.padEnd(4, ' ')} Cost ${`${pattern.cost}`.padEnd(3, ' ')} ${toString(pattern.node)}`).join('\n'));
+  let patterns = removeIrrelevantPatterns(recordPatterns(nodeWithPath));
 
   // Find the most valuable tree to extract
   //  - Extract it into a binding and replace every usage with its identifier
