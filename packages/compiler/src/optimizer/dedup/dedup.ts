@@ -1,4 +1,4 @@
-import { flatMap, fromPairs, isEqual, maxBy, partition, sortBy, sum, map } from 'lodash';
+import { flatMap, fromPairs, isEqual, map, maxBy, partition, sortBy, sum, zipObject, mapValues } from 'lodash';
 import { Application, BindingExpression, Expression, Node, NodeWithChild, TypedNode } from '../..';
 import { TypedDecoration } from '../../type-checker/type-check';
 import {
@@ -76,30 +76,12 @@ interface Pattern {
   usages: PatternUsage[];
 }
 
-// function mergePatternIndexes(existingPatterns: Pattern[], newPatterns: Pattern[]): Pattern[] {
-//
-// }
-
 export interface TypeAndPathDecoration {
   type: TypedDecoration;
   path: string[];
 }
 
 export type TypedNodeWithPath = Node<TypeAndPathDecoration>;
-
-// function mapExpression<D, T>(node: NodeWithChild<D, T>, f: (expression: Expression<T>) => Expression<T>): NodeWithChild<D, T> {
-//   const expression = f(node.expression);
-//   if (expression !== node.expression) {
-//     return { ...node, expression };
-//   }
-//   return node;
-// }
-
-
-// function attachPath(node: TypedNodeWithPath): TypedNodeWithPath {
-//   const expression = constructPath(node.expression);
-//   return setPath({ ...node, expression }, []);
-// }
 
 function convertExpressionToPatternNode(expression: Expression<PatternNode[]>): PatternNode[] {
   switch (expression.kind) {
@@ -199,7 +181,7 @@ function collectAndDedupPatterns(patternIndex: Dictionary<Pattern>, nodes: Singl
   );
 }
 
-const patternHeight = visitAndTransformPatternNode<number>((node) => {
+const calculatePatternHeight = visitAndTransformPatternNode<number>((node) => {
   switch (node.kind) {
     case 'PatternPlaceholder':
       return 0;
@@ -219,7 +201,7 @@ const patternHeight = visitAndTransformPatternNode<number>((node) => {
   }
 });
 
-const placeholderHeights = visitAndTransformPatternNode<number[]>((node) => {
+const findPlaceholderHeights = visitAndTransformPatternNode<number[]>((node) => {
   switch (node.kind) {
     case 'PatternPlaceholder':
       return [0];
@@ -241,7 +223,8 @@ const placeholderHeights = visitAndTransformPatternNode<number[]>((node) => {
 
 function pickPatternsOfHeight(height: number): (patterns: PatternNode[]) => PatternNode[] {
   return patterns => patterns.filter(node => (
-    patternHeight(node) === height && placeholderHeights(node).every(placeholder => placeholder === height)
+    calculatePatternHeight(node) === height
+      && findPlaceholderHeights(node).every(placeholder => placeholder === height)
   ));
 }
 
@@ -261,8 +244,7 @@ function selectPatternsWith(
 ): (input: NodeWithChild<TypeAndPathDecoration, PatternNode[]>) => [SinglePattern[], PatternNode[]] {
   return (input) => {
     const nodes = visitor(input);
-    const patterns = selector(nodes)
-      .map(node => ({ node, path: input.decoration.path }));
+    const patterns = selector(nodes).map(node => ({ node, path: input.decoration.path }));
     return [patterns, nodes];
   };
 }
@@ -288,89 +270,6 @@ function insertPlaceholders<T>(visitor: (expression: T) => PatternNode[]): (expr
     ];
   }
 }
-
-
-
-function convertToFullIndex(baseNode: TypedNodeWithPath, partialIndex: Dictionary<Pattern>): Pattern[] {
-  const [getPartialIndex, patternNodeConverter] = collectPatternUsages(pickSensiblePatterns, convertNodeToPatternNode);
-  const finalVisitor = insertPlaceholders(patternNodeConverter);
-
-  return flatMap(partialIndex, (pattern) => {
-    return flatMap(pattern.usages, (usage) => {
-      const node = getNodeAt(baseNode, usage.path);
-      visitAndTransformNode<TypeAndPathDecoration, PatternNode[]>(finalVisitor)(node);
-      return Object.values(getPartialIndex());
-    });
-  });
-}
-
-// function flexiblyConvertNodeToPattern(first: TypedNodeWithPath, f: (childSegments: string[]) => [string[], PatternNode[]][]): [string[], PatternNode][] {
-//   switch (first.expression.kind) {
-//     case 'Identifier':
-//       return [{
-//         kind: 'PatternIdentifier',
-//         name: first.expression.name,
-//       }];
-//
-//     case 'BooleanExpression':
-//       return [{
-//         kind: 'PatternLiteral',
-//         value: first.expression.value,
-//       }];
-//
-//     case 'NumberExpression':
-//       return [{
-//         kind: 'PatternLiteral',
-//         value: first.expression.value,
-//       }];
-//
-//     case 'StringExpression':
-//       return [{
-//         kind: 'PatternLiteral',
-//         value: first.expression.value,
-//       }];
-//
-//     case 'SymbolExpression':
-//       return [];
-//
-//     case 'RecordExpression':
-//       return [];
-//
-//     case 'Application':
-//       return permuteArrays([f('callee'), f('parameter')]).map(([callee, parameter]) => ({
-//         callee,
-//         parameter,
-//         kind: 'PatternApplication',
-//       }));
-//
-//     case 'FunctionExpression':
-//       return [];
-//
-//     case 'DataInstantiation':
-//       return [];
-//
-//     case 'BindingExpression':
-//       return [];
-//
-//     case 'DualExpression':
-//       return [];
-//
-//     case 'ReadRecordPropertyExpression':
-//       return [];
-//
-//     case 'ReadDataPropertyExpression':
-//       return [];
-//
-//     case 'PatternMatchExpression':
-//       return [];
-//
-//     case 'NativeExpression':
-//       return [];
-//
-//     default:
-//       return assertNever(first.expression);
-//   }
-// }
 
 function shallowConvertNodeToPattern(expression: Expression<unknown>): [PatternNode<null>, string[]] | undefined {
   switch (expression.kind) {
@@ -468,6 +367,78 @@ function nodesShallowMatch<T>(left: Expression<T>, right: Expression<T>): boolea
   }
 }
 
+function findCommonPatternsAtPath(nodesWithPaths: [string[], TypedNodeWithPath][], subpath: string[]) {
+  const continuingChildren: [string[], TypedNodeWithPath][] = (
+    nodesWithPaths.map(([path, node]) => [path, getNodeAt(node, subpath)])
+  );
+  return findCommonPatterns(continuingChildren);
+}
+
+function findChildPatternPermutations(path: string[], possiblePatternsPerSegment: Dictionary<[PatternNode, string[][]][]>): Dictionary<number>[] {
+  const possibilitiesPerPathPerSegment: [string, number][][] = map(possiblePatternsPerSegment, (possibilities, segment) => {
+    return possibilities
+      .map(([pattern, paths], index): [string[][], number] => [paths, index])
+      .filter(([paths]) => paths.some(possiblePath => isEqual(path, possiblePath)))
+      .map(([, index]) => [segment, index])
+  });
+  return map(permuteArrays(possibilitiesPerPathPerSegment), fromPairs)
+}
+
+function groupChildPossibilities(possibilitiesPerPath: [string[], Dictionary<number>[]][]) {
+  return possibilitiesPerPath.reduce<[Dictionary<number>, string[][]][]>(
+    (collection, [path, possibilities]) => {
+      possibilities.forEach((possibility) => {
+        const index = collection.findIndex(([combination]) => {
+          return isEqual(possibility, combination);
+        });
+
+        if (index === -1) {
+          collection.push([possibility, [path]]);
+        } else {
+          collection[index][1].push(path);
+        }
+      });
+
+      return collection;
+    },
+    [],
+  );
+}
+
+function resolvePossibilityIndexes(possiblity: Dictionary<number>, possiblePatternsPerSegment: Dictionary<[PatternNode, string[][]][]>): Dictionary<PatternNode> {
+  return mapValues(possiblity, (index, key) => {
+    console.log(key, 1, index, 0);
+    const pattern = possiblePatternsPerSegment[key];
+    if (!pattern) {
+      throw new Error(`Could not find key ${key} in possibilities`);
+    }
+    return pattern[index][0];
+  });
+}
+
+function findCommonPatternsFromChildSegments(nodesWithPaths: [string[], TypedNodeWithPath][], segmentsToFill: string[]): [Dictionary<PatternNode>, string[][]][] {
+  const possiblePatternsPerSegment: Dictionary<[PatternNode, string[][]][]> = zipObject(
+    segmentsToFill,
+    segmentsToFill.map(segment => findCommonPatternsAtPath(nodesWithPaths, [segment])),
+  );
+  console.log('possiblePattensPerSegment', JSON.stringify(possiblePatternsPerSegment, undefined, 2));
+
+  // Permute the possible combinations in each path
+  const possibleIndexesPerPath = nodesWithPaths.map<[string[], Dictionary<number>[]]>(([path]) => (
+    [path, findChildPatternPermutations(path, possiblePatternsPerSegment)]
+  ));
+  console.log('possibleIndexesPerPath', JSON.stringify(possibleIndexesPerPath, undefined, 2));
+
+  // Dedup combinations of paths and indexes
+  const childPossibilities = groupChildPossibilities(possibleIndexesPerPath);
+  console.log('childPossibilities', JSON.stringify(childPossibilities, undefined, 2));
+
+  // Convert the array based segments to an object
+  return childPossibilities.map(([possiblity, paths]) => {
+    return [resolvePossibilityIndexes(possiblity, possiblePatternsPerSegment), paths];
+  });
+}
+
 function findCommonPatterns(nodes: [string[], TypedNodeWithPath][]): [PatternNode, string[][]][] {
   let queue: [string[], TypedNodeWithPath][][] = [nodes];
   let includePlaceholder = false;
@@ -476,26 +447,17 @@ function findCommonPatterns(nodes: [string[], TypedNodeWithPath][]): [PatternNod
     const next = queue.shift()!;
     const [[path, first], ...others] = next;
 
-    // If this is the only possible node then return it
-    // if (others.length === 0) {
-    //   patterns.push([{ kind: 'PatternPlaceholder' }, [path]]);
-    //   continue;
-    // }
-
     const [matching, nonMatching] = partition(others, ([, other]) => nodesShallowMatch(first.expression, other.expression));
 
     if (nonMatching.length > 0) {
       // Some of the nodes did not match, we also need to add a placeholder to the list of patterns
       includePlaceholder = true;
-      // patterns.push([{ kind: 'PatternPlaceholder' }, [path]]);
 
       // Requeue the non matching nodes to see if they have any commonalities
       queue.push(nonMatching);
     }
 
     if (matching.length > 0) {
-      const continuingNodes: [string[], TypedNodeWithPath][] = [[path, first], ...matching];
-
       // Convert this expression to a pattern and recursively call to generate child nodes
       const convertedResult = shallowConvertNodeToPattern(first.expression);
       if (convertedResult) {
@@ -503,61 +465,13 @@ function findCommonPatterns(nodes: [string[], TypedNodeWithPath][]): [PatternNod
         const [nodeTemplate, segmentsToFill] = convertedResult;
 
         if (segmentsToFill.length === 0) {
-          patterns.push([nodeTemplate as PatternNode, continuingNodes.map(([path]) => path)]);
+          patterns.push([nodeTemplate as PatternNode, [path, ...matching.map(([path]) => path)]]);
         } else {
-          const possiblePatternsPerSegment: [string, [PatternNode, string[][]][]][] = segmentsToFill.map((segment) => {
-            const continuingChildren: [string[], TypedNodeWithPath][] = continuingNodes.map(([path, node]) => [path, getNodeAt(node, [segment])]);
-            const commonPatterns = findCommonPatterns(continuingChildren);
-            return [segment, commonPatterns];
-          });
-
-          // Permute the possible combinations in each path
-          const permuted2: [string[], [string, number][][]][] = continuingNodes.map(([path]): [string[], [string, number][][]] => {
-            const possibilitiesPerPathPerSegment: [string, number][][] = possiblePatternsPerSegment.map(([segment, possibilities]) => {
-              return possibilities.map(([pattern, paths], index): [string[][], number] => [paths, index])
-                .filter(([paths]) => paths.some(possiblePath => isEqual(path, possiblePath)))
-                .map(([, index]) => [segment, index])
-            });
-
-            return [path, permuteArrays(possibilitiesPerPathPerSegment)];
-          });
-
-          // Dedup combinations of paths and indexes
-          const permuted25: [[string, number][], string[][]][] = permuted2.reduce<[[string, number][], string[][]][]>(
-            (collection, [path, possibilities]) => {
-              possibilities.forEach((possibility) => {
-                const index = collection.findIndex(([combination]) => {
-                  return isEqual(possibility, combination);
-                });
-
-                if (index === -1) {
-                  collection.push([possibility, [path]]);
-                } else {
-                  collection[index][1].push(path);
-                }
-              });
-
-              return collection;
-            },
-            [],
-          );
-
-          // Convert the array based segments to an object
-          const permuted3: [PatternNode, string[][]][] = permuted25.map(([possiblity, paths]) => {
-            const unindexedPairs = possiblity.map(([key, index]) => {
-              const pattern = possiblePatternsPerSegment.find(([possiblityKey]) => possiblityKey === key);
-              if (!pattern) {
-                throw new Error(`Could not find key ${key} in possibilities`);
-              }
-              return [key, pattern[1][index][0]];
-            });
-            const completedNode = {
-              ...nodeTemplate as PatternNode,
-              ...fromPairs(unindexedPairs),
-            };
-            return [completedNode, paths];
-          });
-
+          const continuingNodes: [string[], TypedNodeWithPath][] = [[path, first], ...matching];
+          const childPossibilities = findCommonPatternsFromChildSegments(continuingNodes, segmentsToFill);
+          const permuted3 = childPossibilities.map<[PatternNode, string[][]]>(([partialNode, paths]) => (
+            [{ ...nodeTemplate as PatternNode, ...partialNode }, paths]
+          ));
           patterns.push(...permuted3);
         }
       }
