@@ -18,6 +18,7 @@ export declare enum TokenKind {
     closeParen = "closeParen",
     openBrace = "openBrace",
     closeBrace = "closeBrace",
+    comment = "comment",
     unknown = "unknown"
 }
 export interface GenericToken<K> {
