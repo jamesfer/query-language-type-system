@@ -30,6 +30,7 @@ export function * produceExpressionTokens(lexer: Iterable<Token>): Iterable<Expr
   for (const { kind, value } of lexer) {
     switch (kind) {
       case TokenKind.unknown:
+      case TokenKind.comment:
         break;
 
       case TokenKind.lineBreak:

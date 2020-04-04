@@ -19,6 +19,7 @@ export enum TokenKind {
   closeParen = 'closeParen',
   openBrace = 'openBrace',
   closeBrace = 'closeBrace',
+  comment = 'comment',
   // openBracket,
   // closeBracket,
   unknown = 'unknown',
@@ -34,6 +35,7 @@ export interface Token extends GenericToken<TokenKind> {}
 export const rules: moo.Rules = {
   [TokenKind.lineBreak]: { match: /(?:\r\n?|\n)+/, lineBreaks: true },
   [TokenKind.whitespace]: / +/,
+  [TokenKind.comment]: /--[^\r\n]*/,
   [TokenKind.identifier]: {
     match: /[a-zA-Z_][a-zA-Z0-9_]*/,
     type: moo.keywords({

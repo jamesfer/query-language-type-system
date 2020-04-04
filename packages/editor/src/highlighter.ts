@@ -105,6 +105,9 @@ export default class Highlighter implements Mode<HighlighterState> {
       case TokenKind.hash:
         return 'operator';
 
+      case TokenKind.comment:
+        return 'comment';
+
       case TokenKind.whitespace:
       case TokenKind.lineBreak:
         return null;

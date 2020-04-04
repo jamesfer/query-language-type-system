@@ -18,4 +18,13 @@ describe('tokenize', () => {
       { kind: TokenKind.identifier, value: 'a' },
     ]);
   });
+
+  it('tokenizes a comment', () => {
+    expect(Array.from(tokenize('5-- Hello\n10'))).toEqual([
+      { kind: TokenKind.number, value: '5' },
+      { kind: TokenKind.comment, value: '-- Hello' },
+      { kind: TokenKind.lineBreak, value: '\n' },
+      { kind: TokenKind.number, value: '10' },
+    ]);
+  });
 });

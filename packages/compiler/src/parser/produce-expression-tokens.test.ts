@@ -5,6 +5,7 @@ describe('produceExpressionTokens', () => {
   it.each<[TokenKind, string]>([
     [TokenKind.whitespace, ' '],
     [TokenKind.unknown, ''],
+    [TokenKind.comment, '-- Hello this is a comment'],
   ])('strips out %s tokens', (kind, value) => {
     const result = Array.from(produceExpressionTokens([
       { kind: TokenKind.colon, value: ':' },
