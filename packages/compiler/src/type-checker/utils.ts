@@ -1,5 +1,6 @@
 // import { AssertionError } from 'assert';
 import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith, concat, last } from 'lodash';
+import { mapTrampoline, Trampoline } from '../utils/trampoline';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
 
@@ -172,15 +173,16 @@ export function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() =>
 //   }
 // }
 
-export function withRecursiveState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => R]): (...args: T) => R {
+export function withRecursiveTrampolineState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => Trampoline<R>]): (...args: T) => Trampoline<R> {
   let state: S | undefined = undefined;
   return (...args) => {
     const [newState, continuation] = f(state, ...args);
     const previousState = state;
     state = newState;
-    const result = continuation();
-    state = previousState;
-    return result;
+    return mapTrampoline(continuation(), (result) => {
+      state = previousState;
+      return result;
+    });
   }
 }
 
