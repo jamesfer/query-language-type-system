@@ -56,6 +56,80 @@ describe('parse', () => {
     });
   });
 
+  it('recognises a very long function', () => {
+    const actual = parse('a -> b -> c -> d -> e -> f -> g -> h -> 1');
+    expect(actual.value).toEqual(
+      {
+        kind: 'FunctionExpression',
+        implicit: false,
+        parameter: {
+          kind: 'Identifier',
+          name: 'a',
+        },
+        body: {
+          kind: 'FunctionExpression',
+          implicit: false,
+          parameter: {
+            kind: 'Identifier',
+            name: 'b',
+          },
+          body: {
+            kind: 'FunctionExpression',
+            implicit: false,
+            parameter: {
+              kind: 'Identifier',
+              name: 'c',
+            },
+            body: {
+              kind: 'FunctionExpression',
+              implicit: false,
+              parameter: {
+                kind: 'Identifier',
+                name: 'd',
+              },
+              body: {
+                kind: 'FunctionExpression',
+                implicit: false,
+                parameter: {
+                  kind: 'Identifier',
+                  name: 'e',
+                },
+                body: {
+                  kind: 'FunctionExpression',
+                  implicit: false,
+                  parameter: {
+                    kind: 'Identifier',
+                    name: 'f',
+                  },
+                  body: {
+                    kind: 'FunctionExpression',
+                    implicit: false,
+                    parameter: {
+                      kind: 'Identifier',
+                      name: 'g',
+                    },
+                    body: {
+                      kind: 'FunctionExpression',
+                      implicit: false,
+                      parameter: {
+                        kind: 'Identifier',
+                        name: 'h',
+                      },
+                      body: {
+                        kind: 'NumberExpression',
+                        value: 1,
+                      },
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    )
+  });
+
   it('recognises an implicit function expression', () => {
     const withMessages = parse('implicit a -> b');
     expect(withMessages.value).toEqual({
