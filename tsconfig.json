@@ -23,6 +23,7 @@
   },
   "include": [
     "packages/*/src/**/*.ts",
-    "packages/*/src/**/*.test.ts"
+    "packages/*/src/**/*.test.ts",
+    "packages/*/src/**/*.benchmark.ts"
   ]
 }
