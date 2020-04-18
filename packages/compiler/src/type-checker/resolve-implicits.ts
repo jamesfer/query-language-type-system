@@ -15,7 +15,7 @@ import {
   checkedZipWith,
   permuteArrays,
   accumulateStatesWithResult,
-  withStateStack, withParentExpressionKind,
+  withParentExpressionKind,
 } from './utils';
 import { visitNodes } from './visitor-utils';
 

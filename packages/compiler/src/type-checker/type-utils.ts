@@ -161,7 +161,7 @@ function convergeFreeVariable(scope: Scope, freeVariable: FreeVariable, other: V
   }
 
   const binding = findBinding(scope, freeVariable.name);
-  if (binding) {
+  if (binding && (binding.type.kind !== 'FreeVariable' || binding.type.name !== freeVariable.name)) {
     return converge(scope, other, binding.type);
   }
 

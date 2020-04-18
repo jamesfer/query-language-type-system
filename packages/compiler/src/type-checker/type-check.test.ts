@@ -1,5 +1,4 @@
-import { renameFreeVariables } from './rename-free-variables';
-import { runTypePhase, runTypePhaseWithoutRename } from './run-type-phase';
+import { runTypePhase } from './run-type-phase';
 import { stripNode } from './strip-nodes';
 import { typeExpression } from './type-check';
 import {
@@ -11,7 +10,8 @@ import {
   numberExpression,
   evaluationScope,
   bind,
-  dual, dataInstantiation, identifier, readRecordProperty, scope,
+  dual,
+  readRecordProperty,
 } from './constructors';
 import { evaluateExpression, simplify } from './evaluate';
 import { pipe } from './utils';
