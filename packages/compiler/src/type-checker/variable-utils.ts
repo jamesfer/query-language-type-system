@@ -6,7 +6,7 @@ import { Expression } from './types/expression';
 import { Scope } from './types/scope';
 import {
   DataValue,
-  DualBinding, ExplicitValue,
+  DualBinding,
   FreeVariable,
   RecordLiteral,
   SymbolLiteral,
@@ -19,7 +19,7 @@ import {
   checkedZip,
   spreadApply,
 } from './utils';
-import { unfoldExplicitParameters, visitValue, visitValueForState } from './visitor-utils';
+import { unfoldExplicitParameters, visitValue } from './visitor-utils';
 
 export interface VariableReplacement {
   from: string;

@@ -1,5 +1,6 @@
 // import { AssertionError } from 'assert';
 import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith, concat, last } from 'lodash';
+import { Free, mapFree } from '../utils/free';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
 
@@ -172,15 +173,16 @@ export function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() =>
 //   }
 // }
 
-export function withRecursiveState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => R]): (...args: T) => R {
+export function withRecursiveFreeState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => Free<R>]): (...args: T) => Free<R> {
   let state: S | undefined = undefined;
   return (...args) => {
     const [newState, continuation] = f(state, ...args);
     const previousState = state;
     state = newState;
-    const result = continuation();
-    state = previousState;
-    return result;
+    return mapFree(continuation(), (result) => {
+      state = previousState;
+      return result;
+    });
   }
 }
 

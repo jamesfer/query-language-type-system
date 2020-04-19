@@ -1,5 +1,6 @@
-import { compile } from '../../api';
+import dedent from 'dedent-js';
 import { stripNode } from '../..';
+import { compile } from '../../api';
 import { generateJavascript } from './generate-javascript';
 
 describe('generateJavascript', () => {
@@ -23,10 +24,12 @@ describe('generateJavascript', () => {
     const result = compile('{ a = 1, b = 2, }');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`export default {
-  a: 1,
-  b: 2
-};`);
+      expect(generateJavascript(stripNode(result.node))).toEqual(dedent`
+        export default {
+          a: 1,
+          b: 2
+        };
+      `);
     }
   });
 
@@ -34,7 +37,8 @@ describe('generateJavascript', () => {
     const result = compile('a -> b -> 1');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('export default (a$rename$1 => b$rename$2 => 1);');
+      expect(generateJavascript(stripNode(result.node)))
+        .toEqual('export default (a$rename$1 => b$rename$2 => 1);');
     }
   });
 
@@ -42,12 +46,13 @@ describe('generateJavascript', () => {
     const result = compile('a:b -> a');
     expect(result.node).toBeDefined();
     if (result.node) {
-      const expected = `export default ($PARAMETER$1 => {
-  const a$rename$3 = $PARAMETER$1;
-  const b$rename$4 = $PARAMETER$1;
-  return a$rename$3;
-});`;
-      expect(generateJavascript(stripNode(result.node))).toEqual(expected);
+      expect(generateJavascript(stripNode(result.node))).toEqual(dedent`
+        export default ($PARAMETER$1 => {
+          const a$rename$3 = $PARAMETER$1;
+          const b$rename$4 = $PARAMETER$1;
+          return a$rename$3;
+        });
+      `);
     }
   });
 
@@ -55,7 +60,10 @@ describe('generateJavascript', () => {
     const result = compile('let a = 1\na');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual('const a = 1;\nexport default a;');
+      expect(generateJavascript(stripNode(result.node))).toEqual(dedent`
+        const a = 1;
+        export default a;
+      `);
     }
   });
 
@@ -63,10 +71,12 @@ describe('generateJavascript', () => {
     const result = compile('{ a = 1, b = 2, }');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`export default {
-  a: 1,
-  b: 2
-};`);
+      expect(generateJavascript(stripNode(result.node))).toEqual(dedent`
+        export default {
+          a: 1,
+          b: 2
+        };
+      `);
     }
   });
 
@@ -74,9 +84,11 @@ describe('generateJavascript', () => {
     const result = compile('{ word = 10, }.word');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`export default {
-  word: 10
-}.word;`);
+      expect(generateJavascript(stripNode(result.node))).toEqual(dedent`
+        export default {
+          word: 10
+        }.word;
+      `);
     }
   });
 
@@ -92,16 +104,18 @@ describe('generateJavascript', () => {
     const result = compile('match 5 | 3 = "three" | 5 = "five" | _ = "something else"');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`export default ($patternValue => {
-  if ($patternValue === 3) {
-    return "three";
-  } else if ($patternValue === 5) {
-    return "five";
-  } else {
-    const _$rename$6 = $patternValue;
-    return "something else";
-  }
-})(5);`);
+      expect(generateJavascript(stripNode(result.node))).toEqual(dedent`
+        export default ($patternValue => {
+          if ($patternValue === 3) {
+            return "three";
+          } else if ($patternValue === 5) {
+            return "five";
+          } else {
+            const _$rename$5 = $patternValue;
+            return "something else";
+          }
+        })(5);
+      `);
     }
   });
 
@@ -109,14 +123,16 @@ describe('generateJavascript', () => {
     const result = compile('data a = x, y, z\na 1 2 3');
     expect(result.node).toBeDefined();
     if (result.node) {
-      expect(generateJavascript(stripNode(result.node))).toEqual(`const a = x$rename$7 => y$rename$8 => z$rename$9 => ({
-  $DATA_NAME$: "$SYMBOL$a",
-  0: x$rename$7,
-  1: y$rename$8,
-  2: z$rename$9
-});
+      expect(generateJavascript(stripNode(result.node))).toEqual(dedent`
+        const a = x$rename$6 => y$rename$7 => z$rename$8 => ({
+          $DATA_NAME$: "$SYMBOL$a",
+          0: x$rename$6,
+          1: y$rename$7,
+          2: z$rename$8
+        });
 
-export default a(1)(2)(3);`);
+        export default a(1)(2)(3);
+      `);
     }
   });
 

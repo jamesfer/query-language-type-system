@@ -23,7 +23,7 @@ import {
 } from './implicit-utils';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { runTypePhaseWithoutRename } from './run-type-phase';
-import { scopeToEScope } from './scope-utils';
+import { findBinding, scopeToEScope } from './scope-utils';
 import { stripNode } from './strip-nodes';
 import { converge, newFreeVariable } from './type-utils';
 import {
@@ -37,7 +37,7 @@ import { Scope } from './types/scope';
 import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
 import { assertNever, withParentExpressionKind } from './utils';
 import {
-  applyReplacements,
+  applyReplacements, extractFreeVariableNames,
   getBindingsFromValue,
   recursivelyApplyReplacements,
 } from './variable-utils';
@@ -63,17 +63,19 @@ function getTypeDecorations(nodes: TypedNode[]): Value[] {
   return nodes.map(node => node.decoration.type);
 }
 
-const copyFreeVariables = visitValueWithState<{ [k: string]: FreeVariable }>({}, {
-  after([state, value]) {
-    if (value.kind === 'FreeVariable') {
-      if (!state[value.name]) {
-        state[value.name] = newFreeVariable(`${value.name}$copy$`);
+function copyFreeVariables(scope: Scope) {
+  return visitValueWithState<{ [k: string]: FreeVariable }>({}, {
+    after([state, value]) {
+      if (value.kind === 'FreeVariable' && !findBinding(scope, value.name)) {
+        if (!state[value.name]) {
+          state[value.name] = newFreeVariable(`${value.name}$copy$`);
+        }
+        return [state, state[value.name]];
       }
-      return [state, state[value.name]];
-    }
-    return [state, value];
-  },
-});
+      return [state, value];
+    },
+  });
+}
 
 // function getImplicitsForBinding(valueNode: TypedNode): Value[] {
 //   const valueList = deepExtractImplicitParameters(valueNode);
@@ -153,12 +155,12 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       }
 
       const body = state.withChildScope((innerState) => {
+        const bindingsFromValue = extractFreeVariableNames(parameter);
         innerState.expandScope({
           bindings: [
-            ...getBindingsFromValue(parameter).map(({ from, to }) => (
-              scopeBinding(from, scope, to)
+            ...bindingsFromValue.map((name) => (
+              scopeBinding(name, scope, applyReplacements(state.replacements)(freeVariable(name)))
             )),
-            ...state.replacements.map(({ from, to }) => scopeBinding(from, scope, to))
           ],
         });
 
@@ -178,7 +180,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     case 'Identifier': {
       const binding = find(scope.bindings, { name: expression.name });
       if (binding) {
-        return state.wrap(typeNode(expression, scope, copyFreeVariables(binding.type)));
+        return state.wrap(typeNode(expression, scope, copyFreeVariables(scope)(binding.type)));
       }
 
       // return result(expression, scope, newFreeVariable(`${expression.callee}$typingFreeIdentifier$`));
@@ -191,8 +193,8 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       const expressionNode: Expression<TypedNode> = { ...expression, callee, parameter };
 
       // Converge the callee type with a function type
-      const parameterTypeVariable = newFreeVariable('p');
-      const bodyTypeVariable = newFreeVariable('b');
+      const parameterTypeVariable = newFreeVariable('tempParameterVariable$');
+      const bodyTypeVariable = newFreeVariable('tempBodyVariable$');
       const calleeReplacements = converge(state.scope, callee.decoration.type, {
         kind: 'FunctionLiteral',
         parameter: parameterTypeVariable,
@@ -200,21 +202,21 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       });
       if (!calleeReplacements) {
         state.log(`Cannot call a ${callee.decoration.type.kind}`);
-        return state.wrap(typeNode(expressionNode, scope, dataValue('Any')));
+      } else {
+        state.recordReplacements(calleeReplacements);
       }
 
-      state.recordReplacements(calleeReplacements);
-      const parameterType = applyReplacements(calleeReplacements)(parameterTypeVariable);
-      const bodyType = applyReplacements(calleeReplacements)(bodyTypeVariable);
+      const parameterType = applyReplacements(calleeReplacements || [])(parameterTypeVariable);
+      const bodyType = applyReplacements(calleeReplacements || [])(bodyTypeVariable);
 
       const parameterReplacements = converge(state.scope, parameterType, parameter.decoration.type);
       if (!parameterReplacements) {
         state.log('Given parameter did not match expected shape');
-        return state.wrap(typeNode(expressionNode, scope, dataValue('Any')));
+      } else {
+        state.recordReplacements(parameterReplacements);
       }
 
       // Apply replacements to all children and implicits
-      state.recordReplacements(parameterReplacements);
       return state.wrap(typeNode(
         recursivelyApplyReplacements(state.replacements)(expressionNode),
         scope,
