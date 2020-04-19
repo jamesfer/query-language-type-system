@@ -1,3 +1,4 @@
+import { Free } from '../utils/free';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
 export declare function assertNever(x: never): never;
@@ -59,7 +60,7 @@ export declare function accumulateStates<S, T>(func: (arg: T) => S[]): [() => S[
 export declare function accumulateStatesWithResult<S, T, R>(func: (arg: T) => [S[], R]): [() => S[], (arg: T) => R];
 export declare function accumulateStatesUsingAnd<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T];
 export declare function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T];
-export declare function withRecursiveState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => R]): (...args: T) => R;
+export declare function withRecursiveFreeState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => Free<R>]): (...args: T) => Free<R>;
 export declare function withStateStack<S, T extends any[], R>(f: (pushState: (state: S) => void, state: S | undefined, ...args: T) => R): (...args: T) => R;
 /**
  * Automatically tracks the parent kind of each expression and provides its to the given callback.
