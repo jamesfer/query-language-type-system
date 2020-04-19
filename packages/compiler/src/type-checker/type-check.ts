@@ -202,21 +202,21 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       });
       if (!calleeReplacements) {
         state.log(`Cannot call a ${callee.decoration.type.kind}`);
-        throw new Error(`Cannot call a ${callee.decoration.type.kind}`);
+      } else {
+        state.recordReplacements(calleeReplacements);
       }
 
-      state.recordReplacements(calleeReplacements);
-      const parameterType = applyReplacements(calleeReplacements)(parameterTypeVariable);
-      const bodyType = applyReplacements(calleeReplacements)(bodyTypeVariable);
+      const parameterType = applyReplacements(calleeReplacements || [])(parameterTypeVariable);
+      const bodyType = applyReplacements(calleeReplacements || [])(bodyTypeVariable);
 
       const parameterReplacements = converge(state.scope, parameterType, parameter.decoration.type);
       if (!parameterReplacements) {
         state.log('Given parameter did not match expected shape');
-        throw new Error('Given parameter did not match expected shape');
+      } else {
+        state.recordReplacements(parameterReplacements);
       }
 
       // Apply replacements to all children and implicits
-      state.recordReplacements(parameterReplacements);
       return state.wrap(typeNode(
         recursivelyApplyReplacements(state.replacements)(expressionNode),
         scope,

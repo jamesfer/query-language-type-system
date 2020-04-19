@@ -51,21 +51,21 @@ describe('Scenarios', () => {
 
   it('compiles a function call', () => {
     expect(compilerMessages(dedent`
-      let a = a -> b -> 5
+      let a = x -> y -> 5
       a "Hello" "World"
     `)).toEqual([]);
   });
 
   it('compiles a partial function call', () => {
     expect(compilerMessages(dedent`
-      let a = a -> b -> 5
+      let a = x -> y -> 5
       a "Hello"
     `)).toEqual([]);
   });
 
   it('errors when a function is called too many times', () => {
     expect(compilerMessages(dedent`
-      let a = a -> b -> 5
+      let a = x -> y -> 5
       a "Hello" "World" 10
     `)).toEqual(['Cannot call a NumberLiteral']);
   });
@@ -124,7 +124,7 @@ describe('Scenarios', () => {
 
   it('errors if it cannot find a value to fill an implicit parameter', () => {
     expect(compilerMessages(dedent`
-      let f = implicit a:5 -> b -> a
+      let f = implicit a:5 -> a -> a
       f "String"
     `)).toEqual(['Could not find a valid set of replacements for implicits'])
   });
