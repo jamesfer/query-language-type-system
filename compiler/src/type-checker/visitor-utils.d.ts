@@ -1,5 +1,5 @@
-import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
+import { Node, NodeWithChild } from './types/node';
 import { Value } from './types/value';
 export declare function unfoldParameters(value: Value): Generator<[boolean, Value, Value]>;
 export declare function unfoldExplicitParameters(value: Value): Generator<[Value, Value, Value[]]>;
@@ -7,8 +7,10 @@ interface Visitor<T> {
     before?(t: T): T;
     after?(t: T): T;
 }
-export declare const visitExpressionNodes: (visitor: Visitor<TypedNode>) => (expression: Expression<TypedNode>) => Expression<TypedNode>;
-export declare const visitNodes: (visitor: Visitor<TypedNode>) => (node: TypedNode) => TypedNode;
+export declare const visitExpressionNodes: <T>(visitor: Visitor<Node<T>>) => (expression: Expression<Node<T>>) => Expression<Node<T>>;
+export declare const visitNodes: <T>(visitor: Visitor<Node<T>>) => (node: Node<T>) => Node<T>;
+export declare const visitAndTransformNode: <D, B>(visitor: (value: NodeWithChild<D, B>) => B extends void ? Expression<void> : B) => (node: Node<D>) => B extends void ? Expression<void> : B;
+export declare const visitAndTransformChildExpression: <A, T>(callback: (expression: A extends void ? Expression<void> : A) => T extends void ? Expression<void> : T) => (expression: Expression<A>) => Expression<T>;
 export declare const visitAndTransformExpression: <T>(visitor: (value: Expression<T>) => T extends void ? Expression<void> : T) => (expression: Expression<void>) => T extends void ? Expression<void> : T;
 export declare const visitAndTransformExpressionBefore: <T>(visitor: (value: T extends void ? Expression<void> : T) => Expression<T>) => (expression: T extends void ? Expression<void> : T) => Expression<void>;
 export declare const visitChildValues: (visitor: Visitor<Value<void>>) => (value: Value<void>) => Value<void>;
