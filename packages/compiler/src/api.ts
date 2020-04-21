@@ -1,3 +1,4 @@
+import { removeUnusedBindings } from './optimisations/remove-unused-bindings/remove-unused-bindings';
 import parse from './parser/parse';
 import { evaluationScope } from './type-checker/constructors';
 import { evaluateExpression } from './type-checker/evaluate';
@@ -23,10 +24,11 @@ export function compile(code: string): CompileResult {
   }
 
   const [typeMessages, typedNode] = runTypePhase(expression);
+  const optimizedNode = removeUnusedBindings(typedNode);
 
   return {
-    expression: stripNode(typedNode),
-    node: typedNode,
+    expression: stripNode(optimizedNode),
+    node: optimizedNode,
     messages: typeMessages,
   };
 }
