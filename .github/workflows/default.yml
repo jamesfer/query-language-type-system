@@ -15,6 +15,9 @@ jobs:
       - name: Build compiler
         run: yarn build
         working-directory: packages/compiler
+      - name: Check editor
+        run: yarn build:tsc
+        working-directory: packages/editor
       - name: Build editor
         run: yarn build
         working-directory: packages/editor
