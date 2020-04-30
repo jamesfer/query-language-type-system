@@ -12,7 +12,7 @@ export interface CompileToResult {
 function toBackend(expression: Expression, backend: 'javascript'): string | undefined {
   switch (backend) {
     case 'javascript':
-      return generateJavascript(expression);
+      return generateJavascript(expression, { module: 'esm' });
   }
 }
 

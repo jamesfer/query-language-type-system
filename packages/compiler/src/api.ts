@@ -1,5 +1,6 @@
 import { removeUnusedBindings } from './optimisations/remove-unused-bindings/remove-unused-bindings';
 import parse from './parser/parse';
+import { attachPrelude } from './prelude/attach-prelude';
 import { evaluationScope } from './type-checker/constructors';
 import { evaluateExpression } from './type-checker/evaluate';
 import { runTypePhase } from './type-checker/run-type-phase';
@@ -17,14 +18,24 @@ export interface CompileResult {
   messages: Message[];
 }
 
-export function compile(code: string): CompileResult {
+export interface CompileOptions {
+  prelude?: boolean;
+  removeUnused?: boolean;
+}
+
+export function compile(code: string, options?: CompileOptions): CompileResult {
+  const prelude = options?.prelude ?? true;
+  const removeUnused = options?.removeUnused ?? true;
+
   const { value: expression } = parse(code);
   if (!expression) {
     return { messages: ['Failed to parse code'] };
   }
 
-  const [typeMessages, typedNode] = runTypePhase(expression);
-  const optimizedNode = removeUnusedBindings(typedNode);
+  const [typeMessages, typedNode] = runTypePhase(
+    prelude ? attachPrelude(expression) : expression,
+  );
+  const optimizedNode = removeUnused ? removeUnusedBindings(typedNode) : typedNode;
 
   return {
     expression: stripNode(optimizedNode),
