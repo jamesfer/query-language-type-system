@@ -340,11 +340,25 @@ function convertExpressionToCode(expression: Expression): [types.Statement[], ty
   }
 }
 
-export function generateJavascript(expression: Expression): string {
-  const [statements, value] = convertExpressionToCode(expression);
-  const program = types.program([
+export interface JavascriptBackendOptions {
+  module: 'commonjs' | 'esm';
+}
+
+function wrapInExport(moduleType: 'commonjs' | 'esm', statements: types.Statement[], value: types.Expression): types.Program {
+  return types.program([
     ...statements,
-    types.exportDefaultDeclaration(value as any),
-  ]);
+    moduleType === 'esm'
+      ? types.exportDefaultDeclaration(value as any)
+      : types.expressionStatement(types.assignmentExpression(
+        '=',
+        types.memberExpression(types.identifier('module'), types.identifier('exports')),
+        value,
+      )),
+  ])
+}
+
+export function generateJavascript(expression: Expression, options: JavascriptBackendOptions): string {
+  const [statements, value] = convertExpressionToCode(expression);
+  const program = wrapInExport(options.module, statements, value);
   return generate(program).code;
 }
