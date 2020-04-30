@@ -8,6 +8,10 @@ export interface CompileResult {
     node?: TypedNode;
     messages: Message[];
 }
-export declare function compile(code: string): CompileResult;
+export interface CompileOptions {
+    prelude?: boolean;
+    removeUnused?: boolean;
+}
+export declare function compile(code: string, options?: CompileOptions): CompileResult;
 export declare function evaluate(code: string): Value | undefined;
 //# sourceMappingURL=api.d.ts.map

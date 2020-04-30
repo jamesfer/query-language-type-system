@@ -1,3 +1,6 @@
 import { Expression } from '../..';
-export declare function generateJavascript(expression: Expression): string;
+export interface JavascriptBackendOptions {
+    module: 'commonjs' | 'esm';
+}
+export declare function generateJavascript(expression: Expression, options: JavascriptBackendOptions): string;
 //# sourceMappingURL=generate-javascript.d.ts.map
