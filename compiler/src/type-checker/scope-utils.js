@@ -4,7 +4,50 @@ const lodash_1 = require("lodash");
 const constructors_1 = require("./constructors");
 const evaluate_1 = require("./evaluate");
 const type_utils_1 = require("./type-utils");
+const visitor_utils_1 = require("./visitor-utils");
+/**
+ * Used to determine if a value has a built in implementation such as for Integers.
+ */
+function hasBuiltInImplementation(scope, value) {
+    // Strip meaningless wrappers from the value
+    const innerValue = visitor_utils_1.visitAndTransformValue((value) => {
+        switch (value.kind) {
+            case 'DualBinding':
+                if (value.left.kind === 'FreeVariable' && findBinding(scope, value.left.name) === undefined) {
+                    return value.right;
+                }
+                if (value.right.kind === 'FreeVariable' && findBinding(scope, value.right.name) === undefined) {
+                    return value.left;
+                }
+                return value;
+            default:
+                return value;
+        }
+    })(value);
+    if (innerValue.kind === 'DataValue'
+        && innerValue.name.kind === 'SymbolLiteral'
+        && innerValue.parameters.length === 1
+        && (innerValue.name.name === 'Integer'
+            && innerValue.parameters[0].kind === 'NumberLiteral'
+            && Number.isInteger(innerValue.parameters[0].value)
+            || innerValue.name.name === 'Float'
+                && innerValue.parameters[0].kind === 'NumberLiteral'
+            || innerValue.name.name === 'String'
+                && innerValue.parameters[0].kind === 'StringLiteral')) {
+        return innerValue;
+    }
+    return undefined;
+}
 function findMatchingImplementations(scope, value) {
+    const builtInImplementation = hasBuiltInImplementation(scope, value);
+    if (builtInImplementation) {
+        return [{
+                scope,
+                kind: 'ScopeBinding',
+                type: builtInImplementation,
+                name: 'BUILT_IN',
+            }];
+    }
     const evaluateWithScope = evaluate_1.evaluateExpression(scopeToEScope(scope));
     return scope.bindings.filter(binding => {
         const bindingValue = binding.expression ? evaluateWithScope(binding.expression) : binding.type;
