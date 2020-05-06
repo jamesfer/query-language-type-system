@@ -247,10 +247,10 @@ describe('Scenarios', () => {
 
   it('compiles a function call with a constraint that also takes a parameter', () => {
     expect(compilerMessages(dedent`
-      data String
+      data X
       data Maybe = a
       data Some = t
-      let a = Some String
+      let a = Some X
       let maybeSomeImpl = Maybe a
       let go = implicit Maybe m -> m -> 5
       go a
@@ -259,13 +259,85 @@ describe('Scenarios', () => {
 
   it('errors on a function call with a constraint that also takes a parameter that is incompatible', () => {
     expect(compilerMessages(dedent`
-      data String
+      data X
       data Maybe = a
       data Some = t
       let go = implicit Maybe m -> m -> 5
-      let a = Some String
+      let a = Some X
       go a
     `)).toEqual(['Could not find a valid set of replacements for implicits']);
+  });
+
+  describe('the built in Integer type', () => {
+    it('allows an integer number literal', () => {
+      expect(compilerMessages(dedent`
+        let integerOnly = implicit Integer a -> a -> a
+        integerOnly 95
+      `)).toEqual([]);
+    });
+
+    it('disallows a random data value', () => {
+      expect(compilerMessages(dedent`
+        data T
+        let integerOnly = implicit Integer a -> a -> a
+        integerOnly T
+      `)).toEqual(['Could not find a valid set of replacements for implicits']);
+    });
+
+    it('disallows a non-integer number literal', () => {
+      expect(compilerMessages(dedent`
+        let integerOnly = implicit Integer a -> a -> a
+        integerOnly 9.5
+      `)).toEqual(['Could not find a valid set of replacements for implicits']);
+    });
+  });
+
+  describe('the built in Float type', () => {
+    it('allows an integer number literal', () => {
+      expect(compilerMessages(dedent`
+        let integerOnly = implicit Float a -> a -> a
+        floatOnly 95
+      `)).toEqual([]);
+    });
+
+    it('allows a decimal number literal', () => {
+      expect(compilerMessages(dedent`
+        let floatOnly = implicit Float a -> a -> a
+        floatOnly 9.5
+      `)).toEqual([]);
+    });
+
+    it('disallows a random data value', () => {
+      expect(compilerMessages(dedent`
+        data T
+        let floatOnly = implicit Float a -> a -> a
+        floatOnly T
+      `)).toEqual(['Could not find a valid set of replacements for implicits']);
+    });
+  });
+
+  describe('the built in String type', () => {
+    it('allows a string literal', () => {
+      expect(compilerMessages(dedent`
+        let stringOnly = implicit String a -> a -> a
+        stringOnly "Hello"
+      `)).toEqual([]);
+    });
+
+    it('disallows a number literal', () => {
+      expect(compilerMessages(dedent`
+        let stringOnly = implicit String a -> a -> a
+        stringOnly 95
+      `)).toEqual(['Could not find a valid set of replacements for implicits']);
+    });
+
+    it('disallows a random data value', () => {
+      expect(compilerMessages(dedent`
+        data T
+        let stringOnly = implicit String a -> a -> a
+        stringOnly T
+      `)).toEqual(['Could not find a valid set of replacements for implicits']);
+    });
   });
 
   it.skip('compiles a real test', () => {

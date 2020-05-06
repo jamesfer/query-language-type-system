@@ -43,7 +43,7 @@ export const rules: moo.Rules = {
       [TokenKind.boolean]: ['true', 'false'],
     }),
   },
-  [TokenKind.number]: /[0-9]+/,
+  [TokenKind.number]: /(?:-?[0-9]+(?:\.[0-9]+)?|-?\.[0-9]+)(?:[eE](?:-?[0-9]+(?:\.[0-9]+)?|-?\.[0-9]+))?/,
   [TokenKind.string]: /"[^"]*?"/,
   [TokenKind.arrow]: '->',
   [TokenKind.colon]: ':',

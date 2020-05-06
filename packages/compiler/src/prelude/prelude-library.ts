@@ -1,6 +1,9 @@
 import dedent from 'dedent-js';
 
 const preludeLibrary = dedent`
+data Integer = a
+data Float = a
+data String = a
 let add = (a -> b):#{ kind = "binaryOperation", operator = "+", }
 let subtract = (a -> b):#{ kind = "binaryOperation", operator = "-", }
 let multiply = (a -> b):#{ kind = "binaryOperation", operator = "*", }
