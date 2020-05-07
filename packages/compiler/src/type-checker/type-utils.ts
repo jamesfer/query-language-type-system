@@ -116,17 +116,11 @@ function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, chi
             return undefined;
           }
 
-          const temporaryParameter = newFreeVariable('parameter');
           const calleeReplacements = converge(scope, shape.callee, {
-            kind: 'FunctionLiteral',
-            parameter: temporaryParameter,
-            body: {
-              ...child,
-              parameters: [
-                ...child.parameters.slice(0, -1),
-                temporaryParameter,
-              ],
-            },
+            ...child,
+            parameters: [
+              ...child.parameters.slice(0, -1),
+            ],
           });
           if (!calleeReplacements) {
             return undefined;
