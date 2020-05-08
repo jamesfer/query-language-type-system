@@ -1,6 +1,7 @@
 import { Message } from './types/message';
 import { Scope } from './types/scope';
 import { FreeVariable, Value } from './types/value';
+import { UniqueIdGenerator } from './utils';
 import { VariableReplacement } from './variable-utils';
 /**
  * Looks at two values and tries to infer as much information about the free variables as possible
@@ -19,5 +20,5 @@ export declare function converge(scope: Scope, shape: Value, child: Value): Vari
 export declare function destructureValue(shape: Value, value: Value): VariableReplacement[] | undefined;
 export declare function canSatisfyShape(scope: Scope, shape: Value, child: Value): VariableReplacement[] | undefined;
 export declare function areAllPairsSubtypes(scope: Scope, pairGenerator: Iterable<[Value, Value]>, onFailure: (constraint: Value, parameter: Value, index: number) => Message): [Message[], VariableReplacement[]];
-export declare function newFreeVariable(prefix: string): FreeVariable;
+export declare function newFreeVariable(prefix: string, makeUniqueId: UniqueIdGenerator): FreeVariable;
 //# sourceMappingURL=type-utils.d.ts.map

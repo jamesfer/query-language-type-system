@@ -84,15 +84,9 @@ function convergeConcrete(scope, shape, child) {
                         // Cannot destructure a data value if it has no parameters
                         return undefined;
                     }
-                    const temporaryParameter = newFreeVariable('parameter');
-                    const calleeReplacements = converge(scope, shape.callee, {
-                        kind: 'FunctionLiteral',
-                        parameter: temporaryParameter,
-                        body: Object.assign(Object.assign({}, child), { parameters: [
-                                ...child.parameters.slice(0, -1),
-                                temporaryParameter,
-                            ] }),
-                    });
+                    const calleeReplacements = converge(scope, shape.callee, Object.assign(Object.assign({}, child), { parameters: [
+                            ...child.parameters.slice(0, -1),
+                        ] }));
                     if (!calleeReplacements) {
                         return undefined;
                     }
@@ -258,8 +252,8 @@ const applyReplacementsToScope = (scope) => (variableReplacements) => {
     };
     return new monad_utils_1.TypeWriter(newScope).wrap(undefined);
 };
-function newFreeVariable(prefix) {
-    return constructors_1.freeVariable(lodash_1.uniqueId(prefix));
+function newFreeVariable(prefix, makeUniqueId) {
+    return constructors_1.freeVariable(makeUniqueId(prefix));
 }
 exports.newFreeVariable = newFreeVariable;
 //# sourceMappingURL=type-utils.js.map

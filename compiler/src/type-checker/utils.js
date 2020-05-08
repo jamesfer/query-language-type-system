@@ -183,4 +183,9 @@ function findWithResult(list, f) {
     return [found, result];
 }
 exports.findWithResult = findWithResult;
+function uniqueIdStream() {
+    let counter = 0;
+    return prefix => `${prefix !== null && prefix !== void 0 ? prefix : ''}${++counter}`;
+}
+exports.uniqueIdStream = uniqueIdStream;
 //# sourceMappingURL=utils.js.map

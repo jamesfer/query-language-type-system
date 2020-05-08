@@ -67,4 +67,6 @@ export declare function withStateStack<S, T extends any[], R>(f: (pushState: (st
  */
 export declare function withParentExpressionKind<R>(f: (parentKind: Expression['kind'] | undefined, node: TypedNode) => R): (node: TypedNode) => R;
 export declare function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined): [T, R] | undefined;
+export declare type UniqueIdGenerator = (prefix?: string) => string;
+export declare function uniqueIdStream(): UniqueIdGenerator;
 //# sourceMappingURL=utils.d.ts.map
