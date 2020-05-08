@@ -1,6 +1,11 @@
-import { uniqueId } from 'lodash';
 import { Expression } from './types/expression';
-import { assertNever, mapValuesWithState, mapWithState } from './utils';
+import {
+  assertNever,
+  mapValuesWithState,
+  mapWithState,
+  UniqueIdGenerator,
+  uniqueIdStream,
+} from './utils';
 
 export type RenameScopes = { [k: string]: string }[]
 
@@ -11,10 +16,6 @@ function findNameInScopes(scopes: { [k: string]: string }[], name: string): stri
 
   const [currentScope, ...remainingScopes] = scopes;
   return currentScope[name] || findNameInScopes(remainingScopes, name);
-}
-
-function newUniqueName(name: string): string {
-  return uniqueId(`${name}$rename$`);
 }
 
 function addToScope(scopes: RenameScopes, from: string, to: string): RenameScopes {
@@ -32,7 +33,7 @@ function withNewScope<T>(scopes: RenameScopes, f: (childScopes: RenameScopes) =>
  * Iterates over an expression and renames all the free variables to globally unique values. The
  * scopes are generally implied from function expressions.
  */
-function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expression: Expression): [{ [k: string]: string }[], Expression] {
+const renameFreeVariablesInScope = (makeUniqueId: UniqueIdGenerator) => (scopes: { [k: string]: string }[], expression: Expression): [{ [k: string]: string }[], Expression] => {
   switch (expression.kind) {
     case 'SymbolExpression':
     case 'BooleanExpression':
@@ -50,7 +51,7 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
         }];
       }
 
-      const uniqueName = newUniqueName(expression.name);
+      const uniqueName = makeUniqueId(`${expression.name}$rename$`);
       const newScopes = addToScope(scopes, expression.name, uniqueName);
       return [newScopes, { ...expression, name: uniqueName }];
     }
@@ -59,7 +60,7 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
       const [newScopes, properties] = mapValuesWithState(
         expression.properties,
         scopes,
-        renameFreeVariablesInScope,
+        renameFreeVariablesInScope(makeUniqueId),
       );
       return [newScopes, { ...expression, properties }];
     }
@@ -68,7 +69,7 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
       const [newScopes, [callee, parameter]] = mapWithState(
         [expression.callee, expression.parameter],
         scopes,
-        renameFreeVariablesInScope,
+        renameFreeVariablesInScope(makeUniqueId),
       );
       return [newScopes, { ...expression, callee, parameter }];
     }
@@ -77,17 +78,17 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
       const [newScopes, [parameter, body]] = withNewScope(scopes, childScopes => mapWithState(
         [expression.parameter, expression.body],
         childScopes,
-        renameFreeVariablesInScope,
+        renameFreeVariablesInScope(makeUniqueId),
       ));
       return [newScopes, { ...expression, body, parameter }];
     }
 
     case 'DataInstantiation': {
-      const [afterCalleeScopes, callee] = renameFreeVariablesInScope(scopes, expression.callee);
+      const [afterCalleeScopes, callee] = renameFreeVariablesInScope(makeUniqueId)(scopes, expression.callee);
       const [newScopes, parameters] = mapWithState(
         expression.parameters,
         afterCalleeScopes,
-        renameFreeVariablesInScope,
+        renameFreeVariablesInScope(makeUniqueId),
       );
       return [newScopes, { ...expression, parameters, callee }];
     }
@@ -97,9 +98,9 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
       // const bindingName = newUniqueName(expression.callee);
       const [newScopes, value] = withNewScope(
         addToScope(scopes, expression.name, expression.name),
-        childScopes => renameFreeVariablesInScope(childScopes, expression.value),
+        childScopes => renameFreeVariablesInScope(makeUniqueId)(childScopes, expression.value),
       );
-      const [bodyScope, body] = renameFreeVariablesInScope(newScopes, expression.body);
+      const [bodyScope, body] = renameFreeVariablesInScope(makeUniqueId)(newScopes, expression.body);
       return [bodyScope, { ...expression, value, body }];
     }
 
@@ -107,30 +108,30 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
       const [newScopes, [left, right]] = mapWithState(
         [expression.left, expression.right],
         scopes,
-        renameFreeVariablesInScope,
+        renameFreeVariablesInScope(makeUniqueId),
       );
       return [newScopes, { ...expression, left, right }];
     }
 
     case 'ReadRecordPropertyExpression': {
-      const [newScopes, record] = renameFreeVariablesInScope(scopes, expression.record);
+      const [newScopes, record] = renameFreeVariablesInScope(makeUniqueId)(scopes, expression.record);
       return [newScopes, { ...expression, record }];
     }
 
     case 'ReadDataPropertyExpression': {
-      const [newScopes, dataValue] = renameFreeVariablesInScope(scopes, expression.dataValue);
+      const [newScopes, dataValue] = renameFreeVariablesInScope(makeUniqueId)(scopes, expression.dataValue);
       return [newScopes, { ...expression, dataValue }];
     }
 
     case 'PatternMatchExpression': {
-      const [newScopes, value] = renameFreeVariablesInScope(scopes, expression.value);
+      const [newScopes, value] = renameFreeVariablesInScope(makeUniqueId)(scopes, expression.value);
       const patterns: { test: Expression, value: Expression }[] = [];
       const newScopes2 = expression.patterns.reduce(
         (newScopes, { test, value }) => {
           const [resultScopes, [newTest, newValue]] = withNewScope(newScopes, childScopes => mapWithState(
             [test, value],
             childScopes,
-            renameFreeVariablesInScope,
+            renameFreeVariablesInScope(makeUniqueId),
           ));
           patterns.push({ test: newTest, value: newValue });
           return resultScopes;
@@ -143,9 +144,9 @@ function renameFreeVariablesInScope(scopes: { [k: string]: string }[], expressio
     default:
       return assertNever(expression);
   }
-}
+};
 
 export function renameFreeVariables(expression: Expression): Expression {
-  const [, result] = renameFreeVariablesInScope([], expression);
+  const [, result] = renameFreeVariablesInScope(uniqueIdStream())([], expression);
   return result;
 }

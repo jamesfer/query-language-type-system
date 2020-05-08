@@ -6,16 +6,18 @@ import { TypedNode, typeExpression } from './type-check';
 import { Expression } from './types/expression';
 import { Message } from './types/message';
 import { Scope } from './types/scope';
+import { UniqueIdGenerator, uniqueIdStream } from './utils';
 
-export function runTypePhase(expression: Expression): [Message[], TypedNode] {
-  const typedNodeTypeResult = runTypePhaseWithoutRename(scope())(renameFreeVariables(expression));
+export function runTypePhase(expression: Expression, ): [Message[], TypedNode] {
+  const makeUniqueId = uniqueIdStream();
+  const typedNodeTypeResult = runTypePhaseWithoutRename(makeUniqueId)(scope())(renameFreeVariables(expression));
   const { state: [messages], value: node } = typedNodeTypeResult;
   return [messages, node];
 }
 
-export const runTypePhaseWithoutRename = (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
+export const runTypePhaseWithoutRename = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
   const state = new TypeWriter(scope);
-  const node = state.run(typeExpression)(expression);
+  const node = state.run(typeExpression(makeUniqueId))(expression);
   const [resolvingMessages, resolvedNode] = resolveImplicitParameters(node);
   state.logAll(resolvingMessages);
   return state.wrap(resolvedNode);

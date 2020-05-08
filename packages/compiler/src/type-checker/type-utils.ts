@@ -1,4 +1,4 @@
-import { find, flatten, map, uniqueId } from 'lodash';
+import { find, flatten, map } from 'lodash';
 import { freeVariable, scopeBinding } from './constructors';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { findBinding } from './scope-utils';
@@ -13,7 +13,7 @@ import {
   SymbolLiteral,
   Value,
 } from './types/value';
-import { assertNever, checkedZip, everyIs, isDefined } from './utils';
+import { assertNever, checkedZip, everyIs, isDefined, UniqueIdGenerator } from './utils';
 import { applyReplacements, VariableReplacement } from './variable-utils';
 
 function convergeDualBinding(scope: Scope, shape: DualBinding, child: Value): VariableReplacement[] | undefined {
@@ -116,17 +116,11 @@ function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, chi
             return undefined;
           }
 
-          const temporaryParameter = newFreeVariable('parameter');
           const calleeReplacements = converge(scope, shape.callee, {
-            kind: 'FunctionLiteral',
-            parameter: temporaryParameter,
-            body: {
-              ...child,
-              parameters: [
-                ...child.parameters.slice(0, -1),
-                temporaryParameter,
-              ],
-            },
+            ...child,
+            parameters: [
+              ...child.parameters.slice(0, -1),
+            ],
           });
           if (!calleeReplacements) {
             return undefined;
@@ -331,7 +325,7 @@ const applyReplacementsToScope = (scope: Scope) => (variableReplacements: Variab
 };
 
 
-export function newFreeVariable(prefix: string): FreeVariable {
-  return freeVariable(uniqueId(prefix));
+export function newFreeVariable(prefix: string, makeUniqueId: UniqueIdGenerator): FreeVariable {
+  return freeVariable(makeUniqueId(prefix));
 }
 

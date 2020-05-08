@@ -35,7 +35,7 @@ import {
 import { Node } from './types/node';
 import { Scope } from './types/scope';
 import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
-import { assertNever, withParentExpressionKind } from './utils';
+import { assertNever, UniqueIdGenerator, withParentExpressionKind } from './utils';
 import {
   applyReplacements, extractFreeVariableNames,
   getBindingsFromValue,
@@ -63,12 +63,12 @@ function getTypeDecorations(nodes: TypedNode[]): Value[] {
   return nodes.map(node => node.decoration.type);
 }
 
-function copyFreeVariables(scope: Scope) {
+function copyFreeVariables(scope: Scope, makeUniqueId: UniqueIdGenerator) {
   return visitValueWithState<{ [k: string]: FreeVariable }>({}, {
     after([state, value]) {
       if (value.kind === 'FreeVariable' && !findBinding(scope, value.name)) {
         if (!state[value.name]) {
-          state[value.name] = newFreeVariable(`${value.name}$copy$`);
+          state[value.name] = newFreeVariable(`${value.name}$copy$`, makeUniqueId);
         }
         return [state, state[value.name]];
       }
@@ -90,7 +90,7 @@ function copyFreeVariables(scope: Scope) {
 //   return allRelated;
 // }
 
-export const typeExpression = (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
+export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (expression: Expression): TypeResult<TypedNode> => {
   const state = new TypeWriter(scope);
   switch (expression.kind) {
     case 'SymbolExpression':
@@ -106,11 +106,11 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       return state.wrap(typeNode(expression,scope, stringLiteral(expression.value)));
 
     case 'NativeExpression':
-      return state.wrap(typeNode(expression, scope, newFreeVariable('native')));
+      return state.wrap(typeNode(expression, scope, newFreeVariable('native', makeUniqueId)));
 
     case 'DataInstantiation': {
-      const callee = state.run(typeExpression)(expression.callee);
-      const parameters = expression.parameters.map(state.run(typeExpression));
+      const callee = state.run(typeExpression(makeUniqueId))(expression.callee);
+      const parameters = expression.parameters.map(state.run(typeExpression(makeUniqueId)));
 
       const resultType = dataValue(callee.decoration.type, getTypeDecorations(parameters));
       // if (callee.decoration.type.kind !== 'SymbolLiteral') {
@@ -130,7 +130,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
 
     case 'RecordExpression': {
       const keys = Object.keys(expression.properties);
-      const propertyNodes = map(expression.properties, state.run(typeExpression));
+      const propertyNodes = map(expression.properties, state.run(typeExpression(makeUniqueId)));
 
       const expressionNode: RecordExpression<TypedNode> = {
         ...expression,
@@ -145,7 +145,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
 
     case 'FunctionExpression': {
       // Create a free variable for each parameter
-      const node1 = state.run(runTypePhaseWithoutRename)(expression.parameter);
+      const node1 = state.run(runTypePhaseWithoutRename(makeUniqueId))(expression.parameter);
       const parameter = evaluateExpression(
         scopeToEScope(state.scope)
       )(stripNode(node1));
@@ -167,7 +167,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
         // TODO return inferred variables from typeExpression so that the types of parameters can be
         //      checked. I think this has been accomplished with the new scope behaviour, but need to
         //      double check.
-        return innerState.run(typeExpression)(expression.body);
+        return innerState.run(typeExpression(makeUniqueId))(expression.body);
       });
 
       return state.wrap(typeNode(
@@ -180,7 +180,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     case 'Identifier': {
       const binding = find(scope.bindings, { name: expression.name });
       if (binding) {
-        return state.wrap(typeNode(expression, scope, copyFreeVariables(scope)(binding.type)));
+        return state.wrap(typeNode(expression, scope, copyFreeVariables(scope, makeUniqueId)(binding.type)));
       }
 
       // return result(expression, scope, newFreeVariable(`${expression.callee}$typingFreeIdentifier$`));
@@ -188,13 +188,13 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     }
 
     case 'Application': {
-      const callee = state.run(typeExpression)(expression.callee);
-      const parameter = state.run(typeExpression)(expression.parameter);
+      const callee = state.run(typeExpression(makeUniqueId))(expression.callee);
+      const parameter = state.run(typeExpression(makeUniqueId))(expression.parameter);
       const expressionNode: Expression<TypedNode> = { ...expression, callee, parameter };
 
       // Converge the callee type with a function type
-      const parameterTypeVariable = newFreeVariable('tempParameterVariable$');
-      const bodyTypeVariable = newFreeVariable('tempBodyVariable$');
+      const parameterTypeVariable = newFreeVariable('tempParameterVariable$', makeUniqueId);
+      const bodyTypeVariable = newFreeVariable('tempBodyVariable$', makeUniqueId);
       const calleeReplacements = converge(state.scope, callee.decoration.type, {
         kind: 'FunctionLiteral',
         parameter: parameterTypeVariable,
@@ -230,7 +230,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       }
 
       // Extract implicit parameters from all children on the value
-      const valueNode = state.run(typeExpression)(expression.value);
+      const valueNode = state.run(typeExpression(makeUniqueId))(expression.value);
       const [shallowImplicits] = extractImplicitsParameters(valueNode.decoration.implicitType);
       const [relatedShallowImplicits, unrelatedShallowImplicits] = partitionUnrelatedValues(shallowImplicits, valueNode.decoration.type);
       const deepImplicits = deepExtractImplicitParametersFromExpression(valueNode.expression);
@@ -238,10 +238,10 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
       const allRelatedImplicits = [...relatedShallowImplicits, ...relatedDeepImplicits];
       const allUnrelatedImplicits = [...unrelatedShallowImplicits, ...unrelatedDeepImplicits];
       const relatedImplicitParameters = allRelatedImplicits.map(value => (
-        dualBinding(newFreeVariable('implicitBinding$'), value)
+        dualBinding(newFreeVariable('implicitBinding$', makeUniqueId), value)
       ));
       const unrelatedImplicitParameters = allUnrelatedImplicits.map(value => (
-        dualBinding(newFreeVariable('implicitBinding$'), value)
+        dualBinding(newFreeVariable('implicitBinding$', makeUniqueId), value)
       ));
 
       // Add all implicits to every scope so they can be discovered by the resolveImplicitParameters
@@ -264,7 +264,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
         const scopeType = functionType(valueNode.decoration.type, relatedImplicitParameters.map(parameter => [parameter, true]));
         const binding = scopeBinding(expression.name, newValueNode.decoration.scope, scopeType, stripNode(newValueNode));
         innerState.expandScope({ bindings: [binding] });
-        return innerState.run(typeExpression)(expression.body);
+        return innerState.run(typeExpression(makeUniqueId))(expression.body);
       });
 
       const expressionNode = {
@@ -287,8 +287,8 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     }
 
     case 'DualExpression': {
-      const leftNode = state.run(typeExpression)(expression.left);
-      const rightNode = state.run(typeExpression)(expression.right);
+      const leftNode = state.run(typeExpression(makeUniqueId))(expression.left);
+      const rightNode = state.run(typeExpression(makeUniqueId))(expression.right);
 
       // TODO
       // const replacements = unionType
@@ -305,7 +305,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     }
 
     case 'ReadRecordPropertyExpression': {
-      const recordNode = state.run(typeExpression)(expression.record);
+      const recordNode = state.run(typeExpression(makeUniqueId))(expression.record);
       const expressionNode: Expression<TypedNode> = {
         ...expression,
         record: recordNode,
@@ -328,7 +328,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     }
 
     case 'ReadDataPropertyExpression': {
-      const dataValueNode = state.run(typeExpression)(expression.dataValue);
+      const dataValueNode = state.run(typeExpression(makeUniqueId))(expression.dataValue);
       const expressionNode: Expression<TypedNode> = {
         ...expression,
         dataValue: dataValueNode,
@@ -349,9 +349,9 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
     }
 
     case 'PatternMatchExpression': {
-      const value = state.run(typeExpression)(expression.value);
+      const value = state.run(typeExpression(makeUniqueId))(expression.value);
       const patterns = expression.patterns.map(({ test, value }) => {
-        const testNode = state.run(runTypePhaseWithoutRename)(test);
+        const testNode = state.run(runTypePhaseWithoutRename(makeUniqueId))(test);
         const evaluatedTest = evaluateExpression(scopeToEScope(state.scope))(stripNode(testNode));
         if (!evaluatedTest) {
           // TODO handle undefined parameters that failed to be evaluated
@@ -371,7 +371,7 @@ export const typeExpression = (scope: Scope) => (expression: Expression): TypeRe
           // TODO return inferred variables from typeExpression so that the types of parameters can be
           //      checked. I think this has been accomplished with the new scope behaviour, but need to
           //      double check.
-          return innerState.run(typeExpression)(value);
+          return innerState.run(typeExpression(makeUniqueId))(value);
         });
 
         return { test: testNode, value: valueNode };
