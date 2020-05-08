@@ -29,15 +29,15 @@ describe('generateJavascript', () => {
   });
 
   it('translates a function expression', () => {
-    expect(toJavascript('a -> b -> 1')).toEqual('export default (a$rename$79 => b$rename$80 => 1);');
+    expect(toJavascript('a -> b -> 1')).toEqual('export default (a$rename$16 => b$rename$17 => 1);');
   });
 
   it('translates a function expression with bindings', () => {
     expect(toJavascript('a:b -> a')).toEqual(dedent`
       export default ($PARAMETER$1 => {
-        const a$rename$102 = $PARAMETER$1;
-        const b$rename$103 = $PARAMETER$1;
-        return a$rename$102;
+        const a$rename$16 = $PARAMETER$1;
+        const b$rename$17 = $PARAMETER$1;
+        return a$rename$16;
       });
     `);
   });
@@ -78,7 +78,7 @@ describe('generateJavascript', () => {
         } else if ($patternValue === 5) {
           return "five";
         } else {
-          const _$rename$188 = $patternValue;
+          const _$rename$16 = $patternValue;
           return "something else";
         }
       })(5);
@@ -87,11 +87,11 @@ describe('generateJavascript', () => {
 
   it('translates a data declaration', () => {
     expect(toJavascript('data a = x, y, z\na 1 2 3')).toEqual(dedent`
-      const a = x$rename$210 => y$rename$211 => z$rename$212 => ({
+      const a = x$rename$16 => y$rename$17 => z$rename$18 => ({
         $DATA_NAME$: "$SYMBOL$a",
-        0: x$rename$210,
-        1: y$rename$211,
-        2: z$rename$212
+        0: x$rename$16,
+        1: y$rename$17,
+        2: z$rename$18
       });
 
       export default a(1)(2)(3);
