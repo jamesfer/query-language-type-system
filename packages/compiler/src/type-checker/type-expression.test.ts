@@ -1,6 +1,6 @@
+import { uniqueIdStream } from '../utils/unique-id-generator';
 import { apply, scope } from './constructors';
 import { typeExpression } from './type-check';
-import { uniqueIdStream } from './utils';
 import { VariableReplacement } from './variable-utils';
 
 describe('typeExpression', () => {
