@@ -18,16 +18,16 @@ export interface CppString {
   value: string;
 }
 
-export interface CppApplication {
+export interface CppApplication<T = CppExpression> {
   kind: 'Application';
-  callee: CppExpression;
-  parameters: CppExpression[];
+  callee: T;
+  parameters: T[];
 }
 
-export interface CppStructConstruction {
+export interface CppStructConstruction<T = CppExpression> {
   kind: 'StructConstruction';
   structName: string;
-  parameters: CppExpression[];
+  parameters: T[];
 }
 
 export interface CppParameter {
@@ -36,10 +36,16 @@ export interface CppParameter {
   type: CppType;
 }
 
-export interface CppLambda {
+export interface CppLambda<T = CppStatement> {
   kind: 'Lambda';
   parameters: CppParameter[];
-  body: CppBlock;
+  body: CppBlock<T>;
+}
+
+export interface CppReadProperty<T = CppExpression> {
+  kind: 'ReadProperty';
+  object: T;
+  property: string;
 }
 
 export type CppExpression =
@@ -49,28 +55,39 @@ export type CppExpression =
   | CppString
   | CppApplication
   | CppStructConstruction
-  | CppLambda;
+  | CppLambda
+  | CppReadProperty;
 
-export interface CppBlock {
+export type CppExpressionWithChild<T> =
+  | CppIdentifier
+  | CppBoolean
+  | CppNumber
+  | CppString
+  | CppApplication<T>
+  | CppStructConstruction<T>
+  | CppLambda<T>
+  | CppReadProperty<T>;
+
+export interface CppBlock<T = CppStatement> {
   kind: 'Block';
-  statements: CppStatement[];
+  statements: T[];
 }
 
-export interface CppExpressionStatement {
+export interface CppExpressionStatement<T = CppExpression> {
   kind: 'ExpressionStatement';
-  expression: CppExpression;
+  expression: T;
 }
 
-export interface CppBinding {
+export interface CppBinding<T = CppExpression> {
   kind: 'Binding';
   name: string;
   type: CppType;
-  value: CppExpression;
+  value: T;
 }
 
-export interface CppReturn {
+export interface CppReturn<T = CppExpression> {
   kind: 'Return';
-  value: CppExpression;
+  value: T;
 }
 
 export interface CppStruct {
@@ -79,11 +96,27 @@ export interface CppStruct {
   properties: CppParameter[];
 }
 
+export interface CppFunction<T = CppStatement> {
+  kind: 'Function';
+  name: string;
+  parameters: CppParameter[];
+  returnType: CppType;
+  body: CppBlock<T>;
+}
+
 export type CppStatement =
   | CppExpressionStatement
   | CppBinding
   | CppReturn
-  | CppStruct;
+  | CppStruct
+  | CppFunction;
+
+export type CppStatementWithChild<T> =
+  | CppExpressionStatement<T>
+  | CppBinding<T>
+  | CppReturn<T>
+  | CppStruct
+  | CppFunction<T>;
 
 export interface CppType {
   kind: 'Type';

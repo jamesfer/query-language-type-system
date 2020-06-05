@@ -1,38 +1,28 @@
-import { flatMap, map } from 'lodash';
 import { Value } from '../../type-checker/types/value';
-import { CppStatement } from './cpp-ast';
-import { generateRecordLiteralKey } from './generate-record-literal-key';
+import { CppType } from './cpp-ast';
+import { makeRecordLiteralStruct } from './make-record-literal-struct';
+import { mapM, Monad, pipeRecord, traverseM } from './monad';
+import { CppState } from './monad-state-operations';
 
-function mapNWrapped<S, T, U>(wrapped: [S[], T][], f: (t: T[]) => U): [S[], U] {
-  return [flatMap(wrapped, '0'), f(map(wrapped, '1'))];
-}
-
-export const convertValueToType = (anonymousStructCache: Record<string, string>) => (value: Value): [CppStatement[], string] => {
-  const recurse = convertValueToType(anonymousStructCache);
+const shallowConvertValueToType = (value: Value): Monad<CppState, string> => {
   switch (value.kind) {
     case 'DataValue':
-      return mapNWrapped(
-        [recurse(value.name), ...value.parameters.map(recurse)],
-        ([name, ...parameters]) => (
-          `${name}<${parameters.join(', ')}>`
-        ),
+      return pipeRecord(
+        {
+          name: shallowConvertValueToType(value.name),
+          parameters: traverseM(value.parameters, shallowConvertValueToType),
+        },
+        ({ name, parameters }) => `${name}<${parameters.join(', ')}>`,
       );
 
-    case 'RecordLiteral': {
-      const key = generateRecordLiteralKey(value);
-      if (key in anonymousStructCache) {
-        return [[], key];
-      }
-
-      return [
-
-      ];
-    }
-
-    case 'DualBinding':
-      throw new Error(`Dual binding value cannot be part of a type`);
+    case 'RecordLiteral':
+      return pipeRecord(
+        { struct: makeRecordLiteralStruct(value) },
+        ({ struct }) => struct,
+      );
 
     case 'ApplicationValue': {
+      // Collect all parameters to un-curry the application
       let parameters = [value.parameter];
       let callee = value.callee;
       while (callee.kind === 'ApplicationValue') {
@@ -40,9 +30,42 @@ export const convertValueToType = (anonymousStructCache: Record<string, string>)
         callee = callee.callee;
       }
 
-      return `${recurse(callee)}<${parameters.map(recurse).join(', ')}>`;
+      return pipeRecord(
+        {
+          callee: shallowConvertValueToType(callee),
+          parameters: traverseM(parameters, shallowConvertValueToType),
+        },
+        ({ callee, parameters }) => `${callee}<${parameters.join(', ')}>`,
+      );
     }
 
+    case 'FunctionLiteral':
+      return pipeRecord(
+        {
+          body: shallowConvertValueToType(value.body),
+          parameter: shallowConvertValueToType(value.parameter),
+        },
+        ({ body, parameter }) => `[](${parameter}) -> ${body}`,
+      );
+
+    case 'FreeVariable':
+      return Monad.pure(value.name);
+    // throw new Error(`Free variable ${value.name} cannot be part of a type`);
+
+    case 'SymbolLiteral':
+      return Monad.pure('std::string');
+
+    case 'BooleanLiteral':
+      return Monad.pure('boolean');
+
+    case 'NumberLiteral':
+      return Monad.pure('double');
+
+    case 'StringLiteral':
+      return Monad.pure('std::string');
+
+    case 'DualBinding':
+      throw new Error(`Dual binding value cannot be part of a type`);
 
     case 'ReadDataValueProperty':
       throw new Error(`Read data value property value cannot be part of a type`);
@@ -50,29 +73,14 @@ export const convertValueToType = (anonymousStructCache: Record<string, string>)
     case 'ReadRecordProperty':
       throw new Error(`Read record property value cannot be part of a type`);
 
-    case 'FunctionLiteral':
-      return `[](${recurse(value.parameter)}) -> ${recurse(value.body)}`;
-
     case 'ImplicitFunctionLiteral':
       throw new Error(`Implicit function literal value cannot be part of a type`);
 
     case 'PatternMatchValue':
       throw new Error(`Pattern match value cannot be part of a type`);
-
-    case 'FreeVariable':
-      return value.name;
-    // throw new Error(`Free variable ${value.name} cannot be part of a type`);
-
-    case 'SymbolLiteral':
-      return 'std::string';
-
-    case 'BooleanLiteral':
-      return 'boolean';
-
-    case 'NumberLiteral':
-      return 'double';
-
-    case 'StringLiteral':
-      return 'std::string';
   }
 };
+
+export function convertValueToType(value: Value): Monad<CppState, CppType> {
+  return mapM(shallowConvertValueToType(value), string => ({ kind: 'Type', value: string }));
+}

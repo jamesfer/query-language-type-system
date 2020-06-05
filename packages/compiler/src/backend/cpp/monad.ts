@@ -34,6 +34,10 @@ export class MapState<K extends string | number, S> extends State<Record<K, S>> 
   property(key: K): S | undefined {
     return this.state[key];
   }
+
+  setProperty(key: K, value: S): void {
+    this.state[key] = value;
+  }
 }
 
 export class FState<T extends any[], R> extends State<(...args: T) => R> {
@@ -103,7 +107,7 @@ export function flattenRM<S extends State<any>, T, R extends Record<string, Mona
   return mapM(traverseM(toPairs(record), ([key, monad]) => mapM(monad, value => [key, value])), fromPairs) as Monad<S, MonadRecordValues<R>>;
 }
 
-// export function pipeRecord<S extends State<any>, R, I extends { [k: string]: Monad<S, any> }>(initial: I, final: (record: MonadRecordValues<I>) => Monad<S, R>): Monad<S, R>
+export function pipeRecord<S extends State<any>, R, I extends { [k: string]: Monad<S, any> }>(initial: I, final: (record: MonadRecordValues<I>) => R): Monad<S, R>
 export function pipeRecord<S extends State<any>, R, I extends { [k: string]: Monad<S, any> }, I2 extends { [k: string]: Monad<S, any> }>(initial: I, f1: (record: MonadRecordValues<I>) => I2, final: (record: MonadRecordValues<I & I2>) => R): Monad<S, R>
 export function pipeRecord<S extends State<any>, R, I extends { [k: string]: Monad<S, any> }, I2 extends { [k: string]: Monad<S, any> }, I3 extends { [k: string]: Monad<S, any> }>(initial: I, f1: (record: MonadRecordValues<I>) => I2, f2: (record: MonadRecordValues<I & I2>) => I3, final: (record: MonadRecordValues<I & I2 & I3>) => R): Monad<S, R>
 export function pipeRecord<S extends State<any>, R, I extends { [k: string]: Monad<S, any> }, I2 extends { [k: string]: Monad<S, any> }, IN extends { [k: string]: Monad<S, any> }>(initial: I, f1: (record: MonadRecordValues<I>) => I2 | R, ...fs: ((record: MonadRecordValues<I2>) => IN | R)[]): Monad<S, R> {

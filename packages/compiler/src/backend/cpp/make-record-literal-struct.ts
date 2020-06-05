@@ -1,21 +1,8 @@
-// import { pipe } from 'fp-ts/lib/pipeable';
-// import { Reader, default as reader } from 'fp-ts/lib/Reader';
-// import { State, default as state } from 'fp-ts/lib/State';
-// import { Writer, default as writer } from 'fp-ts/lib/Writer';
-import { RecordLiteral, Value } from '../../type-checker/types/value';
-import { UniqueIdGenerator } from '../../utils/unique-id-generator';
+import { RecordLiteral } from '../../type-checker/types/value';
 import { convertValueToType } from './convert-value-to-type';
 import { CppStatement } from './cpp-ast';
-import { generateRecordLiteralKey } from './generate-record-literal-key';
-import {
-  ArrayState,
-  CombinedState,
-  flatMapM,
-  FState, mapM,
-  MapState,
-  Monad, pipeRecord,
-  traverseM,
-} from './monad';
+import { flatMapM, Monad, pipeRecord, traverseM } from './monad';
+import { appendGlobalStatement, CppState, newUniqueId } from './monad-state-operations';
 
 // export type Result<T> = Reader<UniqueIdGenerator, State<Record<string, string>, Writer<CppStatement[], T>>>;
 //
@@ -77,29 +64,14 @@ import {
 //   })
 // }
 
-export type CppState = CombinedState<{
-  makeUniqueId: FState<[string], string>,
-  anonymousStructCache: MapState<string, string>,
-  localStatements: ArrayState<CppStatement>,
-  globalStatements: ArrayState<CppStatement>,
-}>;
-
-declare function cvtt2(value: Value): Monad<CppState, string>;
-
-function newUniqueId(prefix: string): Monad<CppState, string> {
-  return Monad.of(state => state.child('makeUniqueId').apply(prefix));
+function generateRecordLiteralKey(record: RecordLiteral): string {
+  return JSON.stringify(record);
 }
 
-function addGlobalStatement(statement: CppStatement): Monad<CppState, void> {
-  return Monad.of((state) => {
-    state.child('globalStatements').append(statement);
-  });
-}
-
-export function makeRecordLiteralStruct(type: RecordLiteral): Monad<CppState, string> {
+function makeNewRecordLiteralStruct(type: RecordLiteral): Monad<CppState, string> {
   return pipeRecord(
     { name: newUniqueId('recordLiteral') },
-    () => ({ properties: traverseM(Object.values(type.properties), cvtt2) }),
+    () => ({ properties: traverseM(Object.values(type.properties), convertValueToType) }),
     ({ name, properties }) => {
       const propertyNames = Object.keys(type.properties);
       const statement: CppStatement = {
@@ -111,30 +83,33 @@ export function makeRecordLiteralStruct(type: RecordLiteral): Monad<CppState, st
             name: propertyNames[index],
             kind: 'Identifier',
           },
-          type: {
-            kind: 'Type',
-            value: property,
-          },
+          type: property,
         })),
       };
-      return { nothing: addGlobalStatement(statement) };
+      return { nothing: appendGlobalStatement(statement) };
     },
     ({ name }) => name,
   );
 }
 
+export function makeRecordLiteralStruct(type: RecordLiteral) {
+  const key = generateRecordLiteralKey(type);
+  const cachedResult = Monad.of((state: CppState) => (
+    state.child('anonymousStructCache').property(key)
+  ));
+  return flatMapM(cachedResult, cachedStruct => {
+    if (cachedStruct) {
+      return Monad.pure(cachedStruct);
+    }
 
-// export function makeR(type: RecordLiteral) {
-//   const cachedResult = Monad.of((state: CppState) => {
-//     const key = generateRecordLiteralKey(type);
-//     return state.child('anonymousStructCache').property(key);
-//   });
-//
-//   return flatMapM(cachedResult, (cachedStruct) => {
-//     return cachedStruct ? Monad.pure(cachedStruct) : makeNewR(type);
-//   });
-// }
-//
+    const newStruct = makeNewRecordLiteralStruct(type);
+    return flatMapM(newStruct, newStructValue => Monad.of((state) => {
+      state.child('anonymousStructCache').setProperty(key, newStructValue);
+      return newStructValue;
+    }));
+  });
+}
+
 // export function makeRecordLiteralStruct(anonymousStructCache: Record<string, string>, makeUniqueId: UniqueIdGenerator, type: RecordLiteral): [CppStatement[], string] {
 //   const key = generateRecordLiteralKey(type);
 //   if (key in anonymousStructCache) {
