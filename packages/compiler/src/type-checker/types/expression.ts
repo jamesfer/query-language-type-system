@@ -1,3 +1,5 @@
+import { URItoKind } from 'fp-ts/lib/HKT';
+
 export interface Identifier {
   kind: 'Identifier';
   name: string;
@@ -36,7 +38,7 @@ export interface Application<T = Expression> {
 
 export interface FunctionExpression<T = Expression> {
   kind: 'FunctionExpression';
-  parameter: Expression;
+  parameter: T;
   implicit: boolean;
   body: T;
 }
@@ -105,3 +107,25 @@ export type Expression<T = void> =
   | ReadDataPropertyExpression<T extends void ? Expression : T>
   | PatternMatchExpression<T extends void ? Expression : T>
   | NativeExpression;
+
+export const ExpressionURI = 'Expression';
+declare module 'fp-ts/lib/HKT' {
+  interface URItoKind<A> {
+    readonly ['Identifier']: Identifier;
+    readonly ['BooleanExpression']: BooleanExpression;
+    readonly ['NumberExpression']: NumberExpression;
+    readonly ['StringExpression']: StringExpression;
+    readonly ['SymbolExpression']: SymbolExpression;
+    readonly ['NativeExpression']: NativeExpression;
+    readonly ['RecordExpression']: RecordExpression<A>;
+    readonly ['Application']: Application<A>;
+    readonly ['FunctionExpression']: FunctionExpression<A>;
+    readonly ['DataInstantiation']: DataInstantiation<A>;
+    readonly ['BindingExpression']: BindingExpression<A>;
+    readonly ['DualExpression']: DualExpression<A>;
+    readonly ['ReadRecordPropertyExpression']: ReadRecordPropertyExpression<A>;
+    readonly ['ReadDataPropertyExpression']: ReadDataPropertyExpression<A>;
+    readonly ['PatternMatchExpression']: PatternMatchExpression<A>;
+    readonly [ExpressionURI]: Expression<A>
+  }
+}

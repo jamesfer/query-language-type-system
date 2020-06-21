@@ -145,17 +145,17 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
 
     case 'FunctionExpression': {
       // Create a free variable for each parameter
-      const node1 = state.run(runTypePhaseWithoutRename(makeUniqueId))(expression.parameter);
-      const parameter = evaluateExpression(
+      const parameter = state.run(runTypePhaseWithoutRename(makeUniqueId))(expression.parameter);
+      const parameterValue = evaluateExpression(
         scopeToEScope(state.scope)
-      )(stripNode(node1));
-      if (!parameter) {
+      )(stripNode(parameter));
+      if (!parameterValue) {
         // TODO handle undefined parameters that failed to be evaluated
         throw new Error(`Failed to evaluate expression: ${JSON.stringify(expression.parameter, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
       }
 
       const body = state.withChildScope((innerState) => {
-        const bindingsFromValue = extractFreeVariableNames(parameter);
+        const bindingsFromValue = extractFreeVariableNames(parameterValue);
         innerState.expandScope({
           bindings: [
             ...bindingsFromValue.map((name) => (
@@ -171,9 +171,9 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       });
 
       return state.wrap(typeNode(
-        { ...expression, body },
+        { ...expression, parameter, body },
         scope,
-        functionType(body.decoration.type, [[parameter, expression.implicit]]),
+        functionType(body.decoration.type, [[parameterValue, expression.implicit]]),
       ));
     }
 
