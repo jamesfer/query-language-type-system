@@ -1,6 +1,7 @@
 import dedent from 'dedent-js';
 
 const preludeLibrary = dedent`
+data BUILT_IN
 data Integer = a
 data Float = a
 data String = a
