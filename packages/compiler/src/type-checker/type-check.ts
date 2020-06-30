@@ -192,22 +192,37 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       const parameter = state.run(typeExpression(makeUniqueId))(expression.parameter);
       const expressionNode: Expression<TypedNode> = { ...expression, callee, parameter };
 
-      // Converge the callee type with a function type
+      let parameterType: Value;
+      let bodyType: Value;
       const parameterTypeVariable = newFreeVariable('tempParameterVariable$', makeUniqueId);
       const bodyTypeVariable = newFreeVariable('tempBodyVariable$', makeUniqueId);
-      const calleeReplacements = converge(state.scope, callee.decoration.type, {
-        kind: 'FunctionLiteral',
-        parameter: parameterTypeVariable,
-        body: bodyTypeVariable,
-      });
-      if (!calleeReplacements) {
-        state.log(`Cannot call a ${callee.decoration.type.kind}`);
+      // This is a little bit hacky to be able keep the type of the parameter in expressions like:
+      // let map = (a -> b) -> F a -> F b
+      // The second parameter is an application but we want to maintain the type as an F a and not
+      // try to simplify it.
+      if (callee.decoration.type.kind === 'FreeVariable' && !findBinding(scope, callee.decoration.type.name)) {
+        parameterType = parameterTypeVariable;
+        bodyType = {
+          kind: 'ApplicationValue',
+          parameter: parameterType,
+          callee: callee.decoration.type,
+        };
       } else {
-        state.recordReplacements(calleeReplacements);
-      }
+        // Converge the callee type with a function type
+        const calleeReplacements = converge(state.scope, {
+          kind: 'FunctionLiteral',
+          parameter: parameterTypeVariable,
+          body: bodyTypeVariable,
+        }, callee.decoration.type);
+        if (!calleeReplacements) {
+          state.log(`Cannot call a ${callee.decoration.type.kind}`);
+        } else {
+          state.recordReplacements(calleeReplacements);
+        }
 
-      const parameterType = applyReplacements(calleeReplacements || [])(parameterTypeVariable);
-      const bodyType = applyReplacements(calleeReplacements || [])(bodyTypeVariable);
+        parameterType = applyReplacements(calleeReplacements || [])(parameterTypeVariable);
+        bodyType = applyReplacements(calleeReplacements || [])(bodyTypeVariable);
+      }
 
       const parameterReplacements = converge(state.scope, parameterType, parameter.decoration.type);
       if (!parameterReplacements) {

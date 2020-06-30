@@ -1,3 +1,5 @@
+import parse from '../parser/parse';
+import { attachPrelude } from '../prelude/attach-prelude';
 import { runTypePhase } from './run-type-phase';
 import { stripNode } from './strip-nodes';
 import { typeExpression } from './type-check';
@@ -15,6 +17,16 @@ import {
 } from './constructors';
 import { evaluateExpression, simplify } from './evaluate';
 import { pipe } from './utils';
+import dedent from 'dedent-js';
+
+function parseAndType(code: string) {
+  const { value: expression } = parse(code);
+  if (!expression) {
+    throw new Error('Failed to parse code');
+  }
+
+  return runTypePhase(expression);
+}
 
 describe('typeExpression', () => {
   const blank = numberExpression(1);
@@ -139,6 +151,71 @@ describe('typeExpression', () => {
       bind('go', lambda([[apply('Maybe', ['maybe']), true], 'maybe'], 5)),
       apply('go', [apply('Some', ['String'])]),
     ));
+    expect(messages).toEqual([expect.any(String)]);
+  });
+
+  it('fails if a parameter is filled with two distinct types', () => {
+    // data List = a c
+    // data ListElement = implicit elementType element, element, implicit List elementType tail, tail
+    // data ListEmpty
+    // let listElementImpl = implicit elementType -> implicit elementType element -> element -> implicit List elementType tail -> tail -> List elementType (ListElement element tail)
+    // let listEmptyImpl = implicit elementType -> List elementType ListEmpty
+    // ListElement 5 (ListElement true ListEmpty)
+    const [messages] = runTypePhase(pipe(
+      data('A', ['a', 'a']),
+      apply('A', [true, 1]),
+    ));
+    expect(messages).toEqual([expect.any(String)]);
+  });
+
+  it('passes when there are two dependent implicit parameters', () => {
+    const [messages] = parseAndType(dedent`
+      data X = c
+      data XValue
+      data XValue2
+      let xImpl = X XValue
+      let xImpl2 = X XValue2
+      data Example = implicit F a, implicit F b, a, b
+      Example XValue XValue2
+    `);
+    expect(messages).toEqual([]);
+  });
+
+  it('fails if a value cannot be found to match two dependent implicit parameters', () => {
+    const [messages] = parseAndType(dedent`
+      data X = c
+      data XValue
+      data Y = c
+      data YValue
+      let xImpl = X XValue
+      let yImpl = Y YValue
+      data Example = implicit F a, implicit F b, a, b
+      Example XValue YValue
+    `);
+    expect(messages).toEqual([expect.any(String)]);
+  });
+
+  it('creates a list from the same types', () => {
+    const [messages] = parseAndType(dedent`
+      data List = elementType, child
+      data ListElement = implicit elementType element, implicit List elementType tail, element, tail
+      data ListEmpty
+      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> element -> tail -> List elementType (ListElement element tail)
+      let listEmptyImpl = implicit elementType -> List elementType ListEmpty
+      ListElement 5 (ListElement 2 ListEmpty) 
+    `);
+    expect(messages).toEqual([]);
+  });
+
+  it('fails to create a list from different types', () => {
+    const [messages] = parseAndType(dedent`
+      data List = elementType, child
+      data ListElement = implicit elementType element, implicit List elementType tail, element, tail
+      data ListEmpty
+      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> element -> tail -> List elementType (ListElement element tail)
+      let listEmptyImpl = implicit elementType -> List elementType ListEmpty
+      ListElement 5 (ListElement true ListEmpty) 
+    `);
     expect(messages).toEqual([expect.any(String)]);
   });
 
