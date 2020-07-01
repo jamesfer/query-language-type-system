@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const compile_to_1 = tslib_1.__importDefault(require("./compile-to"));
+const dedent_js_1 = tslib_1.__importDefault(require("dedent-js"));
 const editor_1 = tslib_1.__importDefault(require("./editor"));
 class App {
     constructor(inputElement, outputElement) {
@@ -20,21 +21,28 @@ class App {
             }
             try {
                 const { messages, output } = compile_to_1.default(code, { backend: 'javascript' });
-                if (output) {
+                if (messages.length > 0) {
+                    const formattedMessages = messages.map(message => `    ✖ ${message}`);
+                    this.outputEditor.setValue(dedent_js_1.default `
+          /**
+            Code failed to compile:
+          ${formattedMessages.join('\n')}
+          */
+        `);
+                }
+                else if (output) {
                     this.outputEditor.setValue(output);
                 }
                 else {
-                    const formattedMessages = messages.map(message => `    ✖ ${message}`);
-                    this.outputEditor.setValue(`/**
-  Code failed to compile:
-${formattedMessages.join('\n')}
-*/`);
+                    this.outputEditor.setValue('');
                 }
             }
             catch (error) {
-                this.outputEditor.setValue(`/**
-  Compiler threw an exception: ${error}
-*/`);
+                this.outputEditor.setValue(dedent_js_1.default `
+        /**
+          Compiler threw an exception: ${error}
+        */
+      `);
             }
         };
         this.editor.changes$.subscribe(this.displayCompiledCode);

@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const dedent_js_1 = tslib_1.__importDefault(require("dedent-js"));
 const preludeLibrary = dedent_js_1.default `
+data BUILT_IN
 data Integer = a
 data Float = a
 data String = a

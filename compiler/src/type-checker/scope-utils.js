@@ -36,6 +36,18 @@ function hasBuiltInImplementation(scope, value) {
                 && innerValue.parameters[0].kind === 'StringLiteral')) {
         return innerValue;
     }
+    if (innerValue.kind === 'ApplicationValue'
+        && innerValue.callee.kind === 'FreeVariable'
+        && (innerValue.parameter.kind === 'StringLiteral'
+            || innerValue.parameter.kind === 'NumberLiteral')) {
+        const name = innerValue.parameter.kind === 'StringLiteral' ? 'String'
+            : Number.isInteger(innerValue.parameter.value) ? 'Integer' : 'Float';
+        return {
+            kind: 'DataValue',
+            name: { name, kind: 'SymbolLiteral' },
+            parameters: [innerValue.parameter],
+        };
+    }
     return undefined;
 }
 function findMatchingImplementations(scope, value) {

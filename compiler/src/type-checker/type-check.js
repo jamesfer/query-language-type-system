@@ -110,22 +110,38 @@ exports.typeExpression = (makeUniqueId) => (scope) => (expression) => {
             const callee = state.run(exports.typeExpression(makeUniqueId))(expression.callee);
             const parameter = state.run(exports.typeExpression(makeUniqueId))(expression.parameter);
             const expressionNode = Object.assign(Object.assign({}, expression), { callee, parameter });
-            // Converge the callee type with a function type
+            let parameterType;
+            let bodyType;
             const parameterTypeVariable = type_utils_1.newFreeVariable('tempParameterVariable$', makeUniqueId);
             const bodyTypeVariable = type_utils_1.newFreeVariable('tempBodyVariable$', makeUniqueId);
-            const calleeReplacements = type_utils_1.converge(state.scope, callee.decoration.type, {
-                kind: 'FunctionLiteral',
-                parameter: parameterTypeVariable,
-                body: bodyTypeVariable,
-            });
-            if (!calleeReplacements) {
-                state.log(`Cannot call a ${callee.decoration.type.kind}`);
+            // This is a little bit hacky to be able keep the type of the parameter in expressions like:
+            // let map = (a -> b) -> F a -> F b
+            // The second parameter is an application but we want to maintain the type as an F a and not
+            // try to simplify it.
+            if (callee.decoration.type.kind === 'FreeVariable' && !scope_utils_1.findBinding(scope, callee.decoration.type.name)) {
+                parameterType = parameterTypeVariable;
+                bodyType = {
+                    kind: 'ApplicationValue',
+                    parameter: parameterType,
+                    callee: callee.decoration.type,
+                };
             }
             else {
-                state.recordReplacements(calleeReplacements);
+                // Converge the callee type with a function type
+                const calleeReplacements = type_utils_1.converge(state.scope, {
+                    kind: 'FunctionLiteral',
+                    parameter: parameterTypeVariable,
+                    body: bodyTypeVariable,
+                }, callee.decoration.type);
+                if (!calleeReplacements) {
+                    state.log(`Cannot call a ${callee.decoration.type.kind}`);
+                }
+                else {
+                    state.recordReplacements(calleeReplacements);
+                }
+                parameterType = variable_utils_1.applyReplacements(calleeReplacements || [])(parameterTypeVariable);
+                bodyType = variable_utils_1.applyReplacements(calleeReplacements || [])(bodyTypeVariable);
             }
-            const parameterType = variable_utils_1.applyReplacements(calleeReplacements || [])(parameterTypeVariable);
-            const bodyType = variable_utils_1.applyReplacements(calleeReplacements || [])(bodyTypeVariable);
             const parameterReplacements = type_utils_1.converge(state.scope, parameterType, parameter.decoration.type);
             if (!parameterReplacements) {
                 state.log('Given parameter did not match expected shape');

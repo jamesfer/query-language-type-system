@@ -227,7 +227,11 @@ function dual(left, right) {
     };
 }
 exports.dual = dual;
-exports.data = (name, parameterNames = [], parameters = parameterNames) => (exports.bind(name, lambda(parameters, dataInstantiation(name, parameterNames.map(identifier), parameters))));
+exports.data = (name, parameterNames = [], parameters = parameterNames) => (
+// {
+//   kind: 'Data'
+// }
+exports.bind(name, lambda(parameters, dataInstantiation(name, parameterNames.map(identifier), parameters))));
 function readRecordProperty(record, property) {
     return {
         property,
