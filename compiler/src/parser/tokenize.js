@@ -30,7 +30,7 @@ var TokenKind;
 exports.rules = {
     [TokenKind.lineBreak]: { match: /(?:\r\n?|\n)+/, lineBreaks: true },
     [TokenKind.whitespace]: / +/,
-    [TokenKind.comment]: /--[^\r\n]*/,
+    [TokenKind.comment]: { match: /--[^\r\n]*(?:\r\n|\n)*/, lineBreaks: true },
     [TokenKind.identifier]: {
         match: /[a-zA-Z_][a-zA-Z0-9_]*/,
         type: moo.keywords({

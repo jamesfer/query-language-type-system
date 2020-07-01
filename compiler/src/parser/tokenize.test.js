@@ -48,8 +48,7 @@ describe('tokenize', () => {
     it('tokenizes a comment', () => {
         expect(Array.from(tokenize_1.default('5-- Hello\n10'))).toEqual([
             { kind: tokenize_1.TokenKind.number, value: '5' },
-            { kind: tokenize_1.TokenKind.comment, value: '-- Hello' },
-            { kind: tokenize_1.TokenKind.lineBreak, value: '\n' },
+            { kind: tokenize_1.TokenKind.comment, value: '-- Hello\n' },
             { kind: tokenize_1.TokenKind.number, value: '10' },
         ]);
     });
