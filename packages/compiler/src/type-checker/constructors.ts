@@ -295,6 +295,10 @@ export function dual(left: MaybeExpression, right: MaybeExpression): DualExpress
 }
 
 export const data = (name: string, parameterNames: string[] = [], parameters: (MaybeExpression | [MaybeExpression, boolean])[] = parameterNames) => (
+  // {
+  //   kind: 'Data'
+  // }
+
   bind(name, lambda(parameters, dataInstantiation(
     name,
     parameterNames.map(identifier),

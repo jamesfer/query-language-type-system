@@ -1,4 +1,5 @@
 import compileTo from './compile-to';
+import dedent from 'dedent-js';
 import Editor from './editor';
 
 export default class App {
@@ -17,19 +18,25 @@ export default class App {
 
     try {
       const { messages, output } = compileTo(code, { backend: 'javascript' });
-      if (output) {
+      if (messages.length > 0) {
+        const formattedMessages = messages.map(message => `    ✖ ${message}`);
+        this.outputEditor.setValue(dedent`
+          /**
+            Code failed to compile:
+          ${formattedMessages.join('\n')}
+          */
+        `);
+      } else if (output) {
         this.outputEditor.setValue(output);
       } else {
-        const formattedMessages = messages.map(message => `    ✖ ${message}`);
-        this.outputEditor.setValue(`/**
-  Code failed to compile:
-${formattedMessages.join('\n')}
-*/`);
+        this.outputEditor.setValue('');
       }
     } catch (error) {
-      this.outputEditor.setValue(`/**
-  Compiler threw an exception: ${error}
-*/`);
+      this.outputEditor.setValue(dedent`
+        /**
+          Compiler threw an exception: ${error}
+        */
+      `);
     }
   };
 
