@@ -21,8 +21,18 @@ import {
   DesugaredExpressionWithoutDestructuring,
   SimpleFunctionExpression,
   DesugaredNode as DestructuringDesugaredNode,
-  makeDesugaredNodeIterator,
+  makeDesugaredNodeIterator, simpleFunctionMapIterator,
 } from './desugar-destructuring';
+import { combineIteratorMap } from './iterators-core';
+import {
+  applicationMapIterator,
+  bindingMapIterator,
+  dataInstantiationMapIterator,
+  emptyMapIterator,
+  patternMatchMapIterator,
+  readDataPropertyMapIterator,
+  readRecordPropertyMapIterator, recordMapIterator,
+} from './iterators-specific';
 
 export type DesugaredExpressionWithoutDualExpression<T = void> =
   | Identifier
@@ -41,6 +51,12 @@ export type DesugaredExpressionWithoutDualExpression<T = void> =
   | ReadDataPropertyExpression<T extends void ? DesugaredExpressionWithoutDualExpression : T>
   | PatternMatchExpression<T extends void ? DesugaredExpressionWithoutDualExpression : T>
   | NativeExpression;
+
+declare module 'fp-ts/lib/HKT' {
+  interface URItoKind<A> {
+    readonly ['DesugaredExpressionWithoutDualExpression']: DesugaredExpressionWithoutDualExpression<A>;
+  }
+}
 
 export interface DesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutDualExpression<DesugaredNode>> {}
 
@@ -85,4 +101,23 @@ export function desugarDualBindings(node: DestructuringDesugaredNode): Desugared
   const internal = (node: DestructuringDesugaredNode): DesugaredNode => shallowDesugarDualBindings(mapNode(iterator, node));
   const iterator = makeDesugaredNodeIterator(internal);
   return internal(node);
+}
+
+export function makeDualBindingDesugaredNodeIterator<A, B>(f: (a: A) => B): (e: DesugaredExpressionWithoutDualExpression<A>) => DesugaredExpressionWithoutDualExpression<B> {
+  return combineIteratorMap<'DesugaredExpressionWithoutDualExpression', DesugaredExpressionWithoutDualExpression, A, B>({
+    Identifier: emptyMapIterator,
+    BooleanExpression: emptyMapIterator,
+    StringExpression: emptyMapIterator,
+    NumberExpression: emptyMapIterator,
+    SymbolExpression: emptyMapIterator,
+    NativeExpression: emptyMapIterator,
+    Application: applicationMapIterator,
+    DataInstantiation: dataInstantiationMapIterator,
+    ReadDataPropertyExpression: readDataPropertyMapIterator,
+    ReadRecordPropertyExpression: readRecordPropertyMapIterator,
+    SimpleFunctionExpression: simpleFunctionMapIterator,
+    BindingExpression: bindingMapIterator,
+    PatternMatchExpression: patternMatchMapIterator,
+    RecordExpression: recordMapIterator,
+  })(f);
 }

@@ -70,33 +70,6 @@ export interface DesugaredNode extends NodeWithExpression<TypedDecoration, Desug
 
 export interface PartiallyDesugaredNode extends NodeWithExpression<TypedDecoration, Expression<DesugaredNode>> {}
 
-function simpleFunctionMapIterator<A, B>(f: (a: A) => B): (expression: SimpleFunctionExpression<A>) => SimpleFunctionExpression<B> {
-  return expression => ({
-    ...expression,
-    body: f(expression.body),
-  });
-}
-
-export function makeDesugaredNodeIterator<A, B>(f: (a: A) => B): (e: DesugaredExpressionWithoutDestructuring<A>) => DesugaredExpressionWithoutDestructuring<B> {
-  return combineIteratorMap<'DesugaredExpressionWithoutDestructuring', DesugaredExpressionWithoutDestructuring, A, B>({
-    Identifier: emptyMapIterator,
-    BooleanExpression: emptyMapIterator,
-    StringExpression: emptyMapIterator,
-    NumberExpression: emptyMapIterator,
-    SymbolExpression: emptyMapIterator,
-    NativeExpression: emptyMapIterator,
-    Application: applicationMapIterator,
-    DataInstantiation: dataInstantiationMapIterator,
-    ReadDataPropertyExpression: readDataPropertyMapIterator,
-    ReadRecordPropertyExpression: readRecordPropertyMapIterator,
-    SimpleFunctionExpression: simpleFunctionMapIterator,
-    DualExpression: dualMapIterator,
-    BindingExpression: bindingMapIterator,
-    PatternMatchExpression: patternMatchMapIterator,
-    RecordExpression: recordMapIterator,
-  })(f);
-}
-
 function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesugaredNode): DesugaredNode {
   switch (expression.kind) {
     case 'Identifier':
@@ -167,3 +140,31 @@ export function desugarDestructuring(node: TypedNode): DesugaredNode {
   const iterator = makeExpressionIterator(internal);
   return internal(node);
 }
+
+export function simpleFunctionMapIterator<A, B>(f: (a: A) => B): (expression: SimpleFunctionExpression<A>) => SimpleFunctionExpression<B> {
+  return expression => ({
+    ...expression,
+    body: f(expression.body),
+  });
+}
+
+export function makeDesugaredNodeIterator<A, B>(f: (a: A) => B): (e: DesugaredExpressionWithoutDestructuring<A>) => DesugaredExpressionWithoutDestructuring<B> {
+  return combineIteratorMap<'DesugaredExpressionWithoutDestructuring', DesugaredExpressionWithoutDestructuring, A, B>({
+    Identifier: emptyMapIterator,
+    BooleanExpression: emptyMapIterator,
+    StringExpression: emptyMapIterator,
+    NumberExpression: emptyMapIterator,
+    SymbolExpression: emptyMapIterator,
+    NativeExpression: emptyMapIterator,
+    Application: applicationMapIterator,
+    DataInstantiation: dataInstantiationMapIterator,
+    ReadDataPropertyExpression: readDataPropertyMapIterator,
+    ReadRecordPropertyExpression: readRecordPropertyMapIterator,
+    SimpleFunctionExpression: simpleFunctionMapIterator,
+    DualExpression: dualMapIterator,
+    BindingExpression: bindingMapIterator,
+    PatternMatchExpression: patternMatchMapIterator,
+    RecordExpression: recordMapIterator,
+  })(f);
+}
+
