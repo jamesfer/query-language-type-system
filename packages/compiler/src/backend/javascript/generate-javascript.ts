@@ -1,165 +1,57 @@
 import generate from '@babel/generator';
 import * as types from '@babel/types';
 import { flatMap, initial, last, map, flatten } from 'lodash';
+import { DesugaredExpressionWithoutPatternMatch } from '../../desugar/desugar-pattern-match';
 import { identifier } from '../../type-checker/constructors';
 import { Expression, PatternMatchExpression } from '../..';
 import { assertNever, unzip } from '../../type-checker/utils';
 
-const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
-  switch (value.kind) {
-    case 'SymbolExpression':
-    case 'BooleanExpression':
-    case 'NumberExpression':
-    case 'StringExpression':
-      return [];
+// const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
+//   switch (value.kind) {
+//     case 'SymbolExpression':
+//     case 'BooleanExpression':
+//     case 'NumberExpression':
+//     case 'StringExpression':
+//       return [];
+//
+//     case 'Identifier':
+//       return [[value.name, base]];
+//
+//     case 'DualExpression':
+//       return [
+//         ...destructureExpression(base)(value.left),
+//         ...destructureExpression(base)(value.right),
+//       ];
+//
+//     case 'DataInstantiation':
+//       return flatMap(value.parameters, (parameter, index) => destructureExpression({
+//         kind: 'ReadDataPropertyExpression',
+//         dataValue: base,
+//         property: index,
+//       })(parameter));
+//
+//     case 'RecordExpression':
+//       return flatMap(value.properties, (parameter, key) => destructureExpression({
+//         kind: 'ReadRecordPropertyExpression',
+//         record: base,
+//         property: key,
+//       })(parameter));
+//
+//     case 'Application':
+//     case 'FunctionExpression':
+//     case 'ReadDataPropertyExpression':
+//     case 'ReadRecordPropertyExpression':
+//     case 'BindingExpression':
+//     case 'PatternMatchExpression':
+//     case 'NativeExpression':
+//       return [];
+//
+//     default:
+//       return assertNever(value);
+//   }
+// };
 
-    case 'Identifier':
-      return [[value.name, base]];
-
-    case 'DualExpression':
-      return [
-        ...destructureExpression(base)(value.left),
-        ...destructureExpression(base)(value.right),
-      ];
-
-    case 'DataInstantiation':
-      return flatMap(value.parameters, (parameter, index) => destructureExpression({
-        kind: 'ReadDataPropertyExpression',
-        dataValue: base,
-        property: index,
-      })(parameter));
-
-    case 'RecordExpression':
-      return flatMap(value.properties, (parameter, key) => destructureExpression({
-        kind: 'ReadRecordPropertyExpression',
-        record: base,
-        property: key,
-      })(parameter));
-
-    case 'Application':
-    case 'FunctionExpression':
-    case 'ReadDataPropertyExpression':
-    case 'ReadRecordPropertyExpression':
-    case 'BindingExpression':
-    case 'PatternMatchExpression':
-    case 'NativeExpression':
-      return [];
-
-    default:
-      return assertNever(value);
-  }
-};
-
-interface PatternCondition {
-  left: types.Expression,
-  right: types.Expression
-}
-
-function convertPatternMatchToConditions(value: types.Expression, test: Expression): PatternCondition[] {
-  switch (test.kind) {
-    case 'SymbolExpression':
-    case 'BooleanExpression':
-    case 'NumberExpression':
-    case 'StringExpression':
-      // We ignore statements in pattern matches because they are weird
-      const [rightStatements, right] = convertExpressionToCode(test);
-      return [{
-        left: value,
-        right: right,
-      }];
-
-    case 'RecordExpression':
-      return [
-        {
-          left: types.unaryExpression('typeof', value),
-          right: types.stringLiteral('object'),
-        },
-        ...flatMap(test.properties, (property, name) => (
-          convertPatternMatchToConditions(types.memberExpression(value, name), property)
-        )),
-      ];
-
-    case 'DualExpression':
-      return [
-        ...convertPatternMatchToConditions(value, test.left),
-        ...convertPatternMatchToConditions(value, test.right),
-      ];
-
-    case 'ReadRecordPropertyExpression':
-    case 'ReadDataPropertyExpression':
-    case 'PatternMatchExpression':
-    case 'Application':
-    case 'Identifier':
-    case 'FunctionExpression':
-    case 'DataInstantiation':
-    case 'BindingExpression':
-    case 'NativeExpression':
-      return [];
-
-    default:
-      return assertNever(test);
-  }
-}
-
-function convertPatternMatchToBindings(value: types.Expression, test: Expression): { name: string, value: types.Expression }[] {
-  switch (test.kind) {
-    case 'Identifier':
-      return [{ value, name: test.name }];
-
-    case 'SymbolExpression':
-    case 'BooleanExpression':
-    case 'NumberExpression':
-    case 'StringExpression':
-      return [];
-
-    case 'RecordExpression':
-      return flatMap(test.properties, (property, name) => (
-        convertPatternMatchToBindings(types.memberExpression(value, name), property)
-      ));
-
-    case 'DualExpression':
-      return [
-        ...convertPatternMatchToBindings(value, test.left),
-        ...convertPatternMatchToBindings(value, test.right)
-      ];
-
-    case 'FunctionExpression':
-    case 'Application':
-    case 'DataInstantiation':
-    case 'BindingExpression':
-    case 'ReadRecordPropertyExpression':
-    case 'ReadDataPropertyExpression':
-    case 'PatternMatchExpression':
-    case 'NativeExpression':
-      return [];
-
-    default:
-      return assertNever(test);
-  }
-}
-
-function makePatternConsequent(valueIdentifier: types.Identifier, test: Expression, value: Expression): types.BlockStatement {
-  const [valueStatements, convertedValue] = convertExpressionToCode(value);
-  const variables = convertPatternMatchToBindings(valueIdentifier, test)
-    .map(({ name, value }) => types.variableDeclaration('const', [
-      types.variableDeclarator(types.identifier(name), value)
-    ]));
-  return types.blockStatement([
-    ...variables,
-    ...valueStatements,
-    types.returnStatement(convertedValue),
-  ]);
-}
-
-function makePatternIfStatement(valueIdentifier: types.Identifier, test: Expression, value: Expression, alternative: types.Statement): types.Statement {
-  const consequent = makePatternConsequent(valueIdentifier, test, value);
-  const condition = convertPatternMatchToConditions(valueIdentifier, test)
-    .map(({ left, right }): types.Expression => types.binaryExpression('===', left, right))
-    .reduce((left, right) => types.logicalExpression('&&', left, right));
-  return types.ifStatement(condition, consequent, alternative);
-}
-
-function convertExpressionToCode(expression: Expression): [types.Statement[], types.Expression] {
+function convertExpressionToCode(expression: DesugaredExpressionWithoutPatternMatch): [types.Statement[], types.Expression] {
   switch (expression.kind) {
     case 'Identifier':
       return [[], types.identifier(expression.name)];
@@ -189,34 +81,32 @@ function convertExpressionToCode(expression: Expression): [types.Statement[], ty
       return [[...calleeStatements, ...parameterStatements], types.callExpression(callee, [parameter])];
     }
 
-    case 'FunctionExpression': {
+    case 'SimpleFunctionExpression': {
       const [bodyStatements, body] = convertExpressionToCode(expression.body);
 
-      if (expression.parameter.kind === 'Identifier') {
         return [[], types.arrowFunctionExpression(
-          [types.identifier(expression.parameter.name)],
+          [types.identifier(expression.parameter)],
           bodyStatements.length === 0 ? body : types.blockStatement([
             ...bodyStatements,
             types.returnStatement(body),
           ]),
         )];
-      }
 
-      const parameterName = `$PARAMETER$1`;
-      const destructuredParameters = destructureExpression(identifier(parameterName))(expression.parameter);
-      const destructuringStatements = flatMap(destructuredParameters, ([name, expression]) => {
-        const [parameterStatements, parameter] = convertExpressionToCode(expression);
-        return [...parameterStatements, types.variableDeclaration('const', [
-          types.variableDeclarator(types.identifier(name), parameter)
-        ])];
-      });
-      return [[], types.arrowFunctionExpression(
-        [types.identifier(parameterName)],
-        types.blockStatement([
-          ...destructuringStatements,
-          types.returnStatement(body),
-        ]),
-      )];
+      // const parameterName = `$PARAMETER$1`;
+      // const destructuredParameters = destructureExpression(identifier(parameterName))(expression.parameter);
+      // const destructuringStatements = flatMap(destructuredParameters, ([name, expression]) => {
+      //   const [parameterStatements, parameter] = convertExpressionToCode(expression);
+      //   return [...parameterStatements, types.variableDeclaration('const', [
+      //     types.variableDeclarator(types.identifier(name), parameter)
+      //   ])];
+      // });
+      // return [[], types.arrowFunctionExpression(
+      //   [types.identifier(parameterName)],
+      //   types.blockStatement([
+      //     ...destructuringStatements,
+      //     types.returnStatement(body),
+      //   ]),
+      // )];
     }
 
     case 'DataInstantiation':
@@ -240,9 +130,6 @@ function convertExpressionToCode(expression: Expression): [types.Statement[], ty
       ]);
       return [[...valueStatements, declaration, ...bodyStatements], body];
 
-    case 'DualExpression':
-      return convertExpressionToCode(expression.right);
-
     case 'ReadRecordPropertyExpression':
       // return types.memberExpression(convertExpressionToCode(expression.record), expression.property);
       const [recordStatements, record] = convertExpressionToCode(expression.record);
@@ -251,29 +138,6 @@ function convertExpressionToCode(expression: Expression): [types.Statement[], ty
     case 'ReadDataPropertyExpression':
       const [dataValueStatements, dataValue] = convertExpressionToCode(expression.dataValue);
       return [dataValueStatements, types.memberExpression(dataValue, types.identifier(`${expression.property}`))];
-
-    case 'PatternMatchExpression': {
-      const [valueStatements, jsValue] = convertExpressionToCode(expression.value);
-      const valueIdentifier = types.identifier(`$patternValue`);
-      const lastPattern = last(expression.patterns);
-      if (!lastPattern) {
-        throw new Error('Tried to print a pattern expression with no viable patterns');
-      }
-
-      const lastPatternBlock = makePatternConsequent(valueIdentifier, lastPattern.test, lastPattern.value);
-      const body = initial(expression.patterns).reduceRight<types.Statement>(
-        (alternative, { test, value }) => makePatternIfStatement(valueIdentifier, test, value, alternative),
-        lastPatternBlock,
-      );
-
-      return [valueStatements, types.callExpression(
-        types.arrowFunctionExpression(
-          [valueIdentifier],
-          types.isBlockStatement(body) ? body : types.blockStatement([body]),
-        ),
-        [jsValue],
-      )];
-    }
 
     case 'NativeExpression': {
       const { kind } = expression.data;
@@ -357,7 +221,7 @@ function wrapInExport(moduleType: 'commonjs' | 'esm', statements: types.Statemen
   ])
 }
 
-export function generateJavascript(expression: Expression, options: JavascriptBackendOptions): string {
+export function generateJavascript(expression: DesugaredExpressionWithoutPatternMatch, options: JavascriptBackendOptions): string {
   const [statements, value] = convertExpressionToCode(expression);
   const program = wrapInExport(options.module, statements, value);
   return generate(program).code;

@@ -1,12 +1,13 @@
 import dedent from 'dedent-js';
-import { stripNode } from '../..';
 import { compile } from '../../api';
+import { desugar } from '../../desugar/desugar';
+import { stripDesugaredNodeWithoutPatternMatch } from '../../desugar/desugar-pattern-match';
 import { generateJavascript } from './generate-javascript';
 
 function toJavascript(code: string) {
   const result = compile(code);
   return result.node
-    ? generateJavascript(stripNode(result.node), { module: 'esm' })
+    ? generateJavascript(stripDesugaredNodeWithoutPatternMatch(desugar(result.node)), { module: 'esm' })
     : undefined;
 }
 
@@ -34,9 +35,9 @@ describe('generateJavascript', () => {
 
   it('translates a function expression with bindings', () => {
     expect(toJavascript('a:b -> a')).toEqual(dedent`
-      export default ($PARAMETER$1 => {
-        const a$rename$16 = $PARAMETER$1;
-        const b$rename$17 = $PARAMETER$1;
+      export default (injectedParameter$ => {
+        const b$rename$17 = injectedParameter$;
+        const a$rename$16 = injectedParameter$;
         return a$rename$16;
       });
     `);

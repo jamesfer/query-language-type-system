@@ -16,13 +16,25 @@ import { Value } from '../type-checker/types/value';
 import { assertNever } from '../type-checker/utils';
 import { mapNode } from '../type-checker/visitor-utils';
 import {
-  SimpleFunctionExpression,
+  SimpleFunctionExpression, simpleFunctionMapIterator,
 } from './desugar-destructuring';
 import {
   DesugaredNode as DualBindingDesugaredNode,
   makeDualBindingDesugaredNodeIterator,
 } from './desugar-dual-bindings';
 import { DesugaredExpressionWithoutDualExpression } from './desugar-dual-bindings';
+import { combineIteratorMap } from './iterators-core';
+import {
+  applicationMapIterator,
+  bindingMapIterator,
+  dataInstantiationMapIterator,
+  emptyMapIterator,
+  makeStripNode,
+  patternMatchMapIterator,
+  readDataPropertyMapIterator,
+  readRecordPropertyMapIterator, recordMapIterator,
+  shallowStripNode,
+} from './iterators-specific';
 
 export type DesugaredExpressionWithoutPatternMatch<T = void> =
   | Identifier
@@ -40,6 +52,12 @@ export type DesugaredExpressionWithoutPatternMatch<T = void> =
   | ReadRecordPropertyExpression<T extends void ? DesugaredExpressionWithoutPatternMatch : T>
   | ReadDataPropertyExpression<T extends void ? DesugaredExpressionWithoutPatternMatch : T>
   | NativeExpression;
+
+declare module 'fp-ts/lib/HKT' {
+  interface URItoKind<A> {
+    readonly ['DesugaredExpressionWithoutPatternMatch']: DesugaredExpressionWithoutPatternMatch<A>;
+  }
+}
 
 export interface DesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutPatternMatch<DesugaredNode>> {}
 
@@ -384,4 +402,30 @@ export function desugarPatternMatch(node: DualBindingDesugaredNode): DesugaredNo
   const internal = (node: DualBindingDesugaredNode): DesugaredNode => shallowDesugarPatternMatch(mapNode(iterator, node));
   const iterator = makeDualBindingDesugaredNodeIterator(internal);
   return internal(node);
+}
+
+export function makePatternMatchDesugaredNodeIterator<A, B>(f: (a: A) => B): (e: DesugaredExpressionWithoutPatternMatch<A>) => DesugaredExpressionWithoutPatternMatch<B> {
+  return combineIteratorMap<'DesugaredExpressionWithoutPatternMatch', DesugaredExpressionWithoutPatternMatch, A, B>({
+    Identifier: emptyMapIterator,
+    BooleanExpression: emptyMapIterator,
+    StringExpression: emptyMapIterator,
+    NumberExpression: emptyMapIterator,
+    SymbolExpression: emptyMapIterator,
+    NativeExpression: emptyMapIterator,
+    Application: applicationMapIterator,
+    DataInstantiation: dataInstantiationMapIterator,
+    ReadDataPropertyExpression: readDataPropertyMapIterator,
+    ReadRecordPropertyExpression: readRecordPropertyMapIterator,
+    SimpleFunctionExpression: simpleFunctionMapIterator,
+    BindingExpression: bindingMapIterator,
+    RecordExpression: recordMapIterator,
+  })(f);
+}
+
+const stripDesugaredExpressionNodeWithoutPatternMatch: (n: DesugaredExpressionWithoutPatternMatch<DesugaredNode>) => DesugaredExpressionWithoutPatternMatch = (
+  makePatternMatchDesugaredNodeIterator(node => stripDesugaredExpressionNodeWithoutPatternMatch(shallowStripNode(node)))
+);
+
+export function stripDesugaredNodeWithoutPatternMatch(node: DesugaredNode): DesugaredExpressionWithoutPatternMatch {
+  return stripDesugaredExpressionNodeWithoutPatternMatch(shallowStripNode(node));
 }
