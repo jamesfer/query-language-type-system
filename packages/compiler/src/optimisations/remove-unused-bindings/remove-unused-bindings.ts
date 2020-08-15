@@ -1,42 +1,44 @@
-import { TypedNode, Expression, NodeWithChild } from '../..';
-import { TypedDecoration } from '../../type-checker/type-check';
+import { flatten } from 'lodash';
+import { NodeWithExpression } from '../..';
 import {
-  visitAndTransformChildExpression,
-  visitAndTransformNode,
-  visitNodes,
-} from '../../type-checker/visitor-utils';
+  DesugaredExpressionWithoutPatternMatch,
+  DesugaredNode,
+  makePatternMatchDesugaredNodeIterator,
+} from '../../desugar/desugar-pattern-match';
+import { TypedDecoration } from '../../type-checker/type-check';
+import { mapNode } from '../../type-checker/visitor-utils';
 
-interface TypeAndBindingDecoration {
-  type: TypedDecoration;
-  bindings: string[];
+function collectChildBindings<T>(node: DesugaredExpressionWithoutPatternMatch<[string[], T]>): [string[], DesugaredExpressionWithoutPatternMatch<T>] {
+  const allVariables: string[][] = [];
+  const collector = ([variables, expression]: [string[], T]): T => {
+    allVariables.push(variables);
+    return expression;
+  };
+  const expression = makePatternMatchDesugaredNodeIterator(collector)(node);
+  return [flatten(allVariables), expression];
 }
 
-function removedUnusedBindingsVisitor(node: NodeWithChild<TypedDecoration, [string[], TypedNode]>): [string[], TypedNode] {
-  if (node.expression.kind === 'BindingExpression') {
-    const [variables] = node.expression.body;
-    if (!variables.includes(node.expression.name)) {
-      return node.expression.body;
+function removedUnusedBindingsVisitor(node: NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutPatternMatch<[string[], DesugaredNode]>>): [string[], DesugaredNode] {
+  const expression = node.expression;
+  if (expression.kind === 'BindingExpression') {
+    // Check if the binding is used inside the body
+    const [variables] = expression.body;
+    if (!variables.includes(expression.name)) {
+      return expression.body;
     }
+  } else if (expression.kind === 'Identifier') {
+    return [[expression.name], { ...node, expression }];
   }
 
-  let allVariables: string[] = [];
-  const expression = visitAndTransformChildExpression<[string[], TypedNode], TypedNode>(
-    ([variables, node]) => {
-      allVariables = allVariables.concat(variables);
-      return node;
-    },
-  )(node.expression);
-
-  if (expression.kind === 'Identifier') {
-    allVariables.push(expression.name);
-  }
-
-  return [allVariables, { ...node, expression }];
+  const [variables, plainExpression] = collectChildBindings(expression);
+  return [variables, { ...node, expression: plainExpression }];
 }
 
-export function removeUnusedBindings(node: TypedNode): TypedNode {
-  const [_, resultNode] = visitAndTransformNode<TypedDecoration, [string[], TypedNode]>(
-    removedUnusedBindingsVisitor
-  )(node);
-  return resultNode;
+export function removeUnusedBindings(node: DesugaredNode): DesugaredNode {
+  const internal = (node: DesugaredNode): [string[], DesugaredNode] => (
+    removedUnusedBindingsVisitor(mapNode(iterator, node))
+  );
+  const iterator = makePatternMatchDesugaredNodeIterator(internal);
+  const [, result] = internal(node);
+  return result;
 }

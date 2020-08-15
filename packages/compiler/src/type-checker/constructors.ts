@@ -1,4 +1,6 @@
 import { uniqueId } from 'lodash';
+import { DesugaredExpressionWithoutPatternMatch } from '../desugar/desugar-pattern-match';
+import { TypedNode } from './type-check';
 import { EScopeBinding, EScopeShapeBinding, EvaluationScope } from './types/evaluation-scope';
 import {
   Application,
@@ -66,17 +68,18 @@ export function expandEvaluationScope(parent: EvaluationScope, child: Partial<Ev
 //   };
 // }
 
-export function scopeBinding(name: string, scope: Scope, type: Value, expression?: Expression): ScopeBinding {
+export function scopeBinding(name: string, scope: Scope, type: Value, node?: TypedNode): ScopeBinding {
   return {
     name,
     type,
     scope,
-    expression,
+    node,
+    // expression,
     kind: 'ScopeBinding',
   };
 }
 
-export function eScopeBinding(name: string, value: Expression): EScopeBinding {
+export function eScopeBinding(name: string, value: DesugaredExpressionWithoutPatternMatch): EScopeBinding {
   return {
     name,
     value,

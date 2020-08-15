@@ -1,3 +1,5 @@
+import { desugar } from '../desugar/desugar';
+import { stripDesugaredNodeWithoutPatternMatch } from '../desugar/desugar-pattern-match';
 import parse from '../parser/parse';
 import { attachPrelude } from '../prelude/attach-prelude';
 import { runTypePhase } from './run-type-phase';
@@ -219,71 +221,114 @@ describe('typeExpression', () => {
     expect(messages).toEqual([expect.any(String)]);
   });
 
+  it('infers the type of a destructured parameter', () => {
+    const [messages] = parseAndType(dedent`
+      data Struct = { value = implicit Int n -> n, }
+      let valueOf = Struct z -> z.value
+      1
+    `);
+    expect(messages).toEqual([]);
+  });
+
   describe('a real test', () => {
-    const expression = pipe(
-      data('Int', ['c']),
-      // Declare type class
-      data('Serializable', ['a', 'c'], ['a', dual('c', record({
-        valueOf: lambda(
-          [
-            [apply('Int', ['result']), true],
-            [apply('a', ['object']), true],
-            'object',
-          ],
-          'result',
-        ),
-      }))]),
-      // bind('Serializable', lambda(
-      //   [
-      //     'a',
-      //     dual('c', record({
-      //       valueOf: lambda(
-      //         [
-      //           [apply('Int', ['result']), true],
-      //           [apply('a', ['object']), true],
-      //           'object',
-      //         ],
-      //         'result',
-      //       ),
-      //     })),
-      //   ],
-      //   apply('Serializable', ['a', 'c']),
-      // )),
-      // Declare usable implementation of type class
-      bind('valueOf', lambda(
-        [
-          [apply('Serializable', [apply('a', ['object']), 'z']), true],
-          [apply('a', ['object']), true],
-          // TODO if functions were correctly curried in all places, then we probably wouldn't need
-          //      to accept an 'value' parameter here, which would mean this method acts kind of
-          //      like a "summon" method which is cool.
-          'object',
-        ],
-        apply(readRecordProperty('z', 'valueOf'), ['object']),
-      )),
-      // Implement type class
-      data('Color', ['c']),
-      data('Red'),
-      implement('Color', ['Red']),
-      implement('Serializable', [apply('Color', ['t']), record({
-        valueOf: lambda(
-          ['color'],
-          10,
-        ),
-      })]),
-      apply('valueOf', ['Red']),
-    );
+
+
+    // data Int = c
+    // data Serializable = a, { valueOf = implicit Int result -> implicit a object -> object -> result, }
+    // let valueOf = implicit Serializable (a object) z -> a object -> object -> z.valueOf object
+    // data Color = c
+    // data Red
+    // let colorRedImpl = Color Red
+    // let SerializableColorImpl = Serializable (Color t) { valueOf = color -> 10, }
+    // valueOf Red
+
+    // const code = dedent`
+    //   data Serializable = a, b
+    //   data Color = c
+    //   let b = Serializable (Color t) { valueOf = f -> 10, }
+    //   5
+    // `;
+
+
+    // const expression = pipe(
+    //   data('Int', ['c']),
+    //   // Declare type class
+    //   data('Serializable', ['a', 'c'], ['a', dual('c', record({
+    //     valueOf: lambda(
+    //       [
+    //         [apply('Int', ['result']), true],
+    //         [apply('a', ['object']), true],
+    //         'object',
+    //       ],
+    //       'result',
+    //     ),
+    //   }))]),
+    //   // bind('Serializable', lambda(
+    //   //   [
+    //   //     'a',
+    //   //     dual('c', record({
+    //   //       valueOf: lambda(
+    //   //         [
+    //   //           [apply('Int', ['result']), true],
+    //   //           [apply('a', ['object']), true],
+    //   //           'object',
+    //   //         ],
+    //   //         'result',
+    //   //       ),
+    //   //     })),
+    //   //   ],
+    //   //   apply('Serializable', ['a', 'c']),
+    //   // )),
+    //   // Declare usable implementation of type class
+    //   bind('valueOf', lambda(
+    //     [
+    //       [apply('Serializable', [apply('a', ['object']), 'z']), true],
+    //       [apply('a', ['object']), true],
+    //       // TODO if functions were correctly curried in all places, then we probably wouldn't need
+    //       //      to accept an 'value' parameter here, which would mean this method acts kind of
+    //       //      like a "summon" method which is cool.
+    //       'object',
+    //     ],
+    //     apply(readRecordProperty('z', 'valueOf'), ['object']),
+    //   )),
+    //   // Implement type class
+    //   data('Color', ['c']),
+    //   data('Red'),
+    //   implement('Color', ['Red']),
+    //   implement('Serializable', [apply('Color', ['t']), record({
+    //     valueOf: lambda(
+    //       ['color'],
+    //       10,
+    //     ),
+    //   })]),
+    //   apply('valueOf', ['Red']),
+    // );
+
+    const code = dedent`
+      data Int = c
+      data Serializable = a, { valueOf = implicit Int result -> implicit a object -> object -> result, }
+      let valueOf = implicit Serializable (a object) z -> implicit a object -> object -> z.valueOf object
+      data Color = c
+      data Red
+      let colorRedImpl = Color Red
+      let SerializableColorImpl = Serializable (Color t) { valueOf = color -> 10, }
+      valueOf Red
+    `;
 
     it('type typeExpression', () => {
-      const [messages] = runTypePhase(expression);
+      const { value: expression } = parse(code);
+      expect(expression).toBeDefined();
+      const [messages] = runTypePhase(expression!);
       expect(messages).toEqual([]);
     });
 
     it('real evaluate test', () => {
-      const [, node] = runTypePhase(expression);
+      const { value: expression } = parse(code);
+      expect(expression).toBeDefined();
+      const [, node] = runTypePhase(expression!);
       expect(node).toBeDefined();
 
-      const resolvedExpression = stripNode(node);
+      const resolvedExpression = stripDesugaredNodeWithoutPatternMatch(desugar(node));
       const result = evaluateExpression(evaluationScope())(resolvedExpression);
       expect(result).toBeDefined();
 

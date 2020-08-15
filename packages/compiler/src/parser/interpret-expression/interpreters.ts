@@ -143,11 +143,20 @@ const interpretData = interpreter('interpretData', matchAll(
     kind: 'BindingExpression',
     name: name.value,
     value: parameters.reduceRight<Expression>(
-      (body, [parameter, implicit]): FunctionExpression => ({
+      (body, [parameter, implicit], index): FunctionExpression => ({
         implicit,
-        parameter,
         body,
         kind: 'FunctionExpression',
+        parameter: parameter.kind === 'Identifier' ? parameter : {
+          kind: 'DualExpression',
+          // The parameter needs to be on the left because of how dual expression typing is
+          // unfinished
+          left: parameter,
+          right: {
+            kind: 'Identifier',
+            name: `dataParameter$${index}`
+          },
+        },
       }),
       {
         kind: 'DataInstantiation',
@@ -155,7 +164,16 @@ const interpretData = interpreter('interpretData', matchAll(
           kind: 'SymbolExpression',
           name: name.value,
         },
-        parameters: map(parameters.filter(([, implicit]) => !implicit), 0),
+        parameters: parameters
+          .map(([parameter, implicit], index) => ({ parameter, implicit, index }))
+          .filter(({ implicit }) => !implicit)
+          .map(({ parameter, index }) => parameter.kind === 'Identifier'
+            ? parameter
+            : {
+              kind: 'Identifier',
+              name: `dataParameter$${index}`,
+            }
+        ),
         parameterShapes: parameters,
       },
     ),
@@ -235,7 +253,7 @@ const interpretNative = interpreter('interpretNative', matchAll(
 })));
 
 const interpretParenthesis = interpreter('interpretParenthesis', matchAll(
-  matchOption(withPrevious(Precedence.parenthesis)),
+  withoutPrevious,
   matchTokens('openParen'),
   matchExpression(Precedence.none),
   matchTokens('closeParen'),

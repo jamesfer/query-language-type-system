@@ -1,4 +1,6 @@
 import { find, flatMap } from 'lodash';
+import { desugar } from '../desugar/desugar';
+import { stripDesugaredNodeWithoutPatternMatch } from '../desugar/desugar-pattern-match';
 import { eScopeBinding, eScopeShapeBinding, expandScope, scopeBinding } from './constructors';
 import { evaluateExpression } from './evaluate';
 import { canSatisfyShape } from './type-utils';
@@ -81,7 +83,8 @@ export function findMatchingImplementations(scope: Scope, value: Value): ScopeBi
 
   const evaluateWithScope = evaluateExpression(scopeToEScope(scope));
   return scope.bindings.filter(binding => {
-    const bindingValue = binding.expression ? evaluateWithScope(binding.expression) : binding.type;
+    // const bindingValue = binding.expression ? evaluateWithScope(binding.expression) : binding.type;
+    const bindingValue = binding.type;
     return bindingValue && canSatisfyShape(scope, value, bindingValue);
     // return (
     //   binding.callee === callee
@@ -100,8 +103,9 @@ export function findMatchingImplementations(scope: Scope, value: Value): ScopeBi
 
 export function scopeToEScope(scope: Scope): EvaluationScope {
   return {
-    bindings: flatMap(scope.bindings, ({ name, type, expression }) => (
-      expression ? eScopeBinding(name, expression) : eScopeShapeBinding(name, type)
+    bindings: flatMap(scope.bindings, ({ name, node, type }) => (
+      node ? eScopeBinding(name, stripDesugaredNodeWithoutPatternMatch(desugar(node))) : eScopeShapeBinding(name, type)
+      // expression ? eScopeBinding(name, expression) : eScopeShapeBinding(name, type)
     )),
   };
 }

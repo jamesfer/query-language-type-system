@@ -2,6 +2,8 @@ import chalk from 'chalk';
 import { promises } from 'fs';
 import { map } from 'lodash';
 import { performance } from 'perf_hooks';
+import { compile } from './api';
+import { DesugaredExpressionWithoutPatternMatch } from './desugar/desugar-pattern-match';
 import parse from './parser/parse';
 import { evaluationScope } from './type-checker/constructors';
 import { evaluateExpression } from './type-checker/evaluate';
@@ -129,7 +131,7 @@ function checkTypes(expression: Expression): void {
   process.stdout.write(chalk.grey(` ${time.toFixed(0)}ms\n`));
 }
 
-function evaluate(expression: Expression): Value {
+function evaluate(expression: DesugaredExpressionWithoutPatternMatch): Value {
   process.stdout.write('➜ Evaluating...');
   const [time, value] = timeFunction(() => evaluateExpression(evaluationScope())(expression));
   if (!value) {
@@ -150,14 +152,19 @@ async function main() {
   }
 
   const code = await readFile(filename);
-  const expression = parseCode(code);
-  checkTypes(expression);
-  const value = evaluate(expression);
-
-  console.log(chalk.green('\u2713 Succeeded'));
-  console.log();
-  console.log(indent(prettyPrintValue(value)));
-  console.log();
+  const result = compile(code);
+  if (result.expression) {
+    const value = evaluate(result.expression);
+    console.log(chalk.green('\u2713 Succeeded'));
+    console.log();
+    console.log(indent(prettyPrintValue(value)));
+    console.log();
+  } else {
+    console.log(chalk.red('✖ Failed to produce an expression from compiled code.'));
+    result.messages.forEach((message) => {
+      console.log(chalk.red(`  - ${message}`));
+    });
+  }
 }
 
 main();

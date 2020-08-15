@@ -77,16 +77,19 @@ function convergeConcrete(scope: Scope, shape: Exclude<Value, FreeVariable>, chi
 
     case 'ImplicitFunctionLiteral':
     case 'FunctionLiteral': {
-      if (child.kind !== shape.kind) {
+      const concreteShape = removeImplicitParameters(shape);
+      const concreteChild = removeImplicitParameters(child);
+
+      if (concreteShape.kind !== 'FunctionLiteral' || concreteChild.kind !== 'FunctionLiteral') {
         return undefined;
       }
 
-      const parameterReplacements = converge(scope, shape.parameter, child.parameter);
+      const parameterReplacements = converge(scope, concreteShape.parameter, concreteChild.parameter);
       if (!parameterReplacements) {
         return undefined;
       }
 
-      const bodyReplacements = converge(scope, shape.body, child.body);
+      const bodyReplacements = converge(scope, concreteShape.body, concreteChild.body);
       if (!bodyReplacements) {
         return undefined;
       }
@@ -184,7 +187,8 @@ export function converge(scope: Scope, shape: Value, child: Value): VariableRepl
     return convergeFreeVariable(scope, child, shape);
   }
 
-  return convergeConcrete(scope, shape, child);
+  const convergeConcrete1 = convergeConcrete(scope, shape, child);
+  return convergeConcrete1;
 }
 
 /**

@@ -19,7 +19,7 @@ import {
   checkedZip,
   spreadApply,
 } from './utils';
-import { unfoldExplicitParameters, visitValue } from './visitor-utils';
+import { unfoldExplicitParameters, visitAndTransformExpression, visitValue } from './visitor-utils';
 
 export interface VariableReplacement {
   from: string;
@@ -126,7 +126,9 @@ export const recursivelyApplyReplacements = (replacements: VariableReplacement[]
     }
   };
 
-export function extractFreeVariableNames(inputValue: Value) {
+// export function extractFreeVariableNames(inputExpression: )
+
+export function extractFreeVariableNamesFromValue(inputValue: Value): string[] {
   const [getState, after] = accumulateStates((value: Value) => (
     value.kind === 'FreeVariable' ? [value.name] : []
   ));
@@ -149,7 +151,7 @@ export function nextFreeName(taken: string[], prefix = 'var'): string {
 export function renameTakenVariables(takenVariables: string[], replacements: VariableReplacement[]): VariableReplacement[] {
   const allVariables = [...takenVariables];
   return replacements.map(({ from, to }) => {
-    const remainingReplacements = extractFreeVariableNames(to)
+    const remainingReplacements = extractFreeVariableNamesFromValue(to)
       .filter(name => allVariables.includes(name))
       .map((name) => {
         const newName = nextFreeName(allVariables, name);
@@ -342,7 +344,7 @@ const collapseValue = visitValue({
       return areValuesEqual(value.left, value.right) ? value.left : value;
     }
 
-    if (value.kind === 'ApplicationValue' && extractFreeVariableNames(value.parameter).length === 0) {
+    if (value.kind === 'ApplicationValue' && extractFreeVariableNamesFromValue(value.parameter).length === 0) {
       return applyParameter(value.parameter, value.callee);
     }
 
@@ -362,4 +364,60 @@ export function applyParameter(parameter: Value, func: Value): Value {
   }
 
   return func;
+}
+
+function collectFreeVariables(expression: Expression<string[]>): string[] {
+  switch (expression.kind) {
+    case 'Identifier':
+      return [expression.name];
+
+    case 'BooleanExpression':
+    case 'NumberExpression':
+    case 'StringExpression':
+    case 'SymbolExpression':
+      return [];
+
+    case 'RecordExpression':
+      return ([] as string[]).concat(...Object.values(expression.properties));
+
+    case 'Application':
+      return [
+        ...expression.callee,
+        ...expression.parameter,
+      ];
+
+    case 'FunctionExpression':
+      return [];
+
+    case 'DataInstantiation':
+      return expression.callee.concat(...expression.parameters);
+
+    case 'BindingExpression':
+      return [];
+
+    case 'DualExpression':
+      return [
+        ...expression.left,
+        ...expression.right,
+      ];
+
+    case 'ReadRecordPropertyExpression':
+      return expression.record;
+
+    case 'ReadDataPropertyExpression':
+      return expression.dataValue;
+
+    case 'PatternMatchExpression':
+      return expression.value.concat(...expression.patterns.map(pattern => [...pattern.test, ...pattern.value]));
+
+    case 'NativeExpression':
+      return [];
+
+    default:
+      return assertNever(expression);
+  }
+}
+
+export function extractFreeVariablesFromExpression(expression: Expression): string[] {
+  return visitAndTransformExpression(collectFreeVariables)(expression);
 }

@@ -4,7 +4,7 @@ import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
 import { ExplicitValue, Value } from './types/value';
 import { assertNever } from './utils';
-import { extractFreeVariableNames, usesVariable } from './variable-utils';
+import { extractFreeVariableNamesFromValue, usesVariable } from './variable-utils';
 import { unfoldParameters, visitAndTransformValue } from './visitor-utils';
 
 export function deepExtractImplicitParameters(node: TypedNode): Value[] {
@@ -25,10 +25,12 @@ export function deepExtractImplicitParametersFromExpression(expression: Expressi
       return [];
 
     case 'RecordExpression':
-      return flatMap(expression.properties, extractNextImplicits);
+      return [];
+      // return flatMap(expression.properties, extractNextImplicits);
 
     case 'Application':
-      return [...extractNextImplicits(expression.callee), ...extractNextImplicits(expression.parameter)];
+      return [];
+      // return [...extractNextImplicits(expression.callee), ...extractNextImplicits(expression.parameter)];
 
     case 'FunctionExpression':
       // We don't extract implicits from the parameters because I don't think they should be handled
@@ -36,24 +38,29 @@ export function deepExtractImplicitParametersFromExpression(expression: Expressi
       return extractNextImplicits(expression.body);
 
     case 'DataInstantiation':
-      return flatMap(expression.parameters, extractNextImplicits);
+      return [];
+      // return flatMap(expression.parameters, extractNextImplicits);
 
     case 'BindingExpression':
-      return extractNextImplicits(expression.body);
+      return [];
+      // return extractNextImplicits(expression.body);
 
     case 'DualExpression':
       return [...extractNextImplicits(expression.left), ...extractNextImplicits(expression.right)];
 
     case 'ReadRecordPropertyExpression':
-      return extractNextImplicits(expression.record);
+      return [];
+      // return extractNextImplicits(expression.record);
 
     case 'ReadDataPropertyExpression':
-      return extractNextImplicits(expression.dataValue);
+      return [];
+      // return extractNextImplicits(expression.dataValue);
 
     case 'PatternMatchExpression':
-      return [...extractNextImplicits(expression.value), ...flatMap(expression.patterns, ({ test, value }) => (
-        [...extractNextImplicits(test), ...extractNextImplicits(value)]
-      ))];
+      return [];
+      // return [...extractNextImplicits(expression.value), ...flatMap(expression.patterns, ({ test, value }) => (
+      //   [...extractNextImplicits(test), ...extractNextImplicits(value)]
+      // ))];
 
     default:
       return assertNever(expression);
@@ -100,12 +107,12 @@ export function stripAllImplicits(types: Value[]): ExplicitValue[] {
  * free variable in common with relating value. The second shares no free variables.
  */
 export function partitionUnrelatedValues(valueList: Value[], relatingValue: Value): [Value[], Value[]] {
-  let variableNames = extractFreeVariableNames(relatingValue);
+  let variableNames = extractFreeVariableNamesFromValue(relatingValue);
   let allRelated: Value[] = [];
   let [related, unrelated] = partition(valueList, usesVariable(variableNames));
   while (related.length > 0) {
     allRelated = [...allRelated, ...related];
-    variableNames = [...variableNames, ...flatMap(related, extractFreeVariableNames)];
+    variableNames = [...variableNames, ...flatMap(related, extractFreeVariableNamesFromValue)];
     ([related, unrelated] = partition(unrelated, usesVariable(variableNames)));
   }
   return [allRelated, unrelated];

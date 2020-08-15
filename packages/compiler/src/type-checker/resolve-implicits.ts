@@ -107,7 +107,7 @@ import { visitNodes } from './visitor-utils';
 // }
 //
 
-function getImplicitImplementations(scope: Scope, value: Value, allowUnresolvedImplicits: boolean): { result: Value, implementations: ScopeBinding[], skippedImplicits: Value[], messages: Message[] } {
+function getImplicitImplementations(scope: Scope, value: Value): { result: Value, implementations: ScopeBinding[], skippedImplicits: Value[], messages: Message[] } {
   // Find all the implicit parts of the type
   const [implicitParameters, result] = extractImplicitsParameters(value);
   if (implicitParameters.length === 0) {
@@ -163,7 +163,7 @@ function getImplicitImplementations(scope: Scope, value: Value, allowUnresolvedI
 
 function shallowResolveImplicitParameters(parentKind: Expression['kind'] | undefined, typedNode: TypedNode): [Message[], TypedNode] {
   const { expression, decoration: { scope, implicitType: type } } = typedNode;
-  const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type, parentKind === 'BindingExpression');
+  const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type);
 
   // Recurse through the rest of the tree
   // const [expressionMessages, resolvedExpression] = iterateExpression(expression, result);
