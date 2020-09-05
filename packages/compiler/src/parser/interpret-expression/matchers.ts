@@ -95,6 +95,10 @@ function matchRepeatedRecursive<T>(
           ([, nextResults]) => nextResults.length === 0,
         );
 
+        if (failedMatches.length >= 4 || successfulMatches.length >= 4) {
+          console.log(failedMatches.length, successfulMatches.length);
+        }
+
         // Add each of the failed to matches to the completed list
         const completedMatches = map(failedMatches, '0');
 
@@ -198,19 +202,21 @@ function recursivelyMatchExpression(interpretExpressionComponent: Interpreter<Ex
       return pipeFree(
         runInterpreter(interpretExpressionComponent, tokens, previous, precedence),
         returningFree(state.unwrap.bind(state)),
-        (results) => traverseFree(results, ({ value, tokens: resultTokens }) => pipeFree(
-          runInterpreter(
-            recursivelyMatchExpression(interpretExpressionComponent),
-            tokens.slice(resultTokens.length),
-            value,
-            precedence,
-          ),
-          returningFree(state.unwrap.bind(state)),
-          returningFree(recursiveResults => (
-            recursiveResults.map(({ tokens, value }) => withTokens([...resultTokens, ...tokens], value))
-          )),
-          returningFree(recursiveResults => recursiveResults.length > 0 ? recursiveResults : results),
-        )),
+        (results) => {
+          return traverseFree(results, ({ value, tokens: resultTokens }) => pipeFree(
+            runInterpreter(
+              recursivelyMatchExpression(interpretExpressionComponent),
+              tokens.slice(resultTokens.length),
+              value,
+              precedence,
+            ),
+            returningFree(state.unwrap.bind(state)),
+            returningFree(recursiveResults => (
+              recursiveResults.map(({ tokens, value }) => withTokens([...resultTokens, ...tokens], value))
+            )),
+            returningFree(recursiveResults => recursiveResults.length > 0 ? recursiveResults : results),
+          ));
+        },
         returningFree(flatten),
       );
     });

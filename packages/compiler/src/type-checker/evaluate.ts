@@ -1,92 +1,18 @@
-import { find, mapValues } from 'lodash';
+import { find, mapValues, isEqual } from 'lodash';
+import { DesugaredExpressionWithoutPatternMatch } from '../desugar/desugar-pattern-match';
 import {
   eScopeBinding,
   expandEvaluationScope,
   freeVariable, scope,
 } from './constructors';
 import { EvaluationScope } from './types/evaluation-scope';
-import { Expression } from './types/expression';
 import { DataValue, Value } from './types/value';
 import { assertNever, everyIs, everyValue, findWithResult, isDefined } from './utils';
 import { converge, destructureValue } from './type-utils';
-import { applyReplacements, extractFreeVariableNames } from './variable-utils';
+import { applyReplacements, extractFreeVariableNamesFromValue } from './variable-utils';
 import { visitValue } from './visitor-utils';
 
-// const substituteExpressionVariables = (substitutions: { name: string, value: Expression }[]) => (expression: Expression): Expression => {
-//   const recurse = substituteExpressionVariables(substitutions);
-//   return substitutions.reduce(
-//     (body, { name, value }): Expression => {
-//       switch (body.kind) {
-//         case 'SymbolExpression':
-//         case 'NumberExpression':
-//         case 'BooleanExpression':
-//         case 'FunctionExpression':
-//           return body;
-//
-//         case 'Identifier':
-//           return body.name === name ? value : body;
-//
-//         case 'Application':
-//           return {
-//             ...body,
-//             kind: 'Application',
-//             parameter: recurse(body.parameter),
-//             callee: recurse(body.callee),
-//           };
-//
-//         case 'DataInstantiation':
-//           return {
-//             ...body,
-//             kind: 'DataInstantiation',
-//             parameters: body.parameters.map(recurse),
-//           };
-//
-//         case 'RecordExpression':
-//           return {
-//             ...body,
-//             properties: mapValues(body.properties, recurse),
-//           };
-//
-//         case 'BindingExpression':
-//           return {
-//             ...body,
-//             value: recurse(body.value),
-//             body: recurse(body.body),
-//           };
-//
-//         case 'DualExpression':
-//           return {
-//             ...body,
-//             left: recurse(body.left),
-//             right: recurse(body.right),
-//           };
-//
-//         case 'ReadRecordPropertyExpression':
-//           return {
-//             ...body,
-//             record: recurse(body.record),
-//           };
-//
-//         case 'ReadDataPropertyExpression':
-//           return {
-//             ...body,
-//             dataValue: recurse(body.dataValue),
-//           };
-//
-//         case 'PatternMatchExpression':
-//           return {
-//
-//           }
-//
-//         default:
-//           return assertNever(body);
-//       }
-//     },
-//     expression,
-//   );
-// };
-
-export const evaluateExpression = (scope: EvaluationScope) => (expression: Expression): Value | undefined => {
+export const evaluateExpression = (scope: EvaluationScope) => (expression: DesugaredExpressionWithoutPatternMatch): Value | undefined => {
   switch (expression.kind) {
     case 'SymbolExpression':
       return { kind: 'SymbolLiteral', name: expression.name };
@@ -99,15 +25,6 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
 
     case 'StringExpression':
       return { kind: 'StringLiteral', value: expression.value };
-
-    case 'DualExpression': {
-      const left = evaluateExpression(scope)(expression.left);
-      const right = evaluateExpression(scope)(expression.right);
-      if (!left || !right) {
-        return undefined;
-      }
-      return { left, right, kind: 'DualBinding' };
-    }
 
     case 'DataInstantiation': {
       const name = evaluateExpression(scope)(expression.callee);
@@ -126,12 +43,7 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
       return undefined;
     }
 
-    case 'FunctionExpression': {
-      const parameter = evaluateExpression(scope)(expression.parameter);
-      if (!parameter) {
-        return undefined;
-      }
-
+    case 'SimpleFunctionExpression': {
       const body = evaluateExpression(scope)(expression.body);
       if (!body) {
         return undefined;
@@ -139,8 +51,11 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
 
       return {
         body,
-        parameter,
-        kind: expression.implicit ? 'ImplicitFunctionLiteral' : 'FunctionLiteral',
+        parameter: {
+          kind: 'FreeVariable',
+          name: expression.parameter,
+        },
+        kind: 'FunctionLiteral',
       };
     }
 
@@ -174,11 +89,11 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
 
       const simplifiedCallee = simplify(callee);
       if (simplifiedCallee.kind !== 'FunctionLiteral' && simplifiedCallee.kind !== 'ImplicitFunctionLiteral') {
-        return {
+        return simplify({
           parameter,
           kind: 'ApplicationValue',
           callee: simplifiedCallee,
-        };
+        });
       }
 
       const replacements = destructureValue(simplifiedCallee.parameter, parameter);
@@ -230,30 +145,20 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Expre
       return dataValue.parameters[expression.property];
     }
 
-    case 'PatternMatchExpression': {
-      const value = evaluateExpression(scope)(expression.value);
-      if (!value) {
-        return undefined;
-      }
-
-      const patterns = expression.patterns.map(({ test, value }) => ({
-        test: evaluateExpression(scope)(test),
-        value: evaluateExpression(scope)(value),
-      }));
-      if (!everyIs(patterns, (pattern): pattern is { test: Value, value: Value } => (
-        isDefined(pattern.test) && isDefined(pattern.value)
-      ))) {
-        return undefined;
-      }
-
-      return simplify({
-        value,
-        patterns,
-        kind: 'PatternMatchValue',
-      });
-    }
-
     case 'NativeExpression':
+      const evaluatorImplementation = expression.data.evaluator;
+      if (!evaluatorImplementation) {
+        throw new Error('Tried to evaluate a native expression that did not have a evaluator implementation');
+      }
+
+      if (evaluatorImplementation.kind === 'builtin') {
+        return {
+          kind: 'FreeVariable',
+          name: `$builtin$${evaluatorImplementation.name}`,
+        };
+      } else {
+        throw new Error(`Unknown type of evaluator native expression:${evaluatorImplementation.kind}`);
+      }
       return undefined;
 
     default:
@@ -275,6 +180,26 @@ export const simplify = visitValue({
           : value;
 
       case 'ApplicationValue': {
+        if (value.callee.kind === 'ApplicationValue') {
+          if (value.callee.callee.kind === 'FreeVariable') {
+            if (value.callee.callee.name === '$builtin$equals') {
+              return isEqual(value.parameter, value.callee.parameter)
+                ? { kind: 'BooleanLiteral', value: true }
+                : { kind: 'BooleanLiteral', value: false };
+            }
+          } else if (value.callee.callee.kind === 'ApplicationValue' && value.callee.callee.callee.kind === 'FreeVariable') {
+            if (value.callee.callee.callee.name === '$builtin$if') {
+              if (value.callee.callee.parameter.kind === 'BooleanLiteral') {
+                if (value.callee.callee.parameter.value) {
+                  return value.callee.parameter;
+                } else {
+                  return value.parameter;
+                }
+              }
+            }
+          }
+        }
+
         if (value.callee.kind !== 'FunctionLiteral' && value.callee.kind !== 'ImplicitFunctionLiteral') {
           return value;
         }
@@ -288,7 +213,7 @@ export const simplify = visitValue({
       }
 
       case 'PatternMatchValue': {
-        if (extractFreeVariableNames(value.value).length !== 0) {
+        if (extractFreeVariableNamesFromValue(value.value).length !== 0) {
           return value;
         }
 

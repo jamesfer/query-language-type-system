@@ -1,7 +1,7 @@
 import { mapValues } from 'lodash';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
-import { Node, NodeWithChild } from './types/node';
+import { Node, NodeWithChild, NodeWithExpression } from './types/node';
 import { Value } from './types/value';
 import { assertNever } from './utils';
 
@@ -146,6 +146,7 @@ export const visitAndTransformChildExpression = <A, T>(callback: (expression: A 
     case 'FunctionExpression':
       return {
         ...expression,
+        parameter: callback(expression.parameter),
         body: callback(expression.body),
       };
 
@@ -227,6 +228,7 @@ const visitAndTransformChildExpressionPre = <T, U>(callback: (expression: T exte
     case 'FunctionExpression':
       return {
         ...expression,
+        parameter: callback(expression.parameter),
         body: callback(expression.body),
       };
 
@@ -460,3 +462,10 @@ export const visitValueWithState = <S>(initial: S, visitor: Visitor<[S, Value]>)
     after: visitor.after ? wrap(visitor.after) : undefined,
   })(value);
 };
+
+export function mapNode<D, E, F>(f: (e: E) => F, node: NodeWithExpression<D, E>): NodeWithExpression<D, F> {
+  return {
+    ...node,
+    expression: f(node.expression),
+  };
+}

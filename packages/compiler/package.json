@@ -16,6 +16,7 @@
     "@babel/types": "^7.7.4",
     "chalk": "^3.0.0",
     "dedent-js": "^1.0.1",
+    "fp-ts": "^2.6.3",
     "lodash": "^4.17.15",
     "moo": "^0.5.1"
   },
@@ -33,6 +34,6 @@
     "require-from-string": "^2.0.2",
     "ts-jest": "^24.2.0",
     "ts-node": "^8.6.2",
-    "typescript": "^3.7.4"
+    "typescript": "^3.9.2"
   }
 }

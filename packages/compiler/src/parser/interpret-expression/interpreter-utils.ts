@@ -45,9 +45,9 @@ export function runInterpreter<T>(
   }
 
   return mapFree(interpreter.interpret(tokens, previous, precedence), ({ messages, value: results }) => {
-    const indentedMessages = messages.map(message => `  ${message}`);
-    const debugMessage = `${interpreter.name} running on: ${map(tokens, 'value').join(', ')}`;
-    const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${max(map(results, 'tokens.length'))} tokens)` : 'failed'}`;
-    return withMessages([debugMessage, ...indentedMessages, resultMessage], results);
+    // const indentedMessages = messages.map(message => `  ${message}`);
+    // const debugMessage = `${interpreter.name} running on: ${map(tokens, 'value').join(', ')}`;
+    // const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${max(map(results, 'tokens.length'))} tokens)` : 'failed'}`;
+    return withMessages([], results);
   });
 }
