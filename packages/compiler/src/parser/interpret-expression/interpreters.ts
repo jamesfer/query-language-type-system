@@ -1,4 +1,4 @@
-import { fromPairs, map, maxBy } from 'lodash';
+import { fromPairs, map, maxBy, flatMap } from 'lodash';
 import {
   Application,
   BindingExpression,
@@ -238,18 +238,35 @@ const interpretPatternMatch = interpreter('interpretPatternMatch', matchAll(
   patterns: patterns.map(([, test, , value]) => ({ test, value })),
 })));
 
+function extractSimpleRecordValues(record: RecordExpression): { [k: string]: any } {
+  return fromPairs(flatMap(record.properties, (value: Expression, key): [string, any][] => {
+    if (value.kind === 'BooleanExpression') {
+      return [[key, value.value]];
+    } else if (value.kind === 'NumberExpression') {
+      return [[key, value.value]];
+    } else if (value.kind === 'StringExpression') {
+      return [[key, value.value]];
+    } else if (value.kind === 'RecordExpression') {
+      return [[key, extractSimpleRecordValues(value)]];
+    }
+    return [];
+  }));
+}
+
 const interpretNative = interpreter('interpretNative', matchAll(
   withoutPrevious,
-  matchTokens('hash', 'openBrace'),
-  matchRepeated(interpreter(undefined, matchAll(
-    matchTokens('identifier', 'equals'),
-    matchAny(interpretNumber, interpretString),
-    matchTokens('comma'),
-  )(a => a))),
-  matchTokens('closeBrace'),
-)(([_1, _2, properties]): NativeExpression => ({
+  matchTokens('hash'),
+  interpretRecord,
+  // matchRepeated(interpreter(undefined, matchAll(
+  //   matchTokens('identifier', 'equals'),
+  //   matchExpression,
+  //   matchTokens('comma'),
+  // )(a => a))),
+  // matchTokens('closeBrace'),
+)(([_1, _2, record]): NativeExpression => ({
   kind: 'NativeExpression',
-  data: fromPairs(properties.map(([[identifier], value]) => [identifier.value, value.value])),
+  data: extractSimpleRecordValues(record),
+  // fromPairs(properties.map(([[identifier], value]) => [identifier.value, value.value])),
 })));
 
 const interpretParenthesis = interpreter('interpretParenthesis', matchAll(

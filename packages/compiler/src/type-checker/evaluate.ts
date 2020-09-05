@@ -1,4 +1,4 @@
-import { find, mapValues } from 'lodash';
+import { find, mapValues, isEqual } from 'lodash';
 import { DesugaredExpressionWithoutPatternMatch } from '../desugar/desugar-pattern-match';
 import {
   eScopeBinding,
@@ -89,11 +89,11 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Desug
 
       const simplifiedCallee = simplify(callee);
       if (simplifiedCallee.kind !== 'FunctionLiteral' && simplifiedCallee.kind !== 'ImplicitFunctionLiteral') {
-        return {
+        return simplify({
           parameter,
           kind: 'ApplicationValue',
           callee: simplifiedCallee,
-        };
+        });
       }
 
       const replacements = destructureValue(simplifiedCallee.parameter, parameter);
@@ -146,6 +146,19 @@ export const evaluateExpression = (scope: EvaluationScope) => (expression: Desug
     }
 
     case 'NativeExpression':
+      const evaluatorImplementation = expression.data.evaluator;
+      if (!evaluatorImplementation) {
+        throw new Error('Tried to evaluate a native expression that did not have a evaluator implementation');
+      }
+
+      if (evaluatorImplementation.kind === 'builtin') {
+        return {
+          kind: 'FreeVariable',
+          name: `$builtin$${evaluatorImplementation.name}`,
+        };
+      } else {
+        throw new Error(`Unknown type of evaluator native expression:${evaluatorImplementation.kind}`);
+      }
       return undefined;
 
     default:
@@ -167,6 +180,26 @@ export const simplify = visitValue({
           : value;
 
       case 'ApplicationValue': {
+        if (value.callee.kind === 'ApplicationValue') {
+          if (value.callee.callee.kind === 'FreeVariable') {
+            if (value.callee.callee.name === '$builtin$equals') {
+              return isEqual(value.parameter, value.callee.parameter)
+                ? { kind: 'BooleanLiteral', value: true }
+                : { kind: 'BooleanLiteral', value: false };
+            }
+          } else if (value.callee.callee.kind === 'ApplicationValue' && value.callee.callee.callee.kind === 'FreeVariable') {
+            if (value.callee.callee.callee.name === '$builtin$if') {
+              if (value.callee.callee.parameter.kind === 'BooleanLiteral') {
+                if (value.callee.callee.parameter.value) {
+                  return value.callee.parameter;
+                } else {
+                  return value.parameter;
+                }
+              }
+            }
+          }
+        }
+
         if (value.callee.kind !== 'FunctionLiteral' && value.callee.kind !== 'ImplicitFunctionLiteral') {
           return value;
         }

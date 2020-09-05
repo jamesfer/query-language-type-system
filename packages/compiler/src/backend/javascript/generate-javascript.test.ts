@@ -29,14 +29,14 @@ describe('generateJavascript', () => {
   });
 
   it('translates a function expression', () => {
-    expect(toJavascript('a -> b -> 1')).toEqual('export default (a$rename$16 => b$rename$17 => 1);');
+    expect(toJavascript('a -> b -> 1')).toEqual('export default (a$rename$25 => b$rename$26 => 1);');
   });
 
   it('translates a function expression with bindings', () => {
     expect(toJavascript('a:b -> a')).toEqual(dedent`
       export default (injectedParameter$ => {
-        const a$rename$16 = injectedParameter$;
-        return a$rename$16;
+        const a$rename$25 = injectedParameter$;
+        return a$rename$25;
       });
     `);
   });
@@ -86,11 +86,11 @@ describe('generateJavascript', () => {
 
   it('translates a data declaration', () => {
     expect(toJavascript('data a = x, y, z\na 1 2 3')).toEqual(dedent`
-      const a = x$rename$16 => y$rename$17 => z$rename$18 => ({
+      const a = x$rename$25 => y$rename$26 => z$rename$27 => ({
         $DATA_NAME$: "$SYMBOL$a",
-        0: x$rename$16,
-        1: y$rename$17,
-        2: z$rename$18
+        0: x$rename$25,
+        1: y$rename$26,
+        2: z$rename$27
       });
 
       export default a(1)(2)(3);
@@ -99,21 +99,21 @@ describe('generateJavascript', () => {
 
   describe('given a native expression', () => {
     it('translates it to a variable', () => {
-      expect(toJavascript('#{ name = "window", }')).toEqual(`export default window;`);
+      expect(toJavascript('#{ javascript = { name = "window", }, }')).toEqual(`export default window;`);
     });
 
     it('translates it to a binary expression', () => {
-      expect(toJavascript('#{ kind = "binaryOperation", operator = "+", }'))
+      expect(toJavascript('#{ javascript = { kind = "binaryOperation", operator = "+", }, }'))
         .toEqual(`export default ($leftBinaryParam => $rightBinaryParam => $leftBinaryParam + $rightBinaryParam);`);
     });
 
     it('translates it to a member call', () => {
-      expect(toJavascript('#{ kind = "memberCall", name = "delete", arity = 2, }'))
+      expect(toJavascript('#{ javascript = { kind = "memberCall", name = "delete", arity = 2, }, }'))
         .toEqual(`export default ($nativeObject => $nativeParameter$0 => $nativeParameter$1 => $nativeObject.delete($nativeParameter$0, $nativeParameter$1));`);
     });
 
     it('translates it to a member', () => {
-      expect(toJavascript('#{ kind = "member", object = "document", name = "createElement", arity = 2, }'))
+      expect(toJavascript('#{ javascript = { kind = "member", object = "document", name = "createElement", arity = 2, }, }'))
         .toEqual(`export default ($nativeParameter$0 => $nativeParameter$1 => document.createElement($nativeParameter$0, $nativeParameter$1));`);
     });
   });

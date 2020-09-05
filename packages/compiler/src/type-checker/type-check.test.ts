@@ -202,7 +202,7 @@ describe('typeExpression', () => {
       data List = elementType, child
       data ListElement = implicit elementType element, implicit List elementType tail, element, tail
       data ListEmpty
-      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> element -> tail -> List elementType (ListElement element tail)
+      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> implicit element -> implicit tail -> List elementType (ListElement element tail)
       let listEmptyImpl = implicit elementType -> List elementType ListEmpty
       ListElement 5 (ListElement 2 ListEmpty) 
     `);
@@ -214,7 +214,7 @@ describe('typeExpression', () => {
       data List = elementType, child
       data ListElement = implicit elementType element, implicit List elementType tail, element, tail
       data ListEmpty
-      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> element -> tail -> List elementType (ListElement element tail)
+      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> implicit element -> implicit tail -> List elementType (ListElement element tail)
       let listEmptyImpl = implicit elementType -> List elementType ListEmpty
       ListElement 5 (ListElement true ListEmpty) 
     `);
@@ -304,6 +304,7 @@ describe('typeExpression', () => {
     //   apply('valueOf', ['Red']),
     // );
 
+    // TODO I think "Serializable (Color t) ..." needs to be "Serializable Color ..."
     const code = dedent`
       data Int = c
       data Serializable = a, { valueOf = implicit Int result -> implicit a object -> object -> result, }

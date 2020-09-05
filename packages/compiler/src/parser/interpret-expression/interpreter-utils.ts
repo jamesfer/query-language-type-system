@@ -34,7 +34,6 @@ export function interpreter<T>(
   return { name, interpret };
 }
 
-let i = 0;
 export function runInterpreter<T>(
   interpreter: Interpreter<T>,
   tokens: ExpressionToken[],
@@ -46,18 +45,9 @@ export function runInterpreter<T>(
   }
 
   return mapFree(interpreter.interpret(tokens, previous, precedence), ({ messages, value: results }) => {
-    const indentedMessages = messages.map(message => `  ${message}`);
-    const debugMessage = `${interpreter.name} running on: ${map(tokens, 'value').join(', ')}`;
-    const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${max(map(results, 'tokens.length'))} tokens)` : 'failed'}`;
-    i++;
-    if (results.length >= 4) {
-      // console.log(interpreter.name, results.length);
-      // require('fs').writeFileSync('./results.json', JSON.stringify(results, undefined, 2));
-    }
-    // if (indentedMessages.length > 500) {
-    //   require('fs').writeFileSync('./output.txt', [debugMessage, ...indentedMessages, resultMessage].join('\n'));
-    //   // console.log([debugMessage, ...indentedMessages, resultMessage].join('\n'));
-    // }
-    return withMessages([debugMessage, ...indentedMessages, resultMessage], results);
+    // const indentedMessages = messages.map(message => `  ${message}`);
+    // const debugMessage = `${interpreter.name} running on: ${map(tokens, 'value').join(', ')}`;
+    // const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${max(map(results, 'tokens.length'))} tokens)` : 'failed'}`;
+    return withMessages([], results);
   });
 }

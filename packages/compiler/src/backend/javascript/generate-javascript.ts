@@ -140,10 +140,15 @@ function convertExpressionToCode(expression: DesugaredExpressionWithoutPatternMa
       return [dataValueStatements, types.memberExpression(dataValue, types.identifier(`${expression.property}`))];
 
     case 'NativeExpression': {
-      const { kind } = expression.data;
+      const nativeData = expression.data.javascript;
+      if (!nativeData) {
+        throw new Error(`Cannot output a native expression without a javascript spec:${JSON.stringify(expression.data, undefined, 2)}`);
+      }
+
+      const { kind } = nativeData;
       switch (kind) {
         case 'member': {
-          const { object, name, arity } = expression.data;
+          const { object, name, arity } = nativeData;
           if (typeof object !== 'string' || typeof name !== 'string' || typeof arity !== 'number') {
             throw new Error('Cannot output member native expression with incorrect data');
           }
@@ -158,7 +163,7 @@ function convertExpressionToCode(expression: DesugaredExpressionWithoutPatternMa
         }
 
         case 'memberCall': {
-          const { name, arity } = expression.data;
+          const { name, arity } = nativeData;
           if (typeof name !== 'string' || typeof arity !== 'number') {
             throw new Error('Cannot output member call native expression with incorrect data');
           }
@@ -174,7 +179,7 @@ function convertExpressionToCode(expression: DesugaredExpressionWithoutPatternMa
         }
 
         case 'binaryOperation': {
-          const { operator } = expression.data;
+          const { operator } = nativeData;
           if (typeof operator !== 'string') {
             throw new Error('Cannot output a binary operation without an operator');
           }
@@ -188,8 +193,19 @@ function convertExpressionToCode(expression: DesugaredExpressionWithoutPatternMa
           return [[], result];
         }
 
+        case 'ternaryOperator': {
+          const condition = types.identifier('$conditionParam');
+          const consequent = types.identifier('$consequentParam');
+          const alternative = types.identifier('$alternativeParam');
+          const result = [condition, consequent, alternative].reduceRight<types.Expression>(
+            (body, identifier) => types.arrowFunctionExpression([identifier], body),
+            types.conditionalExpression(condition, consequent, alternative),
+          );
+          return [[], result];
+        }
+
         default: {
-          const { name } = expression.data;
+          const { name } = nativeData;
           if (typeof name !== 'string') {
             throw new Error('Native expression is missing a name');
           }

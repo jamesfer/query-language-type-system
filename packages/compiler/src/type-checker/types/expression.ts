@@ -86,7 +86,7 @@ export interface PatternMatchExpression<T = Expression> {
 
 export interface NativeExpression {
   kind: 'NativeExpression';
-  data: { [k: string]: string | number };
+  data: { [k: string]: any };
 }
 
 export type Expression<T = void> =
