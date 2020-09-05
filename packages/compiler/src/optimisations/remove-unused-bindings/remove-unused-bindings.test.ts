@@ -1,7 +1,7 @@
 import dedent from "dedent-js";
 import { Expression } from '../..';
 import { compile } from '../../api';
-import { stripDesugaredNodeWithoutPatternMatch } from '../../desugar/desugar-pattern-match';
+import { stripCoreNode } from '../../desugar/desugar';
 
 describe('removeUnusedBindings', () => {
   it('removes binding expressions that are not used', () => {
@@ -24,7 +24,7 @@ describe('removeUnusedBindings', () => {
           name: 'a',
         },
       };
-      expect(stripDesugaredNodeWithoutPatternMatch(result.node)).toEqual(expected);
+      expect(stripCoreNode(result.node)).toEqual(expected);
     }
   });
 });

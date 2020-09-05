@@ -1,6 +1,5 @@
 import { find, flatMap, map, some, zipObject, merge } from 'lodash';
-import { desugar } from '../desugar/desugar';
-import { stripDesugaredNodeWithoutPatternMatch } from '../desugar/desugar-pattern-match';
+import { desugar, stripCoreNode } from '../desugar/desugar';
 import {
   booleanLiteral,
   dataValue,
@@ -17,7 +16,6 @@ import {
 } from './constructors';
 import { evaluateExpression } from './evaluate';
 import {
-  deepExtractImplicitParameters,
   deepExtractImplicitParametersFromExpression,
   extractImplicitsParameters,
   partitionUnrelatedValues,
@@ -25,10 +23,8 @@ import {
 } from './implicit-utils';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { reduceExpression } from './reduce-expression';
-import { renameFreeVariables } from './rename-free-variables';
 import { runTypePhaseWithoutRename } from './run-type-phase';
 import { findBinding, scopeToEScope } from './scope-utils';
-import { stripNode } from './strip-nodes';
 import { converge, newFreeVariable } from './type-utils';
 import {
   DataInstantiation,
@@ -41,7 +37,7 @@ import { Scope } from './types/scope';
 import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
 import { assertNever, UniqueIdGenerator, withParentExpressionKind } from './utils';
 import {
-  applyReplacements, extractFreeVariableNamesFromValue, extractFreeVariablesFromExpression,
+  applyReplacements, extractFreeVariablesFromExpression,
   getBindingsFromValue,
   recursivelyApplyReplacements,
 } from './variable-utils';
@@ -158,7 +154,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       // const desugaredParameter = desugar(parameter);
       // const parameterValue = evaluateExpression(
       //   scopeToEScope(state.scope)
-      // )(stripDesugaredNodeWithoutPatternMatch(desugaredParameter));
+      // )(stripCoreNode(desugaredParameter));
       // if (!parameterValue) {
       //   // TODO handle undefined parameters that failed to be evaluated
       //   throw new Error(`Failed to evaluate expression: ${JSON.stringify(expression.parameter, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
@@ -376,7 +372,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       const value = state.run(typeExpression(makeUniqueId))(expression.value);
       const patterns = expression.patterns.map(({ test, value }) => {
         const testNode = state.run(runTypePhaseWithoutRename(makeUniqueId))(test);
-        const evaluatedTest = evaluateExpression(scopeToEScope(state.scope))(stripDesugaredNodeWithoutPatternMatch(desugar(testNode)));
+        const evaluatedTest = evaluateExpression(scopeToEScope(state.scope))(stripCoreNode(desugar(testNode)));
         if (!evaluatedTest) {
           // TODO handle undefined parameters that failed to be evaluated
           throw new Error(`Failed to evaluate expression: ${JSON.stringify(test, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);

@@ -1,9 +1,7 @@
 import generate from '@babel/generator';
 import * as types from '@babel/types';
-import { flatMap, initial, last, map, flatten } from 'lodash';
-import { DesugaredExpressionWithoutPatternMatch } from '../../desugar/desugar-pattern-match';
-import { identifier } from '../../type-checker/constructors';
-import { Expression, PatternMatchExpression } from '../..';
+import { map, flatten } from 'lodash';
+import { CoreExpression } from '../..';
 import { assertNever, unzip } from '../../type-checker/utils';
 
 // const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
@@ -51,7 +49,7 @@ import { assertNever, unzip } from '../../type-checker/utils';
 //   }
 // };
 
-function convertExpressionToCode(expression: DesugaredExpressionWithoutPatternMatch): [types.Statement[], types.Expression] {
+function convertExpressionToCode(expression: CoreExpression): [types.Statement[], types.Expression] {
   switch (expression.kind) {
     case 'Identifier':
       return [[], types.identifier(expression.name)];
@@ -237,7 +235,7 @@ function wrapInExport(moduleType: 'commonjs' | 'esm', statements: types.Statemen
   ])
 }
 
-export function generateJavascript(expression: DesugaredExpressionWithoutPatternMatch, options: JavascriptBackendOptions): string {
+export function generateJavascript(expression: CoreExpression, options: JavascriptBackendOptions): string {
   const [statements, value] = convertExpressionToCode(expression);
   const program = wrapInExport(options.module, statements, value);
   return generate(program).code;

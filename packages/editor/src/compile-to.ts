@@ -1,4 +1,4 @@
-import { compile, generateJavascript, Message, Expression } from 'query-language-compiler';
+import { compile, generateJavascript, Message, CoreExpression } from 'query-language-compiler';
 
 export interface CompileToOptions {
   backend: 'javascript';
@@ -9,7 +9,7 @@ export interface CompileToResult {
   messages: Message[];
 }
 
-function toBackend(expression: Expression, backend: 'javascript'): string | undefined {
+function toBackend(expression: CoreExpression, backend: 'javascript'): string | undefined {
   switch (backend) {
     case 'javascript':
       return generateJavascript(expression, { module: 'esm' });

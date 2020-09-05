@@ -1,8 +1,19 @@
 import { TypedNode } from '..';
 import { desugarDestructuring } from './desugar-destructuring';
 import { desugarDualBindings } from './desugar-dual-bindings';
-import { desugarPatternMatch, DesugaredNode } from './desugar-pattern-match';
+import {
+  desugarPatternMatch,
+  DesugaredNode,
+  DesugaredExpressionWithoutPatternMatch, stripDesugaredNodeWithoutPatternMatch,
+} from './desugar-pattern-match';
 
-export function desugar(node: TypedNode): DesugaredNode {
+export type CoreExpression = DesugaredExpressionWithoutPatternMatch;
+export type CoreNode = DesugaredNode;
+
+export function desugar(node: TypedNode): CoreNode {
   return desugarPatternMatch(desugarDualBindings(desugarDestructuring(node)));
+}
+
+export function stripCoreNode(node: CoreNode): CoreExpression {
+  return stripDesugaredNodeWithoutPatternMatch(node);
 }

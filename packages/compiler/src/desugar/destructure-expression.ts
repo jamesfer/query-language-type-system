@@ -1,5 +1,4 @@
-import { Application, Identifier, TypedNode } from '..';
-import { ExplicitValue, Value } from '../type-checker/types/value';
+import { Application, Identifier } from '..';
 import { DesugaredNode } from './desugar-destructuring';
 import { flatMap } from 'lodash';
 

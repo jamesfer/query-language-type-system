@@ -1,6 +1,5 @@
 import { find, flatMap } from 'lodash';
-import { desugar } from '../desugar/desugar';
-import { stripDesugaredNodeWithoutPatternMatch } from '../desugar/desugar-pattern-match';
+import { desugar, stripCoreNode } from '../desugar/desugar';
 import { eScopeBinding, eScopeShapeBinding, expandScope, scopeBinding } from './constructors';
 import { evaluateExpression } from './evaluate';
 import { canSatisfyShape } from './type-utils';
@@ -104,7 +103,7 @@ export function findMatchingImplementations(scope: Scope, value: Value): ScopeBi
 export function scopeToEScope(scope: Scope): EvaluationScope {
   return {
     bindings: flatMap(scope.bindings, ({ name, node, type }) => (
-      node ? eScopeBinding(name, stripDesugaredNodeWithoutPatternMatch(desugar(node))) : eScopeShapeBinding(name, type)
+      node ? eScopeBinding(name, stripCoreNode(desugar(node))) : eScopeShapeBinding(name, type)
       // expression ? eScopeBinding(name, expression) : eScopeShapeBinding(name, type)
     )),
   };

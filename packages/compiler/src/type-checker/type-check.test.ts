@@ -1,21 +1,15 @@
-import { desugar } from '../desugar/desugar';
-import { stripDesugaredNodeWithoutPatternMatch } from '../desugar/desugar-pattern-match';
+import { desugar, stripCoreNode } from '../desugar/desugar';
 import parse from '../parser/parse';
-import { attachPrelude } from '../prelude/attach-prelude';
 import { runTypePhase } from './run-type-phase';
-import { stripNode } from './strip-nodes';
 import { typeExpression } from './type-check';
 import {
   apply,
   data,
   lambda,
   implement,
-  record,
   numberExpression,
   evaluationScope,
   bind,
-  dual,
-  readRecordProperty,
 } from './constructors';
 import { evaluateExpression, simplify } from './evaluate';
 import { pipe } from './utils';
@@ -329,7 +323,7 @@ describe('typeExpression', () => {
       const [, node] = runTypePhase(expression!);
       expect(node).toBeDefined();
 
-      const resolvedExpression = stripDesugaredNodeWithoutPatternMatch(desugar(node));
+      const resolvedExpression = stripCoreNode(desugar(node));
       const result = evaluateExpression(evaluationScope())(resolvedExpression);
       expect(result).toBeDefined();
 

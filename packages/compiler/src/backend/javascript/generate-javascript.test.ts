@@ -1,12 +1,12 @@
 import dedent from 'dedent-js';
 import { compile } from '../../api';
-import { stripDesugaredNodeWithoutPatternMatch } from '../../desugar/desugar-pattern-match';
+import { stripCoreNode } from '../../desugar/desugar';
 import { generateJavascript } from './generate-javascript';
 
 function toJavascript(code: string) {
   const result = compile(code);
   return result.node
-    ? generateJavascript(stripDesugaredNodeWithoutPatternMatch(result.node), { module: 'esm' })
+    ? generateJavascript(stripCoreNode(result.node), { module: 'esm' })
     : undefined;
 }
 

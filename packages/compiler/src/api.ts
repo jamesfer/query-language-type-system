@@ -1,9 +1,4 @@
-import { desugar } from './desugar/desugar';
-import {
-  DesugaredExpressionWithoutPatternMatch,
-  DesugaredNode,
-  stripDesugaredNodeWithoutPatternMatch,
-} from './desugar/desugar-pattern-match';
+import { CoreExpression, CoreNode, desugar, stripCoreNode } from './desugar/desugar';
 import { removeUnusedBindings } from './optimisations/remove-unused-bindings/remove-unused-bindings';
 import parse from './parser/parse';
 import { attachPrelude } from './prelude/attach-prelude';
@@ -17,8 +12,8 @@ import { Value } from './type-checker/types/value';
 export { TypedNode } from './type-checker/type-check';
 
 export interface CompileResult {
-  expression?: DesugaredExpressionWithoutPatternMatch;
-  node?: DesugaredNode;
+  expression?: CoreExpression;
+  node?: CoreNode;
   messages: Message[];
 }
 
@@ -43,7 +38,7 @@ export function compile(code: string, options?: CompileOptions): CompileResult {
   const optimizedNode = removeUnused ? removeUnusedBindings(desugaredNode) : desugaredNode;
 
   return {
-    expression: stripDesugaredNodeWithoutPatternMatch(optimizedNode),
+    expression: stripCoreNode(optimizedNode),
     node: optimizedNode,
     messages: typeMessages,
   };
