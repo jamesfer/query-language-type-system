@@ -1,0 +1,1 @@
+{"version":3,"file":"desugar.js","sourceRoot":"","sources":["../../../../../compiler/src/desugar/desugar.ts"],"names":[],"mappings":";;;AACA,mEAA+D;AAC/D,mEAA8D;AAC9D,mEAIiC;AAKjC,SAAgB,OAAO,CAAC,IAAe;IACrC,OAAO,2CAAmB,CAAC,2CAAmB,CAAC,4CAAoB,CAAC,IAAI,CAAC,CAAC,CAAC,CAAC;AAC9E,CAAC;AAFD,0BAEC;AAED,SAAgB,aAAa,CAAC,IAAc;IAC1C,OAAO,6DAAqC,CAAC,IAAI,CAAC,CAAC;AACrD,CAAC;AAFD,sCAEC"}

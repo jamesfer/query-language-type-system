@@ -1,9 +1,9 @@
-import { Expression } from './expression';
+import { DesugaredExpressionWithoutPatternMatch } from '../../desugar/desugar-pattern-match';
 import { Value } from './value';
 export interface EScopeBinding {
     kind: 'ScopeBinding';
     name: string;
-    value: Expression;
+    value: DesugaredExpressionWithoutPatternMatch;
 }
 export interface EScopeShapeBinding {
     kind: 'ScopeShapeBinding';

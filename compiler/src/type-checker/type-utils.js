@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.newFreeVariable = exports.areAllPairsSubtypes = exports.canSatisfyShape = exports.destructureValue = exports.converge = void 0;
 const lodash_1 = require("lodash");
 const constructors_1 = require("./constructors");
 const monad_utils_1 = require("./monad-utils");
@@ -53,14 +54,16 @@ function convergeConcrete(scope, shape, child) {
         }
         case 'ImplicitFunctionLiteral':
         case 'FunctionLiteral': {
-            if (child.kind !== shape.kind) {
+            const concreteShape = removeImplicitParameters(shape);
+            const concreteChild = removeImplicitParameters(child);
+            if (concreteShape.kind !== 'FunctionLiteral' || concreteChild.kind !== 'FunctionLiteral') {
                 return undefined;
             }
-            const parameterReplacements = converge(scope, shape.parameter, child.parameter);
+            const parameterReplacements = converge(scope, concreteShape.parameter, concreteChild.parameter);
             if (!parameterReplacements) {
                 return undefined;
             }
-            const bodyReplacements = converge(scope, shape.body, child.body);
+            const bodyReplacements = converge(scope, concreteShape.body, concreteChild.body);
             if (!bodyReplacements) {
                 return undefined;
             }
@@ -136,7 +139,8 @@ function converge(scope, shape, child) {
     if (child.kind === 'FreeVariable') {
         return convergeFreeVariable(scope, child, shape);
     }
-    return convergeConcrete(scope, shape, child);
+    const convergeConcrete1 = convergeConcrete(scope, shape, child);
+    return convergeConcrete1;
 }
 exports.converge = converge;
 /**

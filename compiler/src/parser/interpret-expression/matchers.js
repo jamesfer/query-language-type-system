@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.makeBrokenExpressionMatcher = exports.makeExpressionMatcher = exports.protectAgainstLoops = exports.withoutPrevious = exports.withPrevious = exports.matchTokens = exports.matchKeyword = exports.matchRepeated = exports.matchAny = exports.matchAll = exports.matchOption = void 0;
 const lodash_1 = require("lodash");
 const utils_1 = require("../../type-checker/utils");
 const free_1 = require("../../utils/free");
@@ -25,6 +26,9 @@ function matchRepeatedRecursive(tokens, previous, precedence, childInterpreter, 
     return message_state_1.doWithFreeState((state) => {
         return free_1.pipeFree(free_1.traverseFree(previousMatches, (({ tokens: usedTokens }) => (interpreter_utils_1.runInterpreter(childInterpreter, tokens.slice(usedTokens.length), previous, precedence)))), free_1.returningFree(state.sequence.bind(state)), (nextMatches) => {
             const [failedMatches, successfulMatches] = lodash_1.partition(utils_1.checkedZip(previousMatches, nextMatches), ([, nextResults]) => nextResults.length === 0);
+            if (failedMatches.length >= 4 || successfulMatches.length >= 4) {
+                console.log(failedMatches.length, successfulMatches.length);
+            }
             // Add each of the failed to matches to the completed list
             const completedMatches = lodash_1.map(failedMatches, '0');
             // Add the successful matches to the previous matches to continue searching for them
@@ -76,7 +80,9 @@ exports.protectAgainstLoops = protectAgainstLoops;
 function recursivelyMatchExpression(interpretExpressionComponent) {
     return interpreter_utils_1.interpreter('recursivelyMatchExpression', (tokens, previous, precedence) => {
         return message_state_1.doWithFreeState((state) => {
-            return free_1.pipeFree(interpreter_utils_1.runInterpreter(interpretExpressionComponent, tokens, previous, precedence), free_1.returningFree(state.unwrap.bind(state)), (results) => free_1.traverseFree(results, ({ value, tokens: resultTokens }) => free_1.pipeFree(interpreter_utils_1.runInterpreter(recursivelyMatchExpression(interpretExpressionComponent), tokens.slice(resultTokens.length), value, precedence), free_1.returningFree(state.unwrap.bind(state)), free_1.returningFree(recursiveResults => (recursiveResults.map(({ tokens, value }) => token_state_1.withTokens([...resultTokens, ...tokens], value)))), free_1.returningFree(recursiveResults => recursiveResults.length > 0 ? recursiveResults : results))), free_1.returningFree(lodash_1.flatten));
+            return free_1.pipeFree(interpreter_utils_1.runInterpreter(interpretExpressionComponent, tokens, previous, precedence), free_1.returningFree(state.unwrap.bind(state)), (results) => {
+                return free_1.traverseFree(results, ({ value, tokens: resultTokens }) => free_1.pipeFree(interpreter_utils_1.runInterpreter(recursivelyMatchExpression(interpretExpressionComponent), tokens.slice(resultTokens.length), value, precedence), free_1.returningFree(state.unwrap.bind(state)), free_1.returningFree(recursiveResults => (recursiveResults.map(({ tokens, value }) => token_state_1.withTokens([...resultTokens, ...tokens], value)))), free_1.returningFree(recursiveResults => recursiveResults.length > 0 ? recursiveResults : results)));
+            }, free_1.returningFree(lodash_1.flatten));
         });
     });
 }

@@ -1,11 +1,10 @@
-import { TypedNode } from './type-checker/type-check';
-import { Expression } from './type-checker/types/expression';
+import { CoreExpression, CoreNode } from './desugar/desugar';
 import { Message } from './type-checker/types/message';
 import { Value } from './type-checker/types/value';
 export { TypedNode } from './type-checker/type-check';
 export interface CompileResult {
-    expression?: Expression;
-    node?: TypedNode;
+    expression?: CoreExpression;
+    node?: CoreNode;
     messages: Message[];
 }
 export interface CompileOptions {

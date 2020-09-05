@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.renameFreeVariables = void 0;
 const utils_1 = require("./utils");
 function findNameInScopes(scopes, name) {
     if (scopes.length === 0) {

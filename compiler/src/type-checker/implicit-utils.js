@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.partitionUnrelatedValues = exports.stripAllImplicits = exports.stripImplicits = exports.extractImplicitsParameters = exports.deepExtractImplicitParametersFromExpression = exports.deepExtractImplicitParameters = void 0;
 const lodash_1 = require("lodash");
 const constructors_1 = require("./constructors");
 const utils_1 = require("./utils");
@@ -22,25 +23,34 @@ function deepExtractImplicitParametersFromExpression(expression) {
         case 'NativeExpression':
             return [];
         case 'RecordExpression':
-            return lodash_1.flatMap(expression.properties, extractNextImplicits);
+            return [];
+        // return flatMap(expression.properties, extractNextImplicits);
         case 'Application':
-            return [...extractNextImplicits(expression.callee), ...extractNextImplicits(expression.parameter)];
+            return [];
+        // return [...extractNextImplicits(expression.callee), ...extractNextImplicits(expression.parameter)];
         case 'FunctionExpression':
             // We don't extract implicits from the parameters because I don't think they should be handled
             // in the same way
             return extractNextImplicits(expression.body);
         case 'DataInstantiation':
-            return lodash_1.flatMap(expression.parameters, extractNextImplicits);
+            return [];
+        // return flatMap(expression.parameters, extractNextImplicits);
         case 'BindingExpression':
-            return extractNextImplicits(expression.body);
+            return [];
+        // return extractNextImplicits(expression.body);
         case 'DualExpression':
             return [...extractNextImplicits(expression.left), ...extractNextImplicits(expression.right)];
         case 'ReadRecordPropertyExpression':
-            return extractNextImplicits(expression.record);
+            return [];
+        // return extractNextImplicits(expression.record);
         case 'ReadDataPropertyExpression':
-            return extractNextImplicits(expression.dataValue);
+            return [];
+        // return extractNextImplicits(expression.dataValue);
         case 'PatternMatchExpression':
-            return [...extractNextImplicits(expression.value), ...lodash_1.flatMap(expression.patterns, ({ test, value }) => ([...extractNextImplicits(test), ...extractNextImplicits(value)]))];
+            return [];
+        // return [...extractNextImplicits(expression.value), ...flatMap(expression.patterns, ({ test, value }) => (
+        //   [...extractNextImplicits(test), ...extractNextImplicits(value)]
+        // ))];
         default:
             return utils_1.assertNever(expression);
     }
@@ -83,12 +93,12 @@ exports.stripAllImplicits = stripAllImplicits;
  * free variable in common with relating value. The second shares no free variables.
  */
 function partitionUnrelatedValues(valueList, relatingValue) {
-    let variableNames = variable_utils_1.extractFreeVariableNames(relatingValue);
+    let variableNames = variable_utils_1.extractFreeVariableNamesFromValue(relatingValue);
     let allRelated = [];
     let [related, unrelated] = lodash_1.partition(valueList, variable_utils_1.usesVariable(variableNames));
     while (related.length > 0) {
         allRelated = [...allRelated, ...related];
-        variableNames = [...variableNames, ...lodash_1.flatMap(related, variable_utils_1.extractFreeVariableNames)];
+        variableNames = [...variableNames, ...lodash_1.flatMap(related, variable_utils_1.extractFreeVariableNamesFromValue)];
         ([related, unrelated] = lodash_1.partition(unrelated, variable_utils_1.usesVariable(variableNames)));
     }
     return [allRelated, unrelated];

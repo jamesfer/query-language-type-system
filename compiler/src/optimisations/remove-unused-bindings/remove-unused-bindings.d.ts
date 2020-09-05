@@ -1,3 +1,3 @@
-import { TypedNode } from '../..';
-export declare function removeUnusedBindings(node: TypedNode): TypedNode;
+import { DesugaredNode } from '../../desugar/desugar-pattern-match';
+export declare function removeUnusedBindings(node: DesugaredNode): DesugaredNode;
 //# sourceMappingURL=remove-unused-bindings.d.ts.map

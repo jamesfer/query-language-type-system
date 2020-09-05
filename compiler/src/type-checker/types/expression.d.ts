@@ -31,7 +31,7 @@ export interface Application<T = Expression> {
 }
 export interface FunctionExpression<T = Expression> {
     kind: 'FunctionExpression';
-    parameter: Expression;
+    parameter: T;
     implicit: boolean;
     body: T;
 }
@@ -73,8 +73,29 @@ export interface PatternMatchExpression<T = Expression> {
 export interface NativeExpression {
     kind: 'NativeExpression';
     data: {
-        [k: string]: string | number;
+        [k: string]: any;
     };
 }
 export declare type Expression<T = void> = Identifier | BooleanExpression | NumberExpression | StringExpression | SymbolExpression | RecordExpression<T extends void ? Expression : T> | Application<T extends void ? Expression : T> | FunctionExpression<T extends void ? Expression : T> | DataInstantiation<T extends void ? Expression : T> | BindingExpression<T extends void ? Expression : T> | DualExpression<T extends void ? Expression : T> | ReadRecordPropertyExpression<T extends void ? Expression : T> | ReadDataPropertyExpression<T extends void ? Expression : T> | PatternMatchExpression<T extends void ? Expression : T> | NativeExpression;
+export declare const ExpressionURI = "Expression";
+declare module 'fp-ts/lib/HKT' {
+    interface URItoKind<A> {
+        readonly ['Identifier']: Identifier;
+        readonly ['BooleanExpression']: BooleanExpression;
+        readonly ['NumberExpression']: NumberExpression;
+        readonly ['StringExpression']: StringExpression;
+        readonly ['SymbolExpression']: SymbolExpression;
+        readonly ['NativeExpression']: NativeExpression;
+        readonly ['RecordExpression']: RecordExpression<A>;
+        readonly ['Application']: Application<A>;
+        readonly ['FunctionExpression']: FunctionExpression<A>;
+        readonly ['DataInstantiation']: DataInstantiation<A>;
+        readonly ['BindingExpression']: BindingExpression<A>;
+        readonly ['DualExpression']: DualExpression<A>;
+        readonly ['ReadRecordPropertyExpression']: ReadRecordPropertyExpression<A>;
+        readonly ['ReadDataPropertyExpression']: ReadDataPropertyExpression<A>;
+        readonly ['PatternMatchExpression']: PatternMatchExpression<A>;
+        readonly [ExpressionURI]: Expression<A>;
+    }
+}
 //# sourceMappingURL=expression.d.ts.map

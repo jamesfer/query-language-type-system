@@ -1,13 +1,15 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.typeExpression = void 0;
 const lodash_1 = require("lodash");
+const desugar_1 = require("../desugar/desugar");
 const constructors_1 = require("./constructors");
 const evaluate_1 = require("./evaluate");
 const implicit_utils_1 = require("./implicit-utils");
 const monad_utils_1 = require("./monad-utils");
+const reduce_expression_1 = require("./reduce-expression");
 const run_type_phase_1 = require("./run-type-phase");
 const scope_utils_1 = require("./scope-utils");
-const strip_nodes_1 = require("./strip-nodes");
 const type_utils_1 = require("./type-utils");
 const utils_1 = require("./utils");
 const variable_utils_1 = require("./variable-utils");
@@ -78,17 +80,22 @@ exports.typeExpression = (makeUniqueId) => (scope) => (expression) => {
         }
         case 'FunctionExpression': {
             // Create a free variable for each parameter
-            const node1 = state.run(run_type_phase_1.runTypePhaseWithoutRename(makeUniqueId))(expression.parameter);
-            const parameter = evaluate_1.evaluateExpression(scope_utils_1.scopeToEScope(state.scope))(strip_nodes_1.stripNode(node1));
-            if (!parameter) {
-                // TODO handle undefined parameters that failed to be evaluated
-                throw new Error(`Failed to evaluate expression: ${JSON.stringify(expression.parameter, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
-            }
+            const parameter = state.run(run_type_phase_1.runTypePhaseWithoutRename(makeUniqueId))(expression.parameter);
+            // Extract free variables with their types
+            const freeVariables = variable_utils_1.extractFreeVariablesFromExpression(expression.parameter);
+            const parameterValue = reduce_expression_1.reduceExpression(state.scope, expression.parameter);
+            // const desugaredParameter = desugar(parameter);
+            // const parameterValue = evaluateExpression(
+            //   scopeToEScope(state.scope)
+            // )(stripCoreNode(desugaredParameter));
+            // if (!parameterValue) {
+            //   // TODO handle undefined parameters that failed to be evaluated
+            //   throw new Error(`Failed to evaluate expression: ${JSON.stringify(expression.parameter, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);
+            // }
             const body = state.withChildScope((innerState) => {
-                const bindingsFromValue = variable_utils_1.extractFreeVariableNames(parameter);
                 innerState.expandScope({
                     bindings: [
-                        ...bindingsFromValue.map((name) => (constructors_1.scopeBinding(name, scope, variable_utils_1.applyReplacements(state.replacements)(constructors_1.freeVariable(name))))),
+                        ...freeVariables.map((name) => (constructors_1.scopeBinding(name, scope, variable_utils_1.applyReplacements(state.replacements)(constructors_1.freeVariable(name))))),
                     ],
                 });
                 // TODO return inferred variables from typeExpression so that the types of parameters can be
@@ -96,7 +103,7 @@ exports.typeExpression = (makeUniqueId) => (scope) => (expression) => {
                 //      double check.
                 return innerState.run(exports.typeExpression(makeUniqueId))(expression.body);
             });
-            return state.wrap(typeNode(Object.assign(Object.assign({}, expression), { body }), scope, constructors_1.functionType(body.decoration.type, [[parameter, expression.implicit]])));
+            return state.wrap(typeNode(Object.assign(Object.assign({}, expression), { parameter, body }), scope, constructors_1.functionType(body.decoration.type, [[parameterValue, expression.implicit]])));
         }
         case 'Identifier': {
             const binding = lodash_1.find(scope.bindings, { name: expression.name });
@@ -181,7 +188,7 @@ exports.typeExpression = (makeUniqueId) => (scope) => (expression) => {
             // Add the binding to the scope so that it can be used in the body
             const bodyNode = state.withChildScope((innerState) => {
                 const scopeType = constructors_1.functionType(valueNode.decoration.type, relatedImplicitParameters.map(parameter => [parameter, true]));
-                const binding = constructors_1.scopeBinding(expression.name, newValueNode.decoration.scope, scopeType, strip_nodes_1.stripNode(newValueNode));
+                const binding = constructors_1.scopeBinding(expression.name, newValueNode.decoration.scope, scopeType, newValueNode);
                 innerState.expandScope({ bindings: [binding] });
                 return innerState.run(exports.typeExpression(makeUniqueId))(expression.body);
             });
@@ -230,7 +237,7 @@ exports.typeExpression = (makeUniqueId) => (scope) => (expression) => {
             const value = state.run(exports.typeExpression(makeUniqueId))(expression.value);
             const patterns = expression.patterns.map(({ test, value }) => {
                 const testNode = state.run(run_type_phase_1.runTypePhaseWithoutRename(makeUniqueId))(test);
-                const evaluatedTest = evaluate_1.evaluateExpression(scope_utils_1.scopeToEScope(state.scope))(strip_nodes_1.stripNode(testNode));
+                const evaluatedTest = evaluate_1.evaluateExpression(scope_utils_1.scopeToEScope(state.scope))(desugar_1.stripCoreNode(desugar_1.desugar(testNode)));
                 if (!evaluatedTest) {
                     // TODO handle undefined parameters that failed to be evaluated
                     throw new Error(`Failed to evaluate expression: ${JSON.stringify(test, undefined, 2)}\nIn scope ${JSON.stringify(scope, undefined, 2)}`);

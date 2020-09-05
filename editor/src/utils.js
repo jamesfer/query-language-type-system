@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.catchErrors = exports.assertNever = void 0;
 function assertNever(x) {
     throw new Error(`Assert never was called with: ${x}`);
 }

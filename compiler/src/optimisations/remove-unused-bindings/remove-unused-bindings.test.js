@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const dedent_js_1 = tslib_1.__importDefault(require("dedent-js"));
-const __1 = require("../..");
 const api_1 = require("../../api");
+const desugar_1 = require("../../desugar/desugar");
 describe('removeUnusedBindings', () => {
     it('removes binding expressions that are not used', () => {
         const result = api_1.compile(dedent_js_1.default `
@@ -25,7 +25,7 @@ describe('removeUnusedBindings', () => {
                     name: 'a',
                 },
             };
-            expect(__1.stripNode(result.node)).toEqual(expected);
+            expect(desugar_1.stripCoreNode(result.node)).toEqual(expected);
         }
     });
 });

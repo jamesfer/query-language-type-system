@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.runFree = exports.pipeFree = exports.traverseFree = exports.mapFree = exports.flatMapFree = exports.returningFree = exports.deferFree = exports.pureFree = void 0;
 function pureFree(value) {
     return { value: value };
 }

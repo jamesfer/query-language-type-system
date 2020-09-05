@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.extractFreeVariablesFromExpression = exports.applyParameter = exports.areValuesEqual = exports.substituteVariables = exports.usesVariable = exports.getBindingsFromPair = exports.getBindingsFromValue = exports.renameTakenVariables = exports.nextFreeName = exports.extractFreeVariableNamesFromValue = exports.recursivelyApplyReplacements = exports.recursivelyApplyReplacementsToNode = exports.applyReplacements = void 0;
 const lodash_1 = require("lodash");
 const constructors_1 = require("./constructors");
 const implicit_utils_1 = require("./implicit-utils");
@@ -55,12 +56,13 @@ exports.recursivelyApplyReplacements = (replacements) => (expression) => {
             return utils_1.assertNever(expression);
     }
 };
-function extractFreeVariableNames(inputValue) {
+// export function extractFreeVariableNames(inputExpression: )
+function extractFreeVariableNamesFromValue(inputValue) {
     const [getState, after] = utils_1.accumulateStates((value) => (value.kind === 'FreeVariable' ? [value.name] : []));
     visitor_utils_1.visitValue({ after })(inputValue);
     return getState();
 }
-exports.extractFreeVariableNames = extractFreeVariableNames;
+exports.extractFreeVariableNamesFromValue = extractFreeVariableNamesFromValue;
 function nextFreeName(taken, prefix = 'var') {
     const match = prefix.match(/(.*?)([0-9]*)/);
     const name = match ? match[0] : prefix;
@@ -76,7 +78,7 @@ exports.nextFreeName = nextFreeName;
 function renameTakenVariables(takenVariables, replacements) {
     const allVariables = [...takenVariables];
     return replacements.map(({ from, to }) => {
-        const remainingReplacements = extractFreeVariableNames(to)
+        const remainingReplacements = extractFreeVariableNamesFromValue(to)
             .filter(name => allVariables.includes(name))
             .map((name) => {
             const newName = nextFreeName(allVariables, name);
@@ -235,7 +237,7 @@ const collapseValue = visitor_utils_1.visitValue({
         if (value.kind === 'DualBinding') {
             return areValuesEqual(value.left, value.right) ? value.left : value;
         }
-        if (value.kind === 'ApplicationValue' && extractFreeVariableNames(value.parameter).length === 0) {
+        if (value.kind === 'ApplicationValue' && extractFreeVariableNamesFromValue(value.parameter).length === 0) {
             return applyParameter(value.parameter, value.callee);
         }
         return value;
@@ -253,4 +255,47 @@ function applyParameter(parameter, func) {
     return func;
 }
 exports.applyParameter = applyParameter;
+function collectFreeVariables(expression) {
+    switch (expression.kind) {
+        case 'Identifier':
+            return [expression.name];
+        case 'BooleanExpression':
+        case 'NumberExpression':
+        case 'StringExpression':
+        case 'SymbolExpression':
+            return [];
+        case 'RecordExpression':
+            return [].concat(...Object.values(expression.properties));
+        case 'Application':
+            return [
+                ...expression.callee,
+                ...expression.parameter,
+            ];
+        case 'FunctionExpression':
+            return [];
+        case 'DataInstantiation':
+            return expression.callee.concat(...expression.parameters);
+        case 'BindingExpression':
+            return [];
+        case 'DualExpression':
+            return [
+                ...expression.left,
+                ...expression.right,
+            ];
+        case 'ReadRecordPropertyExpression':
+            return expression.record;
+        case 'ReadDataPropertyExpression':
+            return expression.dataValue;
+        case 'PatternMatchExpression':
+            return expression.value.concat(...expression.patterns.map(pattern => [...pattern.test, ...pattern.value]));
+        case 'NativeExpression':
+            return [];
+        default:
+            return utils_1.assertNever(expression);
+    }
+}
+function extractFreeVariablesFromExpression(expression) {
+    return visitor_utils_1.visitAndTransformExpression(collectFreeVariables)(expression);
+}
+exports.extractFreeVariablesFromExpression = extractFreeVariablesFromExpression;
 //# sourceMappingURL=variable-utils.js.map

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.initializeMode = exports.MODE_NAME = void 0;
 const tslib_1 = require("tslib");
 const codemirror_1 = require("codemirror");
 const lodash_1 = require("lodash");

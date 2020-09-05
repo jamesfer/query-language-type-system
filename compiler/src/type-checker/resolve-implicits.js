@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.resolveImplicitParameters = void 0;
 const constructors_1 = require("./constructors");
 const implicit_utils_1 = require("./implicit-utils");
 const scope_utils_1 = require("./scope-utils");
@@ -93,7 +94,7 @@ const visitor_utils_1 = require("./visitor-utils");
 //   }
 // }
 //
-function getImplicitImplementations(scope, value, allowUnresolvedImplicits) {
+function getImplicitImplementations(scope, value) {
     // Find all the implicit parts of the type
     const [implicitParameters, result] = implicit_utils_1.extractImplicitsParameters(value);
     if (implicitParameters.length === 0) {
@@ -141,7 +142,7 @@ function getImplicitImplementations(scope, value, allowUnresolvedImplicits) {
 }
 function shallowResolveImplicitParameters(parentKind, typedNode) {
     const { expression, decoration: { scope, implicitType: type } } = typedNode;
-    const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type, parentKind === 'BindingExpression');
+    const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type);
     // Recurse through the rest of the tree
     // const [expressionMessages, resolvedExpression] = iterateExpression(expression, result);
     // If there is only one remaining possible set of replacements for each implicit parameter, then that is the answer

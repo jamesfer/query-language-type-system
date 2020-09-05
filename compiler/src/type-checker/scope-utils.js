@@ -1,6 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.findBinding = exports.addReplacementsToScope = exports.expandScopeWithReplacements = exports.scopeToEScope = exports.findMatchingImplementations = void 0;
 const lodash_1 = require("lodash");
+const desugar_1 = require("../desugar/desugar");
 const constructors_1 = require("./constructors");
 const evaluate_1 = require("./evaluate");
 const type_utils_1 = require("./type-utils");
@@ -62,7 +64,8 @@ function findMatchingImplementations(scope, value) {
     }
     const evaluateWithScope = evaluate_1.evaluateExpression(scopeToEScope(scope));
     return scope.bindings.filter(binding => {
-        const bindingValue = binding.expression ? evaluateWithScope(binding.expression) : binding.type;
+        // const bindingValue = binding.expression ? evaluateWithScope(binding.expression) : binding.type;
+        const bindingValue = binding.type;
         return bindingValue && type_utils_1.canSatisfyShape(scope, value, bindingValue);
         // return (
         //   binding.callee === callee
@@ -80,7 +83,9 @@ exports.findMatchingImplementations = findMatchingImplementations;
 // }
 function scopeToEScope(scope) {
     return {
-        bindings: lodash_1.flatMap(scope.bindings, ({ name, type, expression }) => (expression ? constructors_1.eScopeBinding(name, expression) : constructors_1.eScopeShapeBinding(name, type))),
+        bindings: lodash_1.flatMap(scope.bindings, ({ name, node, type }) => (node ? constructors_1.eScopeBinding(name, desugar_1.stripCoreNode(desugar_1.desugar(node))) : constructors_1.eScopeShapeBinding(name, type)
+        // expression ? eScopeBinding(name, expression) : eScopeShapeBinding(name, type)
+        )),
     };
 }
 exports.scopeToEScope = scopeToEScope;

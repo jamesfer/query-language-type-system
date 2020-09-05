@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.rules = exports.TokenKind = void 0;
 const tslib_1 = require("tslib");
 const moo = tslib_1.__importStar(require("moo"));
 var TokenKind;

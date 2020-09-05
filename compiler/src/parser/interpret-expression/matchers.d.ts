@@ -28,7 +28,7 @@ export declare function matchAny<T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T
 export declare function matchRepeated<T>(childInterpreter: Interpreter<T>): Interpreter<T[]>;
 export declare const matchKeyword: (keyword: string) => Interpreter<ExpressionToken>;
 export declare const matchTokens: (...kinds: ExpressionTokenKind[]) => Interpreter<ExpressionToken[]>;
-export declare const withPrevious: (precedence: Precedence) => Interpreter<Expression<void>>;
+export declare const withPrevious: (precedence: Precedence) => Interpreter<Expression>;
 export declare const withoutPrevious: Interpreter<null>;
 export declare function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T>;
 export declare function makeExpressionMatcher(interpretExpression: () => Interpreter<Expression>): (precedence: Precedence) => Interpreter<Expression>;

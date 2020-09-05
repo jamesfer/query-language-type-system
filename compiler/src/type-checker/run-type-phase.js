@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.runTypePhaseWithoutRename = exports.runTypePhase = void 0;
 const constructors_1 = require("./constructors");
 const monad_utils_1 = require("./monad-utils");
 const rename_free_variables_1 = require("./rename-free-variables");

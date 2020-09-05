@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.node = exports.readDataProperty = exports.readRecordProperty = exports.data = exports.dual = exports.dataInstantiation = exports.record = exports.booleanExpression = exports.numberExpression = exports.apply = exports.identifier = exports.lambda = exports.implement = exports.bind = exports.symbolExpression = exports.dualBinding = exports.stringLiteral = exports.numberLiteral = exports.booleanLiteral = exports.freeVariable = exports.recordLiteral = exports.functionType = exports.dataValue = exports.symbol = exports.eScopeShapeBinding = exports.eScopeBinding = exports.scopeBinding = exports.expandEvaluationScope = exports.expandScope = exports.evaluationScope = exports.scope = void 0;
 const lodash_1 = require("lodash");
 /**
  * Scope stuff
@@ -31,12 +32,13 @@ exports.expandEvaluationScope = expandEvaluationScope;
 //     kind: 'DataDeclaration',
 //   };
 // }
-function scopeBinding(name, scope, type, expression) {
+function scopeBinding(name, scope, type, node) {
     return {
         name,
         type,
         scope,
-        expression,
+        node,
+        // expression,
         kind: 'ScopeBinding',
     };
 }

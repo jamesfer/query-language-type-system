@@ -5,6 +5,7 @@ const chalk_1 = tslib_1.__importDefault(require("chalk"));
 const fs_1 = require("fs");
 const lodash_1 = require("lodash");
 const perf_hooks_1 = require("perf_hooks");
+const api_1 = require("./api");
 const parse_1 = tslib_1.__importDefault(require("./parser/parse"));
 const constructors_1 = require("./type-checker/constructors");
 const evaluate_1 = require("./type-checker/evaluate");
@@ -131,13 +132,20 @@ function main() {
             process.exit(1);
         }
         const code = yield readFile(filename);
-        const expression = parseCode(code);
-        checkTypes(expression);
-        const value = evaluate(expression);
-        console.log(chalk_1.default.green('\u2713 Succeeded'));
-        console.log();
-        console.log(indent(prettyPrintValue(value)));
-        console.log();
+        const result = api_1.compile(code);
+        if (result.expression) {
+            const value = evaluate(result.expression);
+            console.log(chalk_1.default.green('\u2713 Succeeded'));
+            console.log();
+            console.log(indent(prettyPrintValue(value)));
+            console.log();
+        }
+        else {
+            console.log(chalk_1.default.red('✖ Failed to produce an expression from compiled code.'));
+            result.messages.forEach((message) => {
+                console.log(chalk_1.default.red(`  - ${message}`));
+            });
+        }
     });
 }
 main();

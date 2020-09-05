@@ -1,0 +1,1 @@
+{"version":3,"file":"reduce-expression.d.ts","sourceRoot":"","sources":["../../../../../compiler/src/type-checker/reduce-expression.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,UAAU,EAAE,MAAM,oBAAoB,CAAC;AAChD,OAAO,EAAE,KAAK,EAAE,MAAM,eAAe,CAAC;AACtC,OAAO,EAAE,KAAK,EAAE,MAAM,eAAe,CAAC;AAgHtC,wBAAgB,gBAAgB,CAAC,KAAK,EAAE,KAAK,EAAE,UAAU,EAAE,UAAU,GAAG,KAAK,CAG5E"}

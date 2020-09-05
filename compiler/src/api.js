@@ -1,13 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.evaluate = exports.compile = void 0;
 const tslib_1 = require("tslib");
+const desugar_1 = require("./desugar/desugar");
 const remove_unused_bindings_1 = require("./optimisations/remove-unused-bindings/remove-unused-bindings");
 const parse_1 = tslib_1.__importDefault(require("./parser/parse"));
 const attach_prelude_1 = require("./prelude/attach-prelude");
 const constructors_1 = require("./type-checker/constructors");
 const evaluate_1 = require("./type-checker/evaluate");
 const run_type_phase_1 = require("./type-checker/run-type-phase");
-const strip_nodes_1 = require("./type-checker/strip-nodes");
 function compile(code, options) {
     var _a, _b;
     const prelude = (_a = options === null || options === void 0 ? void 0 : options.prelude) !== null && _a !== void 0 ? _a : true;
@@ -17,9 +18,10 @@ function compile(code, options) {
         return { messages: ['Failed to parse code'] };
     }
     const [typeMessages, typedNode] = run_type_phase_1.runTypePhase(prelude ? attach_prelude_1.attachPrelude(expression) : expression);
-    const optimizedNode = removeUnused ? remove_unused_bindings_1.removeUnusedBindings(typedNode) : typedNode;
+    const desugaredNode = desugar_1.desugar(typedNode);
+    const optimizedNode = removeUnused ? remove_unused_bindings_1.removeUnusedBindings(desugaredNode) : desugaredNode;
     return {
-        expression: strip_nodes_1.stripNode(optimizedNode),
+        expression: desugar_1.stripCoreNode(optimizedNode),
         node: optimizedNode,
         messages: typeMessages,
     };

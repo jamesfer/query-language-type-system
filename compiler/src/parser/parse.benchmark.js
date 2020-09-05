@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseSuite = void 0;
 const tslib_1 = require("tslib");
 const benchmark_1 = require("benchmark");
 const parse_1 = tslib_1.__importDefault(require("./parse"));

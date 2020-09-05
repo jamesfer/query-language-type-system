@@ -10,5 +10,5 @@ export interface TypedDecoration {
     scope: Scope;
 }
 export declare type TypedNode = Node<TypedDecoration>;
-export declare const typeExpression: (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (expression: Expression<void>) => TypeResult<TypedNode>;
+export declare const typeExpression: (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (expression: Expression) => TypeResult<TypedNode>;
 //# sourceMappingURL=type-check.d.ts.map

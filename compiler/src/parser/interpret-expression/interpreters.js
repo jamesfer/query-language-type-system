@@ -59,18 +59,35 @@ const interpretData = interpreter_utils_1.interpreter('interpretData', matchers_
         body,
         kind: 'BindingExpression',
         name: name.value,
-        value: parameters.reduceRight((body, [parameter, implicit]) => ({
+        value: parameters.reduceRight((body, [parameter, implicit], index) => ({
             implicit,
-            parameter,
             body,
             kind: 'FunctionExpression',
+            parameter: parameter.kind === 'Identifier' ? parameter : {
+                kind: 'DualExpression',
+                // The parameter needs to be on the left because of how dual expression typing is
+                // unfinished
+                left: parameter,
+                right: {
+                    kind: 'Identifier',
+                    name: `dataParameter$${index}`
+                },
+            },
         }), {
             kind: 'DataInstantiation',
             callee: {
                 kind: 'SymbolExpression',
                 name: name.value,
             },
-            parameters: lodash_1.map(parameters.filter(([, implicit]) => !implicit), 0),
+            parameters: parameters
+                .map(([parameter, implicit], index) => ({ parameter, implicit, index }))
+                .filter(({ implicit }) => !implicit)
+                .map(({ parameter, index }) => parameter.kind === 'Identifier'
+                ? parameter
+                : {
+                    kind: 'Identifier',
+                    name: `dataParameter$${index}`,
+                }),
             parameterShapes: parameters,
         }),
     };
@@ -99,11 +116,28 @@ const interpretPatternMatch = interpreter_utils_1.interpreter('interpretPatternM
     kind: 'PatternMatchExpression',
     patterns: patterns.map(([, test, , value]) => ({ test, value })),
 })));
-const interpretNative = interpreter_utils_1.interpreter('interpretNative', matchers_1.matchAll(matchers_1.withoutPrevious, matchers_1.matchTokens('hash', 'openBrace'), matchers_1.matchRepeated(interpreter_utils_1.interpreter(undefined, matchers_1.matchAll(matchers_1.matchTokens('identifier', 'equals'), matchers_1.matchAny(interpretNumber, interpretString), matchers_1.matchTokens('comma'))(a => a))), matchers_1.matchTokens('closeBrace'))(([_1, _2, properties]) => ({
+function extractSimpleRecordValues(record) {
+    return lodash_1.fromPairs(lodash_1.flatMap(record.properties, (value, key) => {
+        if (value.kind === 'BooleanExpression') {
+            return [[key, value.value]];
+        }
+        else if (value.kind === 'NumberExpression') {
+            return [[key, value.value]];
+        }
+        else if (value.kind === 'StringExpression') {
+            return [[key, value.value]];
+        }
+        else if (value.kind === 'RecordExpression') {
+            return [[key, extractSimpleRecordValues(value)]];
+        }
+        return [];
+    }));
+}
+const interpretNative = interpreter_utils_1.interpreter('interpretNative', matchers_1.matchAll(matchers_1.withoutPrevious, matchers_1.matchTokens('hash'), interpretRecord)(([_1, _2, record]) => ({
     kind: 'NativeExpression',
-    data: lodash_1.fromPairs(properties.map(([[identifier], value]) => [identifier.value, value.value])),
+    data: extractSimpleRecordValues(record),
 })));
-const interpretParenthesis = interpreter_utils_1.interpreter('interpretParenthesis', matchers_1.matchAll(matchers_1.matchOption(matchers_1.withPrevious(interpreter_utils_1.Precedence.parenthesis)), matchers_1.matchTokens('openParen'), matchExpression(interpreter_utils_1.Precedence.none), matchers_1.matchTokens('closeParen'))(([, , expression]) => expression));
+const interpretParenthesis = interpreter_utils_1.interpreter('interpretParenthesis', matchers_1.matchAll(matchers_1.withoutPrevious, matchers_1.matchTokens('openParen'), matchExpression(interpreter_utils_1.Precedence.none), matchers_1.matchTokens('closeParen'))(([, , expression]) => expression));
 const interpretExpressionComponent = matchers_1.protectAgainstLoops(matchers_1.matchAny(interpretData, interpretBoolean, interpretNumber, interpretString, interpretIdentifier, interpretRecord, interpretFunction, interpretImplicitFunction, interpretBinding, interpretDual, interpretRecordProperty, interpretDataProperty, interpretPatternMatch, interpretApplication, interpretNative, interpretParenthesis));
 function interpretExpression(tokens) {
     const { messages, value: results } = free_1.runFree(interpreter_utils_1.runInterpreter(matchExpression(interpreter_utils_1.Precedence.none), tokens, undefined, interpreter_utils_1.Precedence.none));

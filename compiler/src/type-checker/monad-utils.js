@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.TypeWriter = exports.WriterMonad = void 0;
 const constructors_1 = require("./constructors");
 class WriterMonad {
     constructor(state, combine) {

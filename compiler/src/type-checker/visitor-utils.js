@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.mapNode = exports.visitValueWithState = exports.visitValueForState = exports.visitAndTransformValue = exports.visitValue = exports.visitChildValues = exports.visitAndTransformExpressionBefore = exports.visitAndTransformExpression = exports.visitAndTransformChildExpression = exports.visitAndTransformNode = exports.visitNodes = exports.visitExpressionNodes = exports.unfoldExplicitParameters = exports.unfoldParameters = void 0;
 const lodash_1 = require("lodash");
 const utils_1 = require("./utils");
 function* unfoldParameters(value) {
@@ -81,7 +82,7 @@ exports.visitAndTransformChildExpression = (callback) => (expression) => {
         case 'Application':
             return Object.assign(Object.assign({}, expression), { callee: callback(expression.callee), parameter: callback(expression.parameter) });
         case 'FunctionExpression':
-            return Object.assign(Object.assign({}, expression), { body: callback(expression.body) });
+            return Object.assign(Object.assign({}, expression), { parameter: callback(expression.parameter), body: callback(expression.body) });
         case 'DataInstantiation':
             return Object.assign(Object.assign({}, expression), { callee: callback(expression.callee), parameters: expression.parameters.map(callback) });
         case 'BindingExpression':
@@ -118,7 +119,7 @@ const visitAndTransformChildExpressionPre = (callback) => (expression) => {
         case 'Application':
             return Object.assign(Object.assign({}, expression), { callee: callback(expression.callee), parameter: callback(expression.parameter) });
         case 'FunctionExpression':
-            return Object.assign(Object.assign({}, expression), { body: callback(expression.body) });
+            return Object.assign(Object.assign({}, expression), { parameter: callback(expression.parameter), body: callback(expression.body) });
         case 'DataInstantiation':
             return Object.assign(Object.assign({}, expression), { callee: callback(expression.callee), parameters: expression.parameters.map(callback) });
         case 'BindingExpression':
@@ -239,4 +240,8 @@ exports.visitValueWithState = (initial, visitor) => (value) => {
         after: visitor.after ? wrap(visitor.after) : undefined,
     })(value);
 };
+function mapNode(f, node) {
+    return Object.assign(Object.assign({}, node), { expression: f(node.expression) });
+}
+exports.mapNode = mapNode;
 //# sourceMappingURL=visitor-utils.js.map

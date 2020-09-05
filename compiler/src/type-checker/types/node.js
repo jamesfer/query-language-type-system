@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.getOptionalDecorations = exports.getDecorations = exports.getDecoration = void 0;
 function getDecoration(node) {
     return node.decoration;
 }

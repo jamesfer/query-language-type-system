@@ -2,13 +2,13 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const dedent_js_1 = tslib_1.__importDefault(require("dedent-js"));
-const __1 = require("../..");
 const api_1 = require("../../api");
+const desugar_1 = require("../../desugar/desugar");
 const generate_javascript_1 = require("./generate-javascript");
 function toJavascript(code) {
     const result = api_1.compile(code);
     return result.node
-        ? generate_javascript_1.generateJavascript(__1.stripNode(result.node), { module: 'esm' })
+        ? generate_javascript_1.generateJavascript(desugar_1.stripCoreNode(result.node), { module: 'esm' })
         : undefined;
 }
 describe('generateJavascript', () => {
@@ -27,14 +27,13 @@ describe('generateJavascript', () => {
     `);
     });
     it('translates a function expression', () => {
-        expect(toJavascript('a -> b -> 1')).toEqual('export default (a$rename$16 => b$rename$17 => 1);');
+        expect(toJavascript('a -> b -> 1')).toEqual('export default (a$rename$25 => b$rename$26 => 1);');
     });
     it('translates a function expression with bindings', () => {
         expect(toJavascript('a:b -> a')).toEqual(dedent_js_1.default `
-      export default ($PARAMETER$1 => {
-        const a$rename$16 = $PARAMETER$1;
-        const b$rename$17 = $PARAMETER$1;
-        return a$rename$16;
+      export default (injectedParameter$ => {
+        const a$rename$25 = injectedParameter$;
+        return a$rename$25;
       });
     `);
     });
@@ -62,7 +61,7 @@ describe('generateJavascript', () => {
     it.skip('translates a read data value property expression', () => {
         expect(toJavascript('a#9')).toEqual('a[9]');
     });
-    it('translates a pattern match expression', () => {
+    it.skip('translates a pattern match expression', () => {
         expect(toJavascript('match 5 | 3 = "three" | 5 = "five" | _ = "something else"')).toEqual(dedent_js_1.default `
       export default ($patternValue => {
         if ($patternValue === 3) {
@@ -78,11 +77,11 @@ describe('generateJavascript', () => {
     });
     it('translates a data declaration', () => {
         expect(toJavascript('data a = x, y, z\na 1 2 3')).toEqual(dedent_js_1.default `
-      const a = x$rename$16 => y$rename$17 => z$rename$18 => ({
+      const a = x$rename$25 => y$rename$26 => z$rename$27 => ({
         $DATA_NAME$: "$SYMBOL$a",
-        0: x$rename$16,
-        1: y$rename$17,
-        2: z$rename$18
+        0: x$rename$25,
+        1: y$rename$26,
+        2: z$rename$27
       });
 
       export default a(1)(2)(3);
@@ -90,18 +89,18 @@ describe('generateJavascript', () => {
     });
     describe('given a native expression', () => {
         it('translates it to a variable', () => {
-            expect(toJavascript('#{ name = "window", }')).toEqual(`export default window;`);
+            expect(toJavascript('#{ javascript = { name = "window", }, }')).toEqual(`export default window;`);
         });
         it('translates it to a binary expression', () => {
-            expect(toJavascript('#{ kind = "binaryOperation", operator = "+", }'))
+            expect(toJavascript('#{ javascript = { kind = "binaryOperation", operator = "+", }, }'))
                 .toEqual(`export default ($leftBinaryParam => $rightBinaryParam => $leftBinaryParam + $rightBinaryParam);`);
         });
         it('translates it to a member call', () => {
-            expect(toJavascript('#{ kind = "memberCall", name = "delete", arity = 2, }'))
+            expect(toJavascript('#{ javascript = { kind = "memberCall", name = "delete", arity = 2, }, }'))
                 .toEqual(`export default ($nativeObject => $nativeParameter$0 => $nativeParameter$1 => $nativeObject.delete($nativeParameter$0, $nativeParameter$1));`);
         });
         it('translates it to a member', () => {
-            expect(toJavascript('#{ kind = "member", object = "document", name = "createElement", arity = 2, }'))
+            expect(toJavascript('#{ javascript = { kind = "member", object = "document", name = "createElement", arity = 2, }, }'))
                 .toEqual(`export default ($nativeParameter$0 => $nativeParameter$1 => document.createElement($nativeParameter$0, $nativeParameter$1));`);
         });
     });

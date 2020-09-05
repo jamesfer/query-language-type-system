@@ -1,13 +1,12 @@
 import { Expression } from './expression';
-export interface Node<T> {
-    kind: 'Node';
-    expression: Expression<Node<T>>;
-    decoration: T;
+export interface Node<T> extends NodeWithChild<T, Node<T>> {
 }
-export interface NodeWithChild<T, C> {
+export interface NodeWithChild<T, C> extends NodeWithExpression<T, Expression<C>> {
+}
+export interface NodeWithExpression<D, E> {
     kind: 'Node';
-    expression: Expression<C>;
-    decoration: T;
+    expression: E;
+    decoration: D;
 }
 export declare function getDecoration<T>(node: Node<T>): T;
 export declare function getDecorations<T>(nodes: Node<T>[]): T[];

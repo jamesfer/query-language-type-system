@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const lodash_1 = require("lodash");
+exports.runInterpreter = exports.interpreter = exports.Precedence = void 0;
 const free_1 = require("../../utils/free");
 const message_state_1 = require("./message-state");
 var Precedence;
@@ -27,10 +27,10 @@ function runInterpreter(interpreter, tokens, previous, precedence) {
         return interpreter.interpret(tokens, previous, precedence);
     }
     return free_1.mapFree(interpreter.interpret(tokens, previous, precedence), ({ messages, value: results }) => {
-        const indentedMessages = messages.map(message => `  ${message}`);
-        const debugMessage = `${interpreter.name} running on: ${lodash_1.map(tokens, 'value').join(', ')}`;
-        const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${lodash_1.max(lodash_1.map(results, 'tokens.length'))} tokens)` : 'failed'}`;
-        return message_state_1.withMessages([debugMessage, ...indentedMessages, resultMessage], results);
+        // const indentedMessages = messages.map(message => `  ${message}`);
+        // const debugMessage = `${interpreter.name} running on: ${map(tokens, 'value').join(', ')}`;
+        // const resultMessage = `${interpreter.name} ${results.length > 0 ? `succeeded (${results.length} matches, at least ${max(map(results, 'tokens.length'))} tokens)` : 'failed'}`;
+        return message_state_1.withMessages([], results);
     });
 }
 exports.runInterpreter = runInterpreter;

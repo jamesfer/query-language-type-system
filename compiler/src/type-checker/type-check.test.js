@@ -1,9 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
+const desugar_1 = require("../desugar/desugar");
 const parse_1 = tslib_1.__importDefault(require("../parser/parse"));
 const run_type_phase_1 = require("./run-type-phase");
-const strip_nodes_1 = require("./strip-nodes");
 const constructors_1 = require("./constructors");
 const evaluate_1 = require("./evaluate");
 const utils_1 = require("./utils");
@@ -109,7 +109,7 @@ describe('typeExpression', () => {
       data List = elementType, child
       data ListElement = implicit elementType element, implicit List elementType tail, element, tail
       data ListEmpty
-      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> element -> tail -> List elementType (ListElement element tail)
+      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> implicit element -> implicit tail -> List elementType (ListElement element tail)
       let listEmptyImpl = implicit elementType -> List elementType ListEmpty
       ListElement 5 (ListElement 2 ListEmpty) 
     `);
@@ -120,59 +120,111 @@ describe('typeExpression', () => {
       data List = elementType, child
       data ListElement = implicit elementType element, implicit List elementType tail, element, tail
       data ListEmpty
-      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> element -> tail -> List elementType (ListElement element tail)
+      let listElementImpl = implicit elementType -> implicit elementType element -> implicit List elementType tail -> implicit element -> implicit tail -> List elementType (ListElement element tail)
       let listEmptyImpl = implicit elementType -> List elementType ListEmpty
       ListElement 5 (ListElement true ListEmpty) 
     `);
         expect(messages).toEqual([expect.any(String)]);
     });
+    it('infers the type of a destructured parameter', () => {
+        const [messages] = parseAndType(dedent_js_1.default `
+      data Struct = { value = implicit Int n -> n, }
+      let valueOf = Struct z -> z.value
+      1
+    `);
+        expect(messages).toEqual([]);
+    });
     describe('a real test', () => {
-        const expression = utils_1.pipe(constructors_1.data('Int', ['c']), 
-        // Declare type class
-        constructors_1.data('Serializable', ['a', 'c'], ['a', constructors_1.dual('c', constructors_1.record({
-                valueOf: constructors_1.lambda([
-                    [constructors_1.apply('Int', ['result']), true],
-                    [constructors_1.apply('a', ['object']), true],
-                    'object',
-                ], 'result'),
-            }))]), 
-        // bind('Serializable', lambda(
-        //   [
-        //     'a',
-        //     dual('c', record({
-        //       valueOf: lambda(
-        //         [
-        //           [apply('Int', ['result']), true],
-        //           [apply('a', ['object']), true],
-        //           'object',
-        //         ],
-        //         'result',
-        //       ),
-        //     })),
-        //   ],
-        //   apply('Serializable', ['a', 'c']),
-        // )),
-        // Declare usable implementation of type class
-        constructors_1.bind('valueOf', constructors_1.lambda([
-            [constructors_1.apply('Serializable', [constructors_1.apply('a', ['object']), 'z']), true],
-            [constructors_1.apply('a', ['object']), true],
-            // TODO if functions were correctly curried in all places, then we probably wouldn't need
-            //      to accept an 'value' parameter here, which would mean this method acts kind of
-            //      like a "summon" method which is cool.
-            'object',
-        ], constructors_1.apply(constructors_1.readRecordProperty('z', 'valueOf'), ['object']))), 
-        // Implement type class
-        constructors_1.data('Color', ['c']), constructors_1.data('Red'), constructors_1.implement('Color', ['Red']), constructors_1.implement('Serializable', [constructors_1.apply('Color', ['t']), constructors_1.record({
-                valueOf: constructors_1.lambda(['color'], 10),
-            })]), constructors_1.apply('valueOf', ['Red']));
+        // data Int = c
+        // data Serializable = a, { valueOf = implicit Int result -> implicit a object -> object -> result, }
+        // let valueOf = implicit Serializable (a object) z -> a object -> object -> z.valueOf object
+        // data Color = c
+        // data Red
+        // let colorRedImpl = Color Red
+        // let SerializableColorImpl = Serializable (Color t) { valueOf = color -> 10, }
+        // valueOf Red
+        // const code = dedent`
+        //   data Serializable = a, b
+        //   data Color = c
+        //   let b = Serializable (Color t) { valueOf = f -> 10, }
+        //   5
+        // `;
+        // const expression = pipe(
+        //   data('Int', ['c']),
+        //   // Declare type class
+        //   data('Serializable', ['a', 'c'], ['a', dual('c', record({
+        //     valueOf: lambda(
+        //       [
+        //         [apply('Int', ['result']), true],
+        //         [apply('a', ['object']), true],
+        //         'object',
+        //       ],
+        //       'result',
+        //     ),
+        //   }))]),
+        //   // bind('Serializable', lambda(
+        //   //   [
+        //   //     'a',
+        //   //     dual('c', record({
+        //   //       valueOf: lambda(
+        //   //         [
+        //   //           [apply('Int', ['result']), true],
+        //   //           [apply('a', ['object']), true],
+        //   //           'object',
+        //   //         ],
+        //   //         'result',
+        //   //       ),
+        //   //     })),
+        //   //   ],
+        //   //   apply('Serializable', ['a', 'c']),
+        //   // )),
+        //   // Declare usable implementation of type class
+        //   bind('valueOf', lambda(
+        //     [
+        //       [apply('Serializable', [apply('a', ['object']), 'z']), true],
+        //       [apply('a', ['object']), true],
+        //       // TODO if functions were correctly curried in all places, then we probably wouldn't need
+        //       //      to accept an 'value' parameter here, which would mean this method acts kind of
+        //       //      like a "summon" method which is cool.
+        //       'object',
+        //     ],
+        //     apply(readRecordProperty('z', 'valueOf'), ['object']),
+        //   )),
+        //   // Implement type class
+        //   data('Color', ['c']),
+        //   data('Red'),
+        //   implement('Color', ['Red']),
+        //   implement('Serializable', [apply('Color', ['t']), record({
+        //     valueOf: lambda(
+        //       ['color'],
+        //       10,
+        //     ),
+        //   })]),
+        //   apply('valueOf', ['Red']),
+        // );
+        // TODO I think "Serializable (Color t) ..." needs to be "Serializable Color ..."
+        const code = dedent_js_1.default `
+      data Int = c
+      data Serializable = a, { valueOf = implicit Int result -> implicit a object -> object -> result, }
+      let valueOf = implicit Serializable (a object) z -> implicit a object -> object -> z.valueOf object
+      data Color = c
+      data Red
+      let colorRedImpl = Color Red
+      let SerializableColorImpl = Serializable (Color t) { valueOf = color -> 10, }
+      valueOf Red
+    `;
         it('type typeExpression', () => {
+            const { value: expression } = parse_1.default(code);
+            expect(expression).toBeDefined();
             const [messages] = run_type_phase_1.runTypePhase(expression);
             expect(messages).toEqual([]);
         });
         it('real evaluate test', () => {
+            const { value: expression } = parse_1.default(code);
+            expect(expression).toBeDefined();
             const [, node] = run_type_phase_1.runTypePhase(expression);
             expect(node).toBeDefined();
-            const resolvedExpression = strip_nodes_1.stripNode(node);
+            const resolvedExpression = desugar_1.stripCoreNode(desugar_1.desugar(node));
             const result = evaluate_1.evaluateExpression(constructors_1.evaluationScope())(resolvedExpression);
             expect(result).toBeDefined();
             if (result) {

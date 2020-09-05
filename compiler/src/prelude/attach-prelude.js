@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.attachPrelude = void 0;
 const tslib_1 = require("tslib");
 const prelude_library_1 = tslib_1.__importDefault(require("./prelude-library"));
 const parse_1 = tslib_1.__importDefault(require("../parser/parse"));

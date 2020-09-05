@@ -1,84 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.simplify = exports.evaluateExpression = void 0;
 const lodash_1 = require("lodash");
 const constructors_1 = require("./constructors");
 const utils_1 = require("./utils");
 const type_utils_1 = require("./type-utils");
 const variable_utils_1 = require("./variable-utils");
 const visitor_utils_1 = require("./visitor-utils");
-// const substituteExpressionVariables = (substitutions: { name: string, value: Expression }[]) => (expression: Expression): Expression => {
-//   const recurse = substituteExpressionVariables(substitutions);
-//   return substitutions.reduce(
-//     (body, { name, value }): Expression => {
-//       switch (body.kind) {
-//         case 'SymbolExpression':
-//         case 'NumberExpression':
-//         case 'BooleanExpression':
-//         case 'FunctionExpression':
-//           return body;
-//
-//         case 'Identifier':
-//           return body.name === name ? value : body;
-//
-//         case 'Application':
-//           return {
-//             ...body,
-//             kind: 'Application',
-//             parameter: recurse(body.parameter),
-//             callee: recurse(body.callee),
-//           };
-//
-//         case 'DataInstantiation':
-//           return {
-//             ...body,
-//             kind: 'DataInstantiation',
-//             parameters: body.parameters.map(recurse),
-//           };
-//
-//         case 'RecordExpression':
-//           return {
-//             ...body,
-//             properties: mapValues(body.properties, recurse),
-//           };
-//
-//         case 'BindingExpression':
-//           return {
-//             ...body,
-//             value: recurse(body.value),
-//             body: recurse(body.body),
-//           };
-//
-//         case 'DualExpression':
-//           return {
-//             ...body,
-//             left: recurse(body.left),
-//             right: recurse(body.right),
-//           };
-//
-//         case 'ReadRecordPropertyExpression':
-//           return {
-//             ...body,
-//             record: recurse(body.record),
-//           };
-//
-//         case 'ReadDataPropertyExpression':
-//           return {
-//             ...body,
-//             dataValue: recurse(body.dataValue),
-//           };
-//
-//         case 'PatternMatchExpression':
-//           return {
-//
-//           }
-//
-//         default:
-//           return assertNever(body);
-//       }
-//     },
-//     expression,
-//   );
-// };
 exports.evaluateExpression = (scope) => (expression) => {
     switch (expression.kind) {
         case 'SymbolExpression':
@@ -89,14 +17,6 @@ exports.evaluateExpression = (scope) => (expression) => {
             return { kind: 'NumberLiteral', value: expression.value };
         case 'StringExpression':
             return { kind: 'StringLiteral', value: expression.value };
-        case 'DualExpression': {
-            const left = exports.evaluateExpression(scope)(expression.left);
-            const right = exports.evaluateExpression(scope)(expression.right);
-            if (!left || !right) {
-                return undefined;
-            }
-            return { left, right, kind: 'DualBinding' };
-        }
         case 'DataInstantiation': {
             const name = exports.evaluateExpression(scope)(expression.callee);
             if (!name) {
@@ -112,19 +32,18 @@ exports.evaluateExpression = (scope) => (expression) => {
             }
             return undefined;
         }
-        case 'FunctionExpression': {
-            const parameter = exports.evaluateExpression(scope)(expression.parameter);
-            if (!parameter) {
-                return undefined;
-            }
+        case 'SimpleFunctionExpression': {
             const body = exports.evaluateExpression(scope)(expression.body);
             if (!body) {
                 return undefined;
             }
             return {
                 body,
-                parameter,
-                kind: expression.implicit ? 'ImplicitFunctionLiteral' : 'FunctionLiteral',
+                parameter: {
+                    kind: 'FreeVariable',
+                    name: expression.parameter,
+                },
+                kind: 'FunctionLiteral',
             };
         }
         case 'RecordExpression': {
@@ -152,11 +71,11 @@ exports.evaluateExpression = (scope) => (expression) => {
             }
             const simplifiedCallee = exports.simplify(callee);
             if (simplifiedCallee.kind !== 'FunctionLiteral' && simplifiedCallee.kind !== 'ImplicitFunctionLiteral') {
-                return {
+                return exports.simplify({
                     parameter,
                     kind: 'ApplicationValue',
                     callee: simplifiedCallee,
-                };
+                });
             }
             const replacements = type_utils_1.destructureValue(simplifiedCallee.parameter, parameter);
             if (!replacements) {
@@ -198,25 +117,20 @@ exports.evaluateExpression = (scope) => (expression) => {
             }
             return dataValue.parameters[expression.property];
         }
-        case 'PatternMatchExpression': {
-            const value = exports.evaluateExpression(scope)(expression.value);
-            if (!value) {
-                return undefined;
-            }
-            const patterns = expression.patterns.map(({ test, value }) => ({
-                test: exports.evaluateExpression(scope)(test),
-                value: exports.evaluateExpression(scope)(value),
-            }));
-            if (!utils_1.everyIs(patterns, (pattern) => (utils_1.isDefined(pattern.test) && utils_1.isDefined(pattern.value)))) {
-                return undefined;
-            }
-            return exports.simplify({
-                value,
-                patterns,
-                kind: 'PatternMatchValue',
-            });
-        }
         case 'NativeExpression':
+            const evaluatorImplementation = expression.data.evaluator;
+            if (!evaluatorImplementation) {
+                throw new Error('Tried to evaluate a native expression that did not have a evaluator implementation');
+            }
+            if (evaluatorImplementation.kind === 'builtin') {
+                return {
+                    kind: 'FreeVariable',
+                    name: `$builtin$${evaluatorImplementation.name}`,
+                };
+            }
+            else {
+                throw new Error(`Unknown type of evaluator native expression:${evaluatorImplementation.kind}`);
+            }
             return undefined;
         default:
             return utils_1.assertNever(expression);
@@ -234,6 +148,27 @@ exports.simplify = visitor_utils_1.visitValue({
                     ? value.record.properties[value.property]
                     : value;
             case 'ApplicationValue': {
+                if (value.callee.kind === 'ApplicationValue') {
+                    if (value.callee.callee.kind === 'FreeVariable') {
+                        if (value.callee.callee.name === '$builtin$equals') {
+                            return lodash_1.isEqual(value.parameter, value.callee.parameter)
+                                ? { kind: 'BooleanLiteral', value: true }
+                                : { kind: 'BooleanLiteral', value: false };
+                        }
+                    }
+                    else if (value.callee.callee.kind === 'ApplicationValue' && value.callee.callee.callee.kind === 'FreeVariable') {
+                        if (value.callee.callee.callee.name === '$builtin$if') {
+                            if (value.callee.callee.parameter.kind === 'BooleanLiteral') {
+                                if (value.callee.callee.parameter.value) {
+                                    return value.callee.parameter;
+                                }
+                                else {
+                                    return value.parameter;
+                                }
+                            }
+                        }
+                    }
+                }
                 if (value.callee.kind !== 'FunctionLiteral' && value.callee.kind !== 'ImplicitFunctionLiteral') {
                     return value;
                 }
@@ -244,7 +179,7 @@ exports.simplify = visitor_utils_1.visitValue({
                 return exports.simplify(variable_utils_1.applyReplacements(replacements)(value.callee.body));
             }
             case 'PatternMatchValue': {
-                if (variable_utils_1.extractFreeVariableNames(value.value).length !== 0) {
+                if (variable_utils_1.extractFreeVariableNamesFromValue(value.value).length !== 0) {
                     return value;
                 }
                 const found = utils_1.findWithResult(value.patterns, ({ test }) => type_utils_1.converge(constructors_1.scope(), test, value.value));

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.produceExpressionTokens = void 0;
 const tokenize_1 = require("./tokenize");
 const breakToken = { kind: 'break', value: '' };
 function* produceExpressionTokens(lexer) {
