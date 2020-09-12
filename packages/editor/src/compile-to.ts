@@ -17,7 +17,7 @@ export interface CompileToResult {
   messages: Message[];
 }
 
-function toBackend(expression: CoreExpression, node: CoreNode, backend: 'javascript'): string | undefined {
+function toBackend(expression: CoreExpression, node: CoreNode, backend: 'javascript' | 'cpp'): string | undefined {
   switch (backend) {
     case 'javascript':
       return generateJavascript(expression, { module: 'esm' });

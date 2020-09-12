@@ -1,9 +1,8 @@
-import * as types from '@babel/types';
 import { flatMap } from 'lodash';
 import {
   Application,
   BindingExpression,
-  BooleanExpression, DataInstantiation, Expression,
+  BooleanExpression, DataInstantiation,
   Identifier, NativeExpression,
   NodeWithExpression,
   NumberExpression, ReadDataPropertyExpression, ReadRecordPropertyExpression, RecordExpression,
@@ -12,7 +11,6 @@ import {
 import { scope } from '../type-checker/constructors';
 import { findBinding } from '../type-checker/scope-utils';
 import { TypedDecoration } from '../type-checker/type-check';
-import { Value } from '../type-checker/types/value';
 import { assertNever } from '../type-checker/utils';
 import { mapNode } from '../type-checker/visitor-utils';
 import {

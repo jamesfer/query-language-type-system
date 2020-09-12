@@ -1,4 +1,4 @@
-import { NodeWithChild } from '../..';
+import { CoreExpression, NodeWithExpression } from '../..';
 import { TypedDecoration } from '../../type-checker/type-check';
 import { assertNever } from '../../type-checker/utils';
 import { convertValueToType } from './convert-value-to-type';
@@ -12,7 +12,7 @@ import {
   getLocalStatements,
 } from './monad-state-operations';
 
-export function convertNodeToAst({ expression, decoration }: NodeWithChild<TypedDecoration, Monad<CppState, CppExpression>>): Monad<CppState, CppExpression> {
+export function convertNodeToAst({ expression, decoration }: NodeWithExpression<TypedDecoration, CoreExpression<Monad<CppState, CppExpression>>>): Monad<CppState, CppExpression> {
   switch (expression.kind) {
     case 'Identifier':
       return Monad.pure<CppState, CppExpression>({
@@ -83,7 +83,7 @@ export function convertNodeToAst({ expression, decoration }: NodeWithChild<Typed
         }),
       );
 
-    case 'FunctionExpression':
+    case 'SimpleFunctionExpression':
       return pipeRecord(
         { body: expression.body },
         () => ({ localStatements: getLocalStatements() }),
@@ -122,8 +122,8 @@ export function convertNodeToAst({ expression, decoration }: NodeWithChild<Typed
         ({ body }) => body,
       );
 
-    case 'DualExpression':
-      return expression.right;
+    // case 'DualExpression':
+    //   return expression.right;
 
     case 'ReadRecordPropertyExpression':
       return mapM(expression.record, (record) => ({
@@ -133,7 +133,7 @@ export function convertNodeToAst({ expression, decoration }: NodeWithChild<Typed
       }));
 
     case 'ReadDataPropertyExpression':
-    case 'PatternMatchExpression':
+    // case 'PatternMatchExpression':
     case 'NativeExpression':
       throw new Error('Not implemented yet');
 

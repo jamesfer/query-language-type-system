@@ -7,7 +7,7 @@ import {
   DesugaredExpressionWithoutPatternMatch, stripDesugaredNodeWithoutPatternMatch,
 } from './desugar-pattern-match';
 
-export type CoreExpression = DesugaredExpressionWithoutPatternMatch;
+export type CoreExpression<T = void> = DesugaredExpressionWithoutPatternMatch<T>;
 export type CoreNode = DesugaredNode;
 
 export function desugar(node: TypedNode): CoreNode {
