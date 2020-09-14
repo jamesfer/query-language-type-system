@@ -70,7 +70,7 @@ export default class App {
   }
 
   private generateCompilationOutput(code: string, options: CompileToOptions): CompilationOutput {
-    if (/^\s*$/m.test(code)) {
+    if (/^\s*$/.test(code)) {
       return { code: '' };
     }
 

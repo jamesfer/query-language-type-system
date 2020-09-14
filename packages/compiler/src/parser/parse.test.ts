@@ -7,6 +7,7 @@ import {
 } from '..';
 import { identifier } from '../type-checker/constructors';
 import parse from './parse';
+import dedent from 'dedent-js';
 
 describe('parse', () => {
   it('recognises a number expression', () => {
@@ -453,5 +454,30 @@ describe('parse', () => {
       },
     };
     expect(result.value).toEqual(expected);
+  });
+
+  it('parses multiple blank lines', () => {
+    const result = parse(dedent`
+      let a = 1
+      
+      
+      let b = 2
+      
+      
+      b
+    `);
+
+    expect(result.value).toEqual(expect.objectContaining({
+      kind: 'BindingExpression',
+      name: 'a',
+      body: expect.objectContaining({
+        kind: 'BindingExpression',
+        name: 'b',
+        body: {
+          kind: 'Identifier',
+          name: 'b',
+        },
+      }),
+    }));
   });
 });
