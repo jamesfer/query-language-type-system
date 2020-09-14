@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.uniqueIdStream = exports.findWithResult = exports.withParentExpressionKind = exports.withStateStack = exports.withRecursiveFreeState = exports.accumulateStatesUsingOr = exports.accumulateStatesUsingAnd = exports.accumulateStatesWithResult = exports.accumulateStates = exports.permuteArrays = exports.spreadApply = exports.pipe = exports.isDefined = exports.mapValuesWithState = exports.mapWithState = exports.everyValue = exports.everyIs = exports.unzipObject = exports.unzip = exports.checkedZipWith = exports.checkedZip = exports.clipArrays = exports.assertNever = void 0;
+exports.findWithResult = exports.withParentExpressionKind = exports.withStateStack = exports.withRecursiveFreeState = exports.accumulateStatesUsingOr = exports.accumulateStatesUsingAnd = exports.accumulateStatesWithResult = exports.accumulateStates = exports.permuteArrays = exports.spreadApply = exports.pipe = exports.isDefined = exports.mapValuesWithState = exports.mapWithState = exports.everyValue = exports.everyIs = exports.unzipObject = exports.unzip = exports.checkedZipWith = exports.checkedZip = exports.clipArrays = exports.assertNever = void 0;
 // import { AssertionError } from 'assert';
 const lodash_1 = require("lodash");
 const free_1 = require("../utils/free");
@@ -184,9 +184,4 @@ function findWithResult(list, f) {
     return [found, result];
 }
 exports.findWithResult = findWithResult;
-function uniqueIdStream() {
-    let counter = 0;
-    return prefix => `${prefix !== null && prefix !== void 0 ? prefix : ''}${++counter}`;
-}
-exports.uniqueIdStream = uniqueIdStream;
 //# sourceMappingURL=utils.js.map

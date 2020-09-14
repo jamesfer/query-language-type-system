@@ -1,0 +1,1 @@
+{"version":3,"file":"make-record-literal-struct.d.ts","sourceRoot":"","sources":["../../../../../../compiler/src/backend/cpp/make-record-literal-struct.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,aAAa,EAAE,MAAM,gCAAgC,CAAC;AAG/D,OAAO,EAAY,KAAK,EAAyB,MAAM,SAAS,CAAC;AACjE,OAAO,EAAyB,QAAQ,EAAe,MAAM,0BAA0B,CAAC;AA0FxF,wBAAgB,uBAAuB,CAAC,IAAI,EAAE,aAAa,2BAgB1D"}

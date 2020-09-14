@@ -1,7 +1,7 @@
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { Message } from './types/message';
 import { Scope } from './types/scope';
 import { FreeVariable, Value } from './types/value';
-import { UniqueIdGenerator } from './utils';
 import { VariableReplacement } from './variable-utils';
 /**
  * Looks at two values and tries to infer as much information about the free variables as possible

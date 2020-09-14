@@ -1,6 +1,6 @@
 import { Message } from 'query-language-compiler';
 export interface CompileToOptions {
-    backend: 'javascript';
+    backend: 'javascript' | 'cpp';
 }
 export interface CompileToResult {
     output?: string;

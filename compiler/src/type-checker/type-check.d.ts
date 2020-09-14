@@ -1,9 +1,9 @@
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { TypeResult } from './monad-utils';
 import { Expression } from './types/expression';
 import { Node } from './types/node';
 import { Scope } from './types/scope';
 import { ExplicitValue, Value } from './types/value';
-import { UniqueIdGenerator } from './utils';
 export interface TypedDecoration {
     type: ExplicitValue;
     implicitType: Value;
