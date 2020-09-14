@@ -1,4 +1,5 @@
 import { find, flatten, map } from 'lodash';
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { freeVariable, scopeBinding } from './constructors';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { findBinding } from './scope-utils';
@@ -13,7 +14,7 @@ import {
   SymbolLiteral,
   Value,
 } from './types/value';
-import { assertNever, checkedZip, everyIs, isDefined, UniqueIdGenerator } from './utils';
+import { assertNever, checkedZip, everyIs, isDefined} from './utils';
 import { applyReplacements, VariableReplacement } from './variable-utils';
 
 function convergeDualBinding(scope: Scope, shape: DualBinding, child: Value): VariableReplacement[] | undefined {

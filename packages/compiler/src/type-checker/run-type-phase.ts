@@ -1,3 +1,4 @@
+import { UniqueIdGenerator, uniqueIdStream } from '../utils/unique-id-generator';
 import { scope } from './constructors';
 import { TypeResult, TypeWriter } from './monad-utils';
 import { renameFreeVariables } from './rename-free-variables';
@@ -6,7 +7,6 @@ import { TypedNode, typeExpression } from './type-check';
 import { Expression } from './types/expression';
 import { Message } from './types/message';
 import { Scope } from './types/scope';
-import { UniqueIdGenerator, uniqueIdStream } from './utils';
 
 export function runTypePhase(expression: Expression, ): [Message[], TypedNode] {
   const makeUniqueId = uniqueIdStream();

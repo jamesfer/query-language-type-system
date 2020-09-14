@@ -1,7 +1,15 @@
-import { compile, generateJavascript, Message, CoreExpression } from 'query-language-compiler';
+import {
+  compile,
+  generateJavascript,
+  Message,
+  CoreExpression,
+  CoreNode,
+  generateCpp,
+} from 'query-language-compiler';
+import { assertNever } from './utils';
 
 export interface CompileToOptions {
-  backend: 'javascript';
+  backend: 'javascript' | 'cpp';
 }
 
 export interface CompileToResult {
@@ -9,15 +17,25 @@ export interface CompileToResult {
   messages: Message[];
 }
 
-function toBackend(expression: CoreExpression, backend: 'javascript'): string | undefined {
+function toBackend(expression: CoreExpression, node: CoreNode, backend: 'javascript' | 'cpp'): string | undefined {
   switch (backend) {
     case 'javascript':
       return generateJavascript(expression, { module: 'esm' });
+
+    case 'cpp':
+      return generateCpp(node);
+
+    default:
+      return assertNever(backend);
   }
 }
 
 export default function compileTo(code: string, options: CompileToOptions): CompileToResult {
-  const { messages, expression } = compile(code);
-  const output = expression ? toBackend(expression, options.backend) : undefined;
-  return { messages, output };
+  const { messages, expression, node } = compile(code);
+  if (expression && node) {
+    const output = toBackend(expression, node, options.backend);
+    return { messages, output };
+  }
+
+  return { messages, output: undefined };
 }

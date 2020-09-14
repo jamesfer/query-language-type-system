@@ -1,5 +1,6 @@
 import { find, flatMap, map, some, zipObject, merge } from 'lodash';
 import { desugar, stripCoreNode } from '../desugar/desugar';
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import {
   booleanLiteral,
   dataValue,
@@ -35,7 +36,7 @@ import {
 import { Node } from './types/node';
 import { Scope } from './types/scope';
 import { DataValue, ExplicitValue, FreeVariable, FunctionLiteral, Value } from './types/value';
-import { assertNever, UniqueIdGenerator, withParentExpressionKind } from './utils';
+import { assertNever, withParentExpressionKind } from './utils';
 import {
   applyReplacements, extractFreeVariablesFromExpression,
   getBindingsFromValue,

@@ -1,10 +1,11 @@
+import { UniqueIdGenerator, uniqueIdStream } from '../utils/unique-id-generator';
 import { Expression } from './types/expression';
 import {
   assertNever,
   mapValuesWithState,
   mapWithState,
-  UniqueIdGenerator,
-  uniqueIdStream,
+
+
 } from './utils';
 
 export type RenameScopes = { [k: string]: string }[]

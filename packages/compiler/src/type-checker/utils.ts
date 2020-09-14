@@ -1,5 +1,15 @@
 // import { AssertionError } from 'assert';
-import { flatMap, mapValues, reduce, set, unzip as unzipLodash, zip, zipWith, concat, last } from 'lodash';
+import {
+  concat,
+  flatMap,
+  last,
+  mapValues,
+  reduce,
+  set,
+  unzip as unzipLodash,
+  zip,
+  zipWith,
+} from 'lodash';
 import { Free, mapFree } from '../utils/free';
 import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
@@ -225,9 +235,3 @@ export function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined
   return [found, result]
 }
 
-export type UniqueIdGenerator = (prefix?: string) => string
-
-export function uniqueIdStream(): UniqueIdGenerator {
-  let counter = 0;
-  return prefix => `${prefix ?? ''}${++counter}`;
-}
