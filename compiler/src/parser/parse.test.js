@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const constructors_1 = require("../type-checker/constructors");
 const parse_1 = tslib_1.__importDefault(require("./parse"));
+const dedent_js_1 = tslib_1.__importDefault(require("dedent-js"));
 describe('parse', () => {
     it('recognises a number expression', () => {
         expect(parse_1.default('5').value).toEqual({
@@ -426,6 +427,29 @@ describe('parse', () => {
             },
         };
         expect(result.value).toEqual(expected);
+    });
+    it('parses multiple blank lines', () => {
+        const result = parse_1.default(dedent_js_1.default `
+      let a = 1
+      
+      
+      let b = 2
+      
+      
+      b
+    `);
+        expect(result.value).toEqual(expect.objectContaining({
+            kind: 'BindingExpression',
+            name: 'a',
+            body: expect.objectContaining({
+                kind: 'BindingExpression',
+                name: 'b',
+                body: {
+                    kind: 'Identifier',
+                    name: 'b',
+                },
+            }),
+        }));
     });
 });
 //# sourceMappingURL=parse.test.js.map

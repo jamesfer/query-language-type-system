@@ -51,7 +51,7 @@ class App {
         this.outputEditor.setValue('code' in output ? output.code : output.error);
     }
     generateCompilationOutput(code, options) {
-        if (/^\s*$/m.test(code)) {
+        if (/^\s*$/.test(code)) {
             return { code: '' };
         }
         try {
