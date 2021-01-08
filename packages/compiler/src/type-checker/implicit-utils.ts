@@ -106,8 +106,8 @@ export function stripAllImplicits(types: Value[]): ExplicitValue[] {
  * Splits a list of values into two lists. The first contains all the values that use at least one
  * free variable in common with relating value. The second shares no free variables.
  */
-export function partitionUnrelatedValues(valueList: Value[], relatingValue: Value): [Value[], Value[]] {
-  let variableNames = extractFreeVariableNamesFromValue(relatingValue);
+export function partitionUnrelatedValues(valueList: Value[], relatingValue: Value, otherVariables: string[] = []): [Value[], Value[]] {
+  let variableNames = [...otherVariables, ...extractFreeVariableNamesFromValue(relatingValue)];
   let allRelated: Value[] = [];
   let [related, unrelated] = partition(valueList, usesVariable(variableNames));
   while (related.length > 0) {

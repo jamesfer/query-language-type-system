@@ -17,6 +17,7 @@ import {
 } from './constructors';
 import { evaluateExpression } from './evaluate';
 import {
+  deepExtractImplicitParameters,
   deepExtractImplicitParametersFromExpression,
   extractImplicitsParameters,
   partitionUnrelatedValues,
@@ -62,6 +63,10 @@ function typeNode(
 
 function getTypeDecorations(nodes: TypedNode[]): Value[] {
   return nodes.map(node => node.decoration.type);
+}
+
+function getImplicitTypeDecorations(nodes: TypedNode[]): Value[] {
+  return nodes.map(node => node.decoration.implicitType);
 }
 
 function copyFreeVariables(scope: Scope, makeUniqueId: UniqueIdGenerator) {
@@ -113,7 +118,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       const callee = state.run(typeExpression(makeUniqueId))(expression.callee);
       const parameters = expression.parameters.map(state.run(typeExpression(makeUniqueId)));
 
-      const resultType = dataValue(callee.decoration.type, getTypeDecorations(parameters));
+      const resultType = dataValue(callee.decoration.type, getImplicitTypeDecorations(parameters));
       // if (callee.decoration.type.kind !== 'SymbolLiteral') {
       //   messages.push(`Cannot use a ${callee.decoration.type.kind} value as the callee of a data value`);
       //   resultType = dataValue('void');
@@ -140,7 +145,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       return state.wrap(typeNode(
         expressionNode,
         scope,
-        recordLiteral(zipObject(keys, getTypeDecorations(propertyNodes))),
+        recordLiteral(zipObject(keys, getImplicitTypeDecorations(propertyNodes))),
       ));
     }
 
@@ -179,7 +184,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       return state.wrap(typeNode(
         { ...expression, parameter, body },
         scope,
-        functionType(body.decoration.type, [[parameterValue, expression.implicit]]),
+        functionType(body.decoration.implicitType, [[parameterValue, expression.implicit]]),
       ));
     }
 
@@ -219,7 +224,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
           kind: 'FunctionLiteral',
           parameter: parameterTypeVariable,
           body: bodyTypeVariable,
-        }, callee.decoration.type);
+        }, callee.decoration.implicitType);
         if (!calleeReplacements) {
           state.log(`Cannot call a ${callee.decoration.type.kind}`);
         } else {
@@ -230,7 +235,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
         bodyType = applyReplacements(calleeReplacements || [])(bodyTypeVariable);
       }
 
-      const parameterReplacements = converge(state.scope, parameterType, parameter.decoration.type);
+      const parameterReplacements = converge(state.scope, parameterType, parameter.decoration.implicitType);
       if (!parameterReplacements) {
         state.log('Given parameter did not match expected shape');
       } else {
@@ -250,12 +255,15 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
         state.log(`A variable with the name ${expression.name} already exists`)
       }
 
+      // TODO get rid of all this logic to lift implicit parameters
+
       // Extract implicit parameters from all children on the value
+      const usedVariables = extractFreeVariablesFromExpression(expression.value);
       const valueNode = state.run(typeExpression(makeUniqueId))(expression.value);
-      const [shallowImplicits] = extractImplicitsParameters(valueNode.decoration.implicitType);
-      const [relatedShallowImplicits, unrelatedShallowImplicits] = partitionUnrelatedValues(shallowImplicits, valueNode.decoration.type);
+      const [shallowImplicits, valueWithoutShallowImplicits] = extractImplicitsParameters(valueNode.decoration.implicitType);
+      const [relatedShallowImplicits, unrelatedShallowImplicits] = partitionUnrelatedValues(shallowImplicits, valueNode.decoration.type, usedVariables);
       const deepImplicits = deepExtractImplicitParametersFromExpression(valueNode.expression);
-      const [relatedDeepImplicits, unrelatedDeepImplicits] = partitionUnrelatedValues(deepImplicits, valueNode.decoration.type);
+      const [relatedDeepImplicits, unrelatedDeepImplicits] = partitionUnrelatedValues(deepImplicits, valueNode.decoration.type, usedVariables);
       const allRelatedImplicits = [...relatedShallowImplicits, ...relatedDeepImplicits];
       const allUnrelatedImplicits = [...unrelatedShallowImplicits, ...unrelatedDeepImplicits];
       const relatedImplicitParameters = allRelatedImplicits.map(value => (
@@ -282,7 +290,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
 
       // Add the binding to the scope so that it can be used in the body
       const bodyNode = state.withChildScope((innerState) => {
-        const scopeType = functionType(valueNode.decoration.type, relatedImplicitParameters.map(parameter => [parameter, true]));
+        const scopeType = functionType(valueWithoutShallowImplicits, relatedImplicitParameters.map(parameter => [parameter, true]));
         const binding = scopeBinding(expression.name, newValueNode.decoration.scope, scopeType, newValueNode);
         innerState.expandScope({ bindings: [binding] });
         return innerState.run(typeExpression(makeUniqueId))(expression.body);
@@ -297,14 +305,14 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
             // The node type includes all the bindings because we want the unrelated implicits to be
             // resolved
             implicitType: functionType(
-              valueNode.decoration.type,
+              valueWithoutShallowImplicits,
               [...shallowImplicits, ...relatedDeepImplicits].map(parameter => [parameter, true]),
             ),
           },
         },
         body: bodyNode,
       };
-      return state.wrap(typeNode(expressionNode, scope, bodyNode.decoration.type));
+      return state.wrap(typeNode(expressionNode, scope, bodyNode.decoration.implicitType));
     }
 
     case 'DualExpression': {
@@ -321,7 +329,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
       return state.wrap(typeNode(
         expressionNode,
         scope,
-        leftNode.decoration.type,
+        leftNode.decoration.implicitType,
       ));
     }
 
@@ -331,7 +339,7 @@ export const typeExpression = (makeUniqueId: UniqueIdGenerator) => (scope: Scope
         ...expression,
         record: recordNode,
       };
-      const type = recordNode.decoration.type;
+      const type = recordNode.decoration.implicitType;
       const resultType = type.kind === 'RecordLiteral' && type.properties[expression.property]
         || undefined;
       if (resultType === undefined) {

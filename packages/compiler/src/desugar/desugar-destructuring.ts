@@ -102,7 +102,7 @@ function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesuga
         };
       }
 
-      const newName = 'injectedParameter$';
+      const newName = 'injectedParameter$' + Math.floor(Math.random() * 1e6);
       const identifierNode: DesugaredNode = {
         kind: 'Node',
         expression: { kind: 'Identifier', name: newName },

@@ -2,10 +2,14 @@ import requireFromString from 'require-from-string';
 import { compile, generateJavascript } from '../src';
 
 function run(code: string) {
-  const { expression } = compile(code);
+  const { expression, messages } = compile(code);
   if (expression) {
     const javascriptCode = generateJavascript(expression, { module: 'commonjs' });
-    return requireFromString(javascriptCode);
+    try {
+      return requireFromString(javascriptCode);
+    } catch (error) {
+      throw new Error(`Encountered an error while requiring generated code\n${error}\n\nCode: ${javascriptCode}`);
+    }
   }
   return undefined;
 }
@@ -50,6 +54,13 @@ describe('prelude', () => {
     it('power numbers', () => {
       const result = run('power 10 3');
       expect(result).toBe(1000);
+    });
+  });
+
+  describe('addMe', () => {
+    it('adds numbers', () => {
+      const result = run('addMe 1 2');
+      expect(result).toBe(3);
     });
   });
 });

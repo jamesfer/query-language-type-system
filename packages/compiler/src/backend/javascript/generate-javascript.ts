@@ -135,7 +135,7 @@ function convertExpressionToCode(expression: CoreExpression): [types.Statement[]
 
     case 'ReadDataPropertyExpression':
       const [dataValueStatements, dataValue] = convertExpressionToCode(expression.dataValue);
-      return [dataValueStatements, types.memberExpression(dataValue, types.identifier(`${expression.property}`))];
+      return [dataValueStatements, types.memberExpression(dataValue, types.identifier(`${expression.property}`), true)];
 
     case 'NativeExpression': {
       const nativeData = expression.data.javascript;

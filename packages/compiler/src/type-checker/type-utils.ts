@@ -16,6 +16,7 @@ import {
 } from './types/value';
 import { assertNever, checkedZip, everyIs, isDefined} from './utils';
 import { applyReplacements, VariableReplacement } from './variable-utils';
+import { simplify } from './evaluate';
 
 function convergeDualBinding(scope: Scope, shape: DualBinding, child: Value): VariableReplacement[] | undefined {
   const leftResult = converge(scope, shape.left, child);
@@ -286,7 +287,7 @@ export function areAllPairsSubtypes(
   let index = 0;
   for (const [constraint, parameter] of pairGenerator) {
     // Apply previous replacements to constraint
-    const replacedConstraint = applyReplacements(allReplacements)(constraint);
+    const replacedConstraint = simplify(applyReplacements(allReplacements)(constraint));
 
     // Find new replacements
     const replacements = canSatisfyShape(scope, replacedConstraint, parameter);

@@ -14,7 +14,7 @@ import {
   NumberExpression,
   ReadDataPropertyExpression,
   ReadRecordPropertyExpression,
-  RecordExpression,
+  RecordExpression, StringExpression,
   SymbolExpression,
 } from './types/expression';
 import { Node } from './types/node';
@@ -267,6 +267,13 @@ export function booleanExpression(value: boolean): BooleanExpression {
   return {
     value,
     kind: 'BooleanExpression',
+  };
+}
+
+export function stringExpression(value: string): StringExpression {
+  return {
+    value,
+    kind: 'StringExpression',
   };
 }
 

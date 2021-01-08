@@ -40,7 +40,9 @@ export class TypeWriter extends WriterMonad<TypeState> {
   constructor(public scope: Scope) {
     super(
       TypeWriter.emptyTypeState(),
-      ([messages], [newMessages, scope]) => [[...messages, ...newMessages], scope],
+      ([messages, variableReplacements], [newMessages, newVariableReplacements]) => (
+        [[...messages, ...newMessages], [...variableReplacements, ...newVariableReplacements]]
+      ),
     );
 
     this.state = [this.state[0], []];

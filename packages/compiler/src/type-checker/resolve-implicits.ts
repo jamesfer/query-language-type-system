@@ -5,6 +5,7 @@ import {
   stripImplicits,
 } from './implicit-utils';
 import { findMatchingImplementations } from './scope-utils';
+import { stripNode } from './strip-nodes';
 import { TypedNode } from './type-check';
 import { areAllPairsSubtypes } from './type-utils';
 import { Application, Expression } from './types/expression';
@@ -17,6 +18,7 @@ import {
   accumulateStatesWithResult,
   withParentExpressionKind,
 } from './utils';
+import { extractFreeVariablesFromExpression } from './variable-utils';
 import { visitNodes } from './visitor-utils';
 
 // function findImplementationFor(scope: Scope, parameter: Value): string | undefined {
@@ -107,7 +109,7 @@ import { visitNodes } from './visitor-utils';
 // }
 //
 
-function getImplicitImplementations(scope: Scope, value: Value): { result: Value, implementations: ScopeBinding[], skippedImplicits: Value[], messages: Message[] } {
+function getImplicitImplementations(scope: Scope, parentKind: Expression['kind'] | undefined, value: Value, otherVariables: string[]): { result: Value, implementations: ScopeBinding[], skippedImplicits: Value[], messages: Message[] } {
   // Find all the implicit parts of the type
   const [implicitParameters, result] = extractImplicitsParameters(value);
   if (implicitParameters.length === 0) {
@@ -115,7 +117,9 @@ function getImplicitImplementations(scope: Scope, value: Value): { result: Value
   }
 
   // Find all the implicit parts of the type that only mention unbound parameters not in the above list
-  const [skippedImplicits, implicitsToFill] = partitionUnrelatedValues(implicitParameters, result);
+  const [skippedImplicits, implicitsToFill] = parentKind === 'BindingExpression'
+    ? partitionUnrelatedValues(implicitParameters, result, otherVariables)
+    : [[], implicitParameters];
   if (implicitsToFill.length === 0) {
     return { result, skippedImplicits, implementations: [], messages: [] };
   }
@@ -163,7 +167,11 @@ function getImplicitImplementations(scope: Scope, value: Value): { result: Value
 
 function shallowResolveImplicitParameters(parentKind: Expression['kind'] | undefined, typedNode: TypedNode): [Message[], TypedNode] {
   const { expression, decoration: { scope, implicitType: type } } = typedNode;
-  const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, type);
+  if (expression.kind === 'ReadRecordPropertyExpression') {
+    console.log('x');
+  }
+  const freeVariables = extractFreeVariablesFromExpression(stripNode(typedNode));
+  const { result, skippedImplicits, implementations, messages } = getImplicitImplementations(scope, parentKind, type, freeVariables);
 
   // Recurse through the rest of the tree
   // const [expressionMessages, resolvedExpression] = iterateExpression(expression, result);

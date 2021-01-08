@@ -387,7 +387,10 @@ function collectFreeVariables(expression: Expression<string[]>): string[] {
       ];
 
     case 'FunctionExpression':
-      return [];
+      return [
+        ...expression.parameter,
+        ...expression.body,
+      ];
 
     case 'DataInstantiation':
       return expression.callee.concat(...expression.parameters);
