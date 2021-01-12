@@ -27,6 +27,17 @@ export class WriterMonad<S> {
     return { value, state: this.state };
   }
 
+  // chain<V>(initial: WriterResult<S, V>): WriterResult<S, V>
+  chain<V, V1>(initial: WriterResult<S, V>, f1: (value: V) => WriterResult<S, V1>): WriterResult<S, V1>
+  chain<V, V1, V2>(initial: WriterResult<S, V>, f1: (value: V) => WriterResult<S, V1>, f2: (value: V1) => WriterResult<S, V2>): WriterResult<S, V2>
+  chain<R>(initial: WriterResult<S, R>, ...fs: ((value: R) => WriterResult<S, R>)[]): WriterResult<S, R> {
+    const result = fs.reduce<R>(
+      (accum, f) => this.append(f(accum)),
+      this.append(initial),
+    );
+    return this.wrap(result);
+  }
+
   static createResult<S, V>(state: S, value: V): WriterResult<S, V> {
     return { state, value };
   }

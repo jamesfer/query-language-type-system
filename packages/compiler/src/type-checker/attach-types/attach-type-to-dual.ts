@@ -1,3 +1,4 @@
+import { node } from '../constructors';
 import { TypeResult, TypeWriter } from '../monad-utils';
 import { converge } from '../type-utils';
 import { DualExpression } from '../types/expression';
@@ -5,7 +6,7 @@ import { AttachedTypeNode } from './attached-type-node';
 import { Scope } from '../types/scope';
 import { shallowStripImplicits } from './utils/shallow-strip-implicits';
 
-export const attachTypeToDualExpression = (scope: Scope) => (
+export const attachTypeToDual = (scope: Scope) => (
   expression: DualExpression<AttachedTypeNode>,
 ): TypeResult<AttachedTypeNode> => {
   const state = new TypeWriter(scope);
@@ -17,4 +18,5 @@ export const attachTypeToDualExpression = (scope: Scope) => (
   } else {
     state.recordReplacements(replacements);
   }
+  return state.wrap(node(expression, { scope, type: leftType }));
 }

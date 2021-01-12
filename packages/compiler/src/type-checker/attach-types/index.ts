@@ -1,13 +1,24 @@
-import { applicationMapIterator, makeExpressionIterator, recordMapIterator } from '../../desugar/iterators-specific';
+import {
+  applicationMapIterator,
+  dualMapIterator,
+  makeExpressionIterator, readDataPropertyMapIterator, readRecordPropertyMapIterator,
+  recordMapIterator,
+} from '../../desugar/iterators-specific';
 import { Scope } from '../types/scope';
 import { Expression, RecordExpression } from '../types/expression';
 import { TypeResult, TypeWriter } from '../monad-utils';
+import { assertNever } from '../utils';
+import { attachTypeToBinding } from './attach-type-to-binding';
+import { attachTypeToBindingChildren } from './attach-type-to-binding-children';
 import { attachTypeToBoolean } from './attach-type-to-boolean';
+import { attachTypeToDual } from './attach-type-to-dual';
 import { attachTypeToFunction } from './attach-type-to-function';
 import { attachTypeToFunctionChildren } from './attach-type-to-function-children';
 import { attachTypeToIdentifier } from './attach-type-to-identifier';
 import { attachTypeToNative } from './attach-type-to-native';
 import { attachTypeToNumber } from './attach-type-to-number';
+import { attachTypeToReadDataProperty } from './attach-type-to-read-data-property';
+import { attachTypeToReadRecordProperty } from './attach-type-to-read-record-property';
 import { attachTypeToRecord } from './attach-type-to-record';
 import { attachTypeToString } from './attach-type-to-string';
 import { attachTypeToSymbol } from './attach-type-to-symbol';
@@ -43,25 +54,47 @@ export const attachTypes = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) =
     case 'DataInstantiation':
       break;
 
-    case 'FunctionExpression': {
-      const state = new TypeWriter(scope);
-      const functionExpression = state.append(attachTypeToFunctionChildren(scope)(expression)(attachTypes(makeUniqueId)));
-      return state.wrap(state.append(attachTypeToFunction(scope)(functionExpression)));
-    }
+    case 'FunctionExpression':
+      return new TypeWriter(scope).chain(
+        attachTypeToFunctionChildren(scope)(expression)(attachTypes(makeUniqueId)),
+        attachTypeToFunction(scope),
+      );
 
     case 'Application': {
       const state = new TypeWriter(scope);
       const applicationExpression = applicationMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
-      const attachedTypeNode = state.run(attachTypeToApplication(makeUniqueId))(applicationExpression);
-      return state.wrap(attachedTypeNode);
+      return attachTypeToApplication(makeUniqueId)(state.scope)(applicationExpression);
+    }
+
+    case 'DualExpression': {
+      const state = new TypeWriter(scope);
+      const dualExpression = dualMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
+      return attachTypeToDual(state.scope)(dualExpression);
     }
 
     case 'BindingExpression':
-    case 'DualExpression':
-    case 'ReadDataPropertyExpression':
+      return new TypeWriter(scope).chain(
+        attachTypeToBindingChildren(scope)(expression)(attachTypes(makeUniqueId)),
+        attachTypeToBinding(scope),
+      );
+
+    case 'ReadDataPropertyExpression': {
+      const state = new TypeWriter(scope);
+      const readDataPropertyExpression = readDataPropertyMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
+      return attachTypeToReadDataProperty(makeUniqueId)(state.scope)(readDataPropertyExpression);
+    }
+
+    case 'ReadRecordPropertyExpression': {
+      const state = new TypeWriter(scope);
+      const readRecordPropertyExpression = readRecordPropertyMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
+      return attachTypeToReadRecordProperty(makeUniqueId)(state.scope)(readRecordPropertyExpression);
+    }
+
     case 'PatternMatchExpression':
-    default:
       break;
+
+    default:
+      return assertNever(expression);
   }
 }
 
