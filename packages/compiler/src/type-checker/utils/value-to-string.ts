@@ -1,4 +1,3 @@
-import { Value } from '../types/value';
 import { assertNever } from '../utils';
 import { visitAndTransformValue } from '../visitor-utils';
 import { map } from 'lodash';

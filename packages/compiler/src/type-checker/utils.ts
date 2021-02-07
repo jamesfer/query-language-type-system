@@ -1,4 +1,3 @@
-// import { AssertionError } from 'assert';
 import {
   concat,
   flatMap,
@@ -11,18 +10,10 @@ import {
   zipWith,
 } from 'lodash';
 import { Free, mapFree } from '../utils/free';
-import { TypedNode } from './type-check';
-import { Expression } from './types/expression';
 
 export function assertNever(x: never): never {
   throw new Error('Assert never was actually called');
 }
-
-// export function assert(condition: any, message: string): asserts condition {
-//   if (!condition) {
-//     throw new AssertionError({ message: `Assertion failed: ${message}` });
-//   }
-// }
 
 export function clipArrays<T, U>(array1: T[], array2: U[]): [T[], U[]] {
   if (array1.length > array2.length) {
@@ -205,20 +196,6 @@ export function withStateStack<S, T extends any[], R>(f: (pushState: (state: S) 
     stateStack = oldState;
     return result;
   }
-}
-
-/**
- * Automatically tracks the parent kind of each expression and provides its to the given callback.
- */
-export function withParentExpressionKind<R>(f: (parentKind: Expression['kind'] | undefined, node: TypedNode) => R): (node: TypedNode) => R {
-  return withStateStack((
-    pushState: (state: Expression['kind']) => void,
-    parentKind: Expression['kind'] | undefined,
-    node: TypedNode,
-  ): R => {
-    pushState(node.expression.kind);
-    return f(parentKind, node);
-  });
 }
 
 export function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined): [T, R] | undefined {

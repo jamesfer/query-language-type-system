@@ -16,7 +16,6 @@ import {
 import { convergeValues } from '../converge-values';
 import { InferredType } from '../converge-values/converge-types';
 import { StateRecorder } from '../state-recorder/state-recorder';
-import { newFreeVariable } from '../type-utils';
 import { Expression } from '../types/expression';
 import { Message } from '../types/message';
 import { NodeWithChild } from '../types/node';
@@ -54,7 +53,7 @@ function produceValueInferences(
     case 'RecordExpression':
       return [[], recordLiteral(expression.properties)];
     case 'Application': {
-      const resultType = newFreeVariable('applicationResult$', makeUniqueId);
+      const resultType = freeVariable(makeUniqueId('applicationResult$'));
       return [
         [[resultType, application(expression.callee, expression.parameter)]],
         resultType,
@@ -70,7 +69,7 @@ function produceValueInferences(
         expression.body,
       ];
     case 'DualExpression': {
-      const resultType = newFreeVariable('dualExpression$', makeUniqueId);
+      const resultType = freeVariable(makeUniqueId('dualExpression$'));
       return [
         [
           [resultType, expression.right],
@@ -80,7 +79,7 @@ function produceValueInferences(
       ];
     }
     case 'ReadRecordPropertyExpression': {
-      const resultType = newFreeVariable('readRecordProperty$', makeUniqueId);
+      const resultType = freeVariable(makeUniqueId('readRecordProperty$'));
       // TODO this implementation is bugged because it requires that then record have exactly these properties
       const expectedType = recordLiteral({
         [expression.property]: resultType,
@@ -91,12 +90,13 @@ function produceValueInferences(
       ];
     }
     case 'ReadDataPropertyExpression': {
-      const resultType = newFreeVariable('readDataProperty$', makeUniqueId);
+      const resultType = freeVariable(makeUniqueId('readDataProperty$'));
       // TODO this implementation is bugged because it requires that then data value have exactly this many elements
       const expectedType = dataValue(
-        newFreeVariable('dataPropertyName$', makeUniqueId),
+        freeVariable(makeUniqueId('dataPropertyName$')),
         [
-          ...Array(expression.property).fill(0).map(() => newFreeVariable('dataPropertyParameter$', makeUniqueId)),
+          ...Array(expression.property).fill(0).map(() => freeVariable(makeUniqueId(
+            'dataPropertyParameter$'))),
           resultType,
         ],
       );
@@ -106,8 +106,8 @@ function produceValueInferences(
       ];
     }
     case 'PatternMatchExpression': {
-      const resultType = newFreeVariable('patternMatchBody$', makeUniqueId);
-      const testType = newFreeVariable('patternMatchTest$', makeUniqueId);
+      const resultType = freeVariable(makeUniqueId('patternMatchBody$'));
+      const testType = freeVariable(makeUniqueId('patternMatchTest$'));
       return [
         [
           [testType, expression.value],
@@ -118,7 +118,7 @@ function produceValueInferences(
       ];
     }
     case 'NativeExpression':
-      return [[], newFreeVariable('nativeExpression$', makeUniqueId)];
+      return [[], freeVariable(makeUniqueId('nativeExpression$'))];
   }
 }
 

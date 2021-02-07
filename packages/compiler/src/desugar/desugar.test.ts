@@ -1,6 +1,7 @@
 import dedent from 'dedent-js';
 import parse from '../parser/parse';
-import { runTypePhase } from '../type-checker/run-type-phase';
+import { checkTypes } from '../type-checker';
+import { uniqueIdStream } from '../utils/unique-id-generator';
 import { desugar } from './desugar';
 
 function compileAndDesugar(code: string) {
@@ -9,7 +10,7 @@ function compileAndDesugar(code: string) {
     throw new Error(`Failed to parse code: ${code}`);
   }
 
-  const [typeMessages, typedNode] = runTypePhase(expression);
+  const [typeMessages, typedNode] = checkTypes(uniqueIdStream(), expression);
   if (typeMessages.length > 0) {
     throw new Error(`Failed to type code: ${typeMessages.join(', ')}`);
   }

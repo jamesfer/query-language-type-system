@@ -17,7 +17,7 @@ import {
   StringExpression,
   SymbolExpression,
 } from '..';
-import { ResolvedNode, ResolvedNodeDecoration } from '../type-checker/resolve-implicits/index';
+import { ResolvedNode, ResolvedNodeDecoration } from '../type-checker/resolve-implicits';
 import { mapNode } from '../type-checker/visitor-utils';
 import { performExpressionDestructuring } from './destructure-expression';
 import { combineIteratorMap } from './iterators-core';

@@ -2,16 +2,13 @@ import { flatMap } from 'lodash';
 import {
   Application,
   BindingExpression,
-  BooleanExpression, DataInstantiation, Expression,
+  BooleanExpression, DataInstantiation,
   Identifier, NativeExpression,
   NodeWithExpression,
   NumberExpression, ReadDataPropertyExpression, ReadRecordPropertyExpression, RecordExpression,
   StringExpression, SymbolExpression,
 } from '..';
-import { scope } from '../type-checker/constructors';
-import { ResolvedNodeDecoration } from '../type-checker/resolve-implicits/index';
-import { findBinding } from '../type-checker/scope-utils';
-import { TypedDecoration } from '../type-checker/type-check';
+import { ResolvedNodeDecoration } from '../type-checker/resolve-implicits';
 import { assertNever } from '../type-checker/utils';
 import { mapNode } from '../type-checker/visitor-utils';
 import {

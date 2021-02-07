@@ -1,10 +1,5 @@
-import { CoreExpression, CoreNode } from '../..';
+import { CoreNode } from '../..';
 import {
-  DesugaredNode as DualBindingDesugaredNode,
-  makeDualBindingDesugaredNodeIterator,
-} from '../../desugar/desugar-dual-bindings';
-import {
-  DesugaredNode,
   makePatternMatchDesugaredNodeIterator,
 } from '../../desugar/desugar-pattern-match';
 import { mapNode } from '../../type-checker/visitor-utils';

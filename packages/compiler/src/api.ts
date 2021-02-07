@@ -3,14 +3,8 @@ import { removeUnusedBindings } from './optimisations/remove-unused-bindings/rem
 import parse from './parser/parse';
 import { attachPrelude } from './prelude/attach-prelude';
 import { checkTypes } from './type-checker';
-import { evaluationScope } from './type-checker/constructors';
-import { evaluateExpression } from './type-checker/evaluate';
-import { TypedNode } from './type-checker/type-check';
 import { Message } from './type-checker/types/message';
-import { Value } from './type-checker/types/value';
 import { uniqueIdStream } from './utils/unique-id-generator';
-
-export { TypedNode } from './type-checker/type-check';
 
 export interface CompileResult {
   expression?: CoreExpression;
@@ -44,12 +38,4 @@ export function compile(code: string, options?: CompileOptions): CompileResult {
     node: optimizedNode,
     messages: typeMessages,
   };
-}
-
-export function evaluate(code: string): Value | undefined {
-  const { expression } = compile(code);
-  if (expression) {
-    return evaluateExpression(evaluationScope())(expression);
-  }
-  return undefined;
 }

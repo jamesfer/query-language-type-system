@@ -3,15 +3,12 @@ import { promises } from 'fs';
 import { map } from 'lodash';
 import { performance } from 'perf_hooks';
 import { compile } from './api';
-import { DesugaredExpressionWithoutPatternMatch } from './desugar/desugar-pattern-match';
 import parse from './parser/parse';
-import { evaluationScope } from './type-checker/constructors';
-import { evaluateExpression } from './type-checker/evaluate';
-import { runTypePhase } from './type-checker/run-type-phase';
+import { checkTypes } from './type-checker';
 import { Expression } from './type-checker/types/expression';
-import { Value } from './type-checker/types/value';
 import { assertNever } from './type-checker/utils';
 import { visitAndTransformValue } from './type-checker/visitor-utils';
+import { uniqueIdStream } from './utils/unique-id-generator';
 
 function indent(string: string, spaces = 2) {
   const indentString = Array(spaces).fill(' ').join('');
@@ -116,9 +113,9 @@ function parseCode(code: string): Expression {
   return expression;
 }
 
-function checkTypes(expression: Expression): void {
+function runCheckTypes(expression: Expression): void {
   process.stdout.write('➜ Checking types...');
-  const [time, [messages]] = timeFunction(() => runTypePhase(expression));
+  const [time, [messages]] = timeFunction(() => checkTypes(uniqueIdStream(), expression));
   if (messages.length > 0) {
     process.stdout.write('\n');
     console.log(chalk.red('✖ Failed to type code'));
@@ -131,18 +128,18 @@ function checkTypes(expression: Expression): void {
   process.stdout.write(chalk.grey(` ${time.toFixed(0)}ms\n`));
 }
 
-function evaluate(expression: DesugaredExpressionWithoutPatternMatch): Value {
-  process.stdout.write('➜ Evaluating...');
-  const [time, value] = timeFunction(() => evaluateExpression(evaluationScope())(expression));
-  if (!value) {
-    process.stdout.write('\n');
-    console.log(chalk.red('✖ Failed to evaluate expression'));
-    process.exit(1);
-  }
-
-  process.stdout.write(chalk.grey(` ${time.toFixed(0)}ms\n`));
-  return value;
-}
+// function evaluate(expression: DesugaredExpressionWithoutPatternMatch): Value {
+//   process.stdout.write('➜ Evaluating...');
+//   const [time, value] = timeFunction(() => evaluateExpression(evaluationScope())(expression));
+//   if (!value) {
+//     process.stdout.write('\n');
+//     console.log(chalk.red('✖ Failed to evaluate expression'));
+//     process.exit(1);
+//   }
+//
+//   process.stdout.write(chalk.grey(` ${time.toFixed(0)}ms\n`));
+//   return value;
+// }
 
 async function main() {
   const filename = process.argv[2];
@@ -154,11 +151,11 @@ async function main() {
   const code = await readFile(filename);
   const result = compile(code);
   if (result.expression) {
-    const value = evaluate(result.expression);
+    // const value = evaluate(result.expression);
     console.log(chalk.green('\u2713 Succeeded'));
     console.log();
-    console.log(indent(prettyPrintValue(value)));
-    console.log();
+    // console.log(indent(prettyPrintValue(value)));
+    // console.log();
   } else {
     console.log(chalk.red('✖ Failed to produce an expression from compiled code.'));
     result.messages.forEach((message) => {

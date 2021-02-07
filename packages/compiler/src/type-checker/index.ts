@@ -2,7 +2,7 @@ import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { attachShapes } from './attach-shapes';
 import { buildScopedNode } from './build-scoped-node';
 import { recursivelyApplyInferredTypes } from './compress-inferred-types/recursively-apply-inferred-types';
-import { ResolvedNode, resolveImplicits } from './resolve-implicits/index';
+import { ResolvedNode, resolveImplicits } from './resolve-implicits';
 import { Expression } from './types/expression';
 import { compressInferredTypes } from './compress-inferred-types/compress-inferred-types';
 import { Message } from './types/message';

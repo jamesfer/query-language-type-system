@@ -1,7 +1,4 @@
-import { uniqueId, castArray } from 'lodash';
-import { DesugaredExpressionWithoutPatternMatch } from '../desugar/desugar-pattern-match';
-import { TypedNode } from './type-check';
-import { EScopeBinding, EScopeShapeBinding, EvaluationScope } from './types/evaluation-scope';
+import { castArray } from 'lodash';
 import {
   Application,
   BindingExpression,
@@ -18,7 +15,6 @@ import {
   SymbolExpression,
 } from './types/expression';
 import { Node } from './types/node';
-import { Scope, ScopeBinding } from './types/scope';
 import {
   ApplicationValue,
   BooleanLiteral,
@@ -30,72 +26,6 @@ import {
   SymbolLiteral,
   Value,
 } from './types/value';
-
-/**
- * Scope stuff
- */
-
-export function scope(scope: Partial<Scope> = {}): Scope {
-  return {
-    bindings: [],
-    ...scope,
-  };
-}
-
-export function evaluationScope(scope: Partial<EvaluationScope> = {}): EvaluationScope {
-  return {
-    bindings: [],
-    ...scope,
-  };
-}
-
-export function expandScope(parent: Scope, child: Partial<Scope> = {}): Scope {
-  return {
-    bindings: [...parent.bindings, ...child.bindings || []],
-  };
-}
-
-export function expandEvaluationScope(parent: EvaluationScope, child: Partial<EvaluationScope> = {}): EvaluationScope {
-  return {
-    bindings: [...parent.bindings, ...child.bindings || []],
-  };
-}
-
-// export function scopeDataDeclaration(callee: string, parameters: TypedNode[]):  {
-//   return {
-//     callee,
-//     parameters,
-//     kind: 'DataDeclaration',
-//   };
-// }
-
-export function scopeBinding(name: string, scope: Scope, type: Value, node?: TypedNode): ScopeBinding {
-  return {
-    name,
-    type,
-    scope,
-    node,
-    // expression,
-    kind: 'ScopeBinding',
-  };
-}
-
-export function eScopeBinding(name: string, value: DesugaredExpressionWithoutPatternMatch): EScopeBinding {
-  return {
-    name,
-    value,
-    kind: 'ScopeBinding',
-  };
-}
-
-export function eScopeShapeBinding(name: string, type: Value): EScopeShapeBinding {
-  return {
-    name,
-    type,
-    kind: 'ScopeShapeBinding',
-  };
-}
-
 
 /**
  * Values
@@ -225,10 +155,6 @@ export const bind = (name: string, value: MaybeExpression) => (body: Expression)
   kind: 'BindingExpression',
   value: toExpression(value),
 });
-
-export const implement = (name: string, parameters: MaybeExpression[] = []) => (
-  bind(uniqueId(`${name}Implementation`), parameters.length > 0 ? apply(identifier(name), parameters) : identifier(name))
-);
 
 function defaultExplicit<T>(parameters: (T | [T, boolean])[]): [T, boolean][] {
   return parameters.map(parameter => Array.isArray(parameter) ? parameter : [parameter, false]);

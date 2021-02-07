@@ -1,4 +1,3 @@
-import { map, max } from 'lodash';
 import { Expression } from '../..';
 import { Free, mapFree } from '../../utils/free';
 import { ExpressionToken } from '../produce-expression-tokens';

@@ -1,6 +1,5 @@
 import { assertNever } from '../../type-checker/utils';
 import {
-  CppExpression,
   CppExpressionWithChild,
   CppParameter,
   CppStatement,

@@ -4,7 +4,7 @@ import { checkTypes } from './index';
 import { prefixlessUniqueIdGenerator } from './test-utils/test-unique-id-generators';
 import { Expression } from './types/expression';
 import { Message } from './types/message';
-import { ResolvedNode } from './resolve-implicits/index';
+import { ResolvedNode } from './resolve-implicits';
 
 describe('checkTypes', () => {
   describe('when checking an expression with inference', () => {

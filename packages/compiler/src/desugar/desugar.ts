@@ -1,4 +1,4 @@
-import { ResolvedNode } from '../type-checker/resolve-implicits/index';
+import { ResolvedNode } from '../type-checker/resolve-implicits';
 import { desugarDestructuring } from './desugar-destructuring';
 import { desugarDualBindings } from './desugar-dual-bindings';
 import {
