@@ -1,4 +1,4 @@
-import { TypedNode } from '..';
+import { ResolvedNode } from '../type-checker/resolve-implicits/index';
 import { desugarDestructuring } from './desugar-destructuring';
 import { desugarDualBindings } from './desugar-dual-bindings';
 import {
@@ -10,7 +10,7 @@ import {
 export type CoreExpression<T = void> = DesugaredExpressionWithoutPatternMatch<T>;
 export type CoreNode = DesugaredNode;
 
-export function desugar(node: TypedNode): CoreNode {
+export function desugar(node: ResolvedNode): CoreNode {
   return desugarPatternMatch(desugarDualBindings(desugarDestructuring(node)));
 }
 

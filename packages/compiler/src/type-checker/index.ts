@@ -1,16 +1,34 @@
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
+import { attachShapes } from './attach-shapes';
+import { buildScopedNode } from './build-scoped-node';
+import { recursivelyApplyInferredTypes } from './compress-inferred-types/recursively-apply-inferred-types';
+import { ResolvedNode, resolveImplicits } from './resolve-implicits/index';
 import { Expression } from './types/expression';
-import { TypedNode } from './type-check';
-import { attachTypes } from './attach-types';
-import { Scope } from './types/scope';
-import { recursivelyApplyReplacementsToNode } from './variable-utils';
-import { applyVariableReplacements } from './apply-variable-replacements';
+import { compressInferredTypes } from './compress-inferred-types/compress-inferred-types';
+import { Message } from './types/message';
 
-export function checkTypes(scope: Scope, expression: Expression): TypedNode {
-  // Compute the type of each expression. Implicit parameters are only kept in a single place. Type information learned
-  // in the form of type replacements are propagated upwards
-  const result = attachTypes(scope)(expression);
+export function checkTypes(makeUniqueId: UniqueIdGenerator, expression: Expression): [Message[], ResolvedNode] {
+  // Attach a partial type and a name to every node
+  const [messages, inferredTypes, namedNode] = attachShapes(makeUniqueId)(expression);
 
-  // Reapplies all the type replacements discovered in the previous step. Type information gained from higher level
-  // expressions can be propagated downwards
-  const updatedNode = applyVariableReplacements(result.state[1], result.value);
+  // Compress all inferred types and detect issues where variables were inferred to different types
+  const [compressionMessages, compressedInferredTypes] = compressInferredTypes(inferredTypes);
+
+  // Reapplies all the inferred types discovered in the previous step. Type information can propagate to all expressions
+  const shapedNode = recursivelyApplyInferredTypes(compressedInferredTypes)(namedNode);
+
+  // Builds and attaches a scope to each node
+  const scopedNode = buildScopedNode(shapedNode);
+
+  // Find replacements for all implicit parameters and strip them
+  const [resolvedMessages, resolvedNode] = resolveImplicits(scopedNode);
+
+  return [
+    [
+      ...messages,
+      ...compressionMessages,
+      ...resolvedMessages,
+    ],
+    resolvedNode,
+  ];
 }

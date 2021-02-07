@@ -2,13 +2,14 @@ import { flatMap } from 'lodash';
 import {
   Application,
   BindingExpression,
-  BooleanExpression, DataInstantiation,
+  BooleanExpression, DataInstantiation, Expression,
   Identifier, NativeExpression,
   NodeWithExpression,
   NumberExpression, ReadDataPropertyExpression, ReadRecordPropertyExpression, RecordExpression,
   StringExpression, SymbolExpression,
 } from '..';
 import { scope } from '../type-checker/constructors';
+import { ResolvedNodeDecoration } from '../type-checker/resolve-implicits/index';
 import { findBinding } from '../type-checker/scope-utils';
 import { TypedDecoration } from '../type-checker/type-check';
 import { assertNever } from '../type-checker/utils';
@@ -27,8 +28,6 @@ import {
   bindingMapIterator,
   dataInstantiationMapIterator,
   emptyMapIterator,
-  makeStripNode,
-  patternMatchMapIterator,
   readDataPropertyMapIterator,
   readRecordPropertyMapIterator, recordMapIterator,
   shallowStripNode,
@@ -57,11 +56,12 @@ declare module 'fp-ts/lib/HKT' {
   }
 }
 
-export interface DesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutPatternMatch<DesugaredNode>> {}
+export interface DesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, DesugaredExpressionWithoutPatternMatch<DesugaredNode>> {}
 
-interface PartiallyDesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutDualExpression<DesugaredNode>> {}
+interface PartiallyDesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, DesugaredExpressionWithoutDualExpression<DesugaredNode>> {}
 
 function convertPatternMatchToConditions(value: DesugaredNode, test: DesugaredNode): DesugaredNode[] {
+  const scope = value.decoration.scope;
   switch (test.expression.kind) {
     case 'SymbolExpression':
     case 'BooleanExpression':
@@ -85,12 +85,9 @@ function convertPatternMatchToConditions(value: DesugaredNode, test: DesugaredNo
                   name: 'equals',
                 },
                 decoration: {
-                  scope: scope(),
+                  scope,
+                  resolvedImplicits: [],
                   type: {
-                    kind: 'FreeVariable',
-                    name: 'a',
-                  },
-                  implicitType: {
                     kind: 'FreeVariable',
                     name: 'a',
                   },
@@ -98,12 +95,9 @@ function convertPatternMatchToConditions(value: DesugaredNode, test: DesugaredNo
               },
             },
             decoration: {
-              scope: scope(),
+              scope,
+              resolvedImplicits: [],
               type: {
-                kind: 'FreeVariable',
-                name: 'b',
-              },
-              implicitType: {
                 kind: 'FreeVariable',
                 name: 'b',
               },
@@ -111,12 +105,9 @@ function convertPatternMatchToConditions(value: DesugaredNode, test: DesugaredNo
           },
         },
         decoration: {
-          scope: scope(),
+          scope,
+          resolvedImplicits: [],
           type: {
-            kind: 'FreeVariable',
-            name: 'c',
-          },
-          implicitType: {
             kind: 'FreeVariable',
             name: 'c',
           },
@@ -139,19 +130,19 @@ function convertPatternMatchToConditions(value: DesugaredNode, test: DesugaredNo
             record: value,
           },
           decoration: {
+            scope,
             type: valueType.properties[name],
-            implicitType: valueType.properties[name],
-            scope: scope(),
+            resolvedImplicits: []
           },
         }, property)
       ));
     }
 
     case 'Identifier': {
-      const binding = findBinding(test.decoration.scope, test.expression.name);
-      if (binding) {
-        // TODO return equals comparison
-      }
+      // const binding = findBinding(test.decoration.scope, test.expression.name);
+      // if (binding) {
+      //   // TODO return equals comparison
+      // }
 
       return [];
     }
@@ -173,7 +164,7 @@ function convertPatternMatchToConditions(value: DesugaredNode, test: DesugaredNo
 function convertPatternMatchToBindings(value: DesugaredNode, test: DesugaredNode): { name: string, value: DesugaredNode }[] {
   switch (test.expression.kind) {
     case 'Identifier':
-      if (!findBinding(test.decoration.scope, test.expression.name)) {
+      if (!(test.expression.name in test.decoration.scope.bindings)) {
         return [{ value, name: test.expression.name }];
       }
       return [];
@@ -199,9 +190,9 @@ function convertPatternMatchToBindings(value: DesugaredNode, test: DesugaredNode
             record: value,
           },
           decoration: {
+            scope: test.decoration.scope,
             type: valueType.properties[name],
-            implicitType: valueType.properties[name],
-            scope: scope(),
+            resolvedImplicits: [],
           },
         }, property)
       ));
@@ -221,16 +212,13 @@ function convertPatternMatchToBindings(value: DesugaredNode, test: DesugaredNode
 }
 
 function combineConditions(conditions: DesugaredNode[], value: DesugaredNode, alternative: DesugaredNode): DesugaredNode {
-  const decoration: TypedDecoration = {
+  const decoration: ResolvedNodeDecoration = {
     type: { // TODO types are hacky again
       kind: 'FreeVariable',
       name: 't'
     },
-    implicitType: { // TODO types are hacky again
-      kind: 'FreeVariable',
-      name: 't'
-    },
     scope: value.decoration.scope,
+    resolvedImplicits: [],
   };
   const combinedCondition = conditions.reduce((left, right): DesugaredNode => {
     return {
@@ -294,16 +282,13 @@ function combineConditions(conditions: DesugaredNode[], value: DesugaredNode, al
 }
 
 function makeConsequent(bindings: { name: string, value: DesugaredNode }[], body: DesugaredNode): DesugaredNode {
-  const decoration: TypedDecoration = {
+  const decoration: ResolvedNodeDecoration = {
     type: { // TODO types are hacky again
       kind: 'FreeVariable',
       name: 't'
     },
-    implicitType: { // TODO types are hacky again
-      kind: 'FreeVariable',
-      name: 't'
-    },
     scope: body.decoration.scope,
+    resolvedImplicits: [],
   };
   return bindings.reduceRight<DesugaredNode>(
     (body, binding) => {
@@ -355,15 +340,16 @@ function shallowDesugarPatternMatch(
       return { expression, decoration, kind: 'Node' };
 
     case 'PatternMatchExpression': {
-      const identifier: NodeWithExpression<TypedDecoration, Identifier> = {
+      const identifier: Identifier = { kind: 'Identifier', name: 'MATCH_VARIABLE$' };
+      const identifierNode: DesugaredNode = {
         kind: 'Node',
-        expression: { kind: 'Identifier', name: 'MATCH_VARIABLE$' },
+        expression: identifier,
         decoration: expression.value.decoration,
       };
 
       const patterns = expression.patterns.map((pattern) => {
-        const conditions = convertPatternMatchToConditions(identifier, pattern.test);
-        const bindings = convertPatternMatchToBindings(identifier, pattern.test);
+        const conditions = convertPatternMatchToConditions(identifierNode, pattern.test);
+        const bindings = convertPatternMatchToBindings(identifierNode, pattern.test);
 
         return {
           conditions,
@@ -376,11 +362,11 @@ function shallowDesugarPatternMatch(
       }
 
       if (patterns.length === 1) {
-        return wrapInBinding(identifier.expression.name, expression.value, patterns[0].value);
+        return wrapInBinding(identifier.name, expression.value, patterns[0].value);
       }
 
       return wrapInBinding(
-        identifier.expression.name,
+        identifier.name,
         expression.value,
         patterns.slice(0, -1).reduce<DesugaredNode>(
           (alternative, pattern) => {

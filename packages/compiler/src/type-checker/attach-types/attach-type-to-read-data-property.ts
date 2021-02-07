@@ -5,12 +5,13 @@ import { newFreeVariable } from '../type-utils';
 import { ReadDataPropertyExpression } from '../types/expression';
 import { Scope } from '../types/scope';
 import { Value } from '../types/value';
+import { AttachTypesState } from './attach-types-state';
 import { AttachedTypeNode } from './attached-type-node';
-import { shallowStripImplicits } from './utils/shallow-strip-implicits';
+import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 
-export const attachTypeToReadDataProperty = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (
+export const attachTypeToReadDataProperty = (state: AttachTypesState) => (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (
   expression: ReadDataPropertyExpression<AttachedTypeNode>,
-): TypeResult<AttachedTypeNode> => {
+): AttachedTypeNode => {
   const state = new TypeWriter(scope);
   const dataType = shallowStripImplicits(expression.dataValue.decoration.type);
   let resultType: Value | undefined;
@@ -24,8 +25,8 @@ export const attachTypeToReadDataProperty = (makeUniqueId: UniqueIdGenerator) =>
     state.log('Tried to read a data property from something that is not a data value');
   }
 
-  return state.wrap(node(expression, {
+  return node(expression, {
     scope,
     type: resultType ? shallowStripImplicits(resultType) : newFreeVariable('unknown$', makeUniqueId),
-  }));
+  });
 }

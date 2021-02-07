@@ -15,7 +15,7 @@ import {
   StringExpression,
   SymbolExpression,
 } from '..';
-import { TypedDecoration } from '../type-checker/type-check';
+import { ResolvedNodeDecoration } from '../type-checker/resolve-implicits/index';
 import { mapNode } from '../type-checker/visitor-utils';
 import {
   DesugaredExpressionWithoutDestructuring,
@@ -58,9 +58,9 @@ declare module 'fp-ts/lib/HKT' {
   }
 }
 
-export interface DesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutDualExpression<DesugaredNode>> {}
+export interface DesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, DesugaredExpressionWithoutDualExpression<DesugaredNode>> {}
 
-interface PartiallyDesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutDestructuring<DesugaredNode>> {}
+interface PartiallyDesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, DesugaredExpressionWithoutDestructuring<DesugaredNode>> {}
 
 function shallowDesugarDualBindings(
   { expression, decoration }: PartiallyDesugaredNode,

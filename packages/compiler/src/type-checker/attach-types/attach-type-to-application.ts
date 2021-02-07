@@ -1,19 +1,19 @@
+import { convergeValues } from '../converge-values';
 import { Application } from '../types/expression';
+import { AttachTypesState } from './attach-types-state';
 import { AttachedTypeDecoration, AttachedTypeNode } from './attached-type-node';
 import { Scope } from '../types/scope';
 import { Value } from '../types/value';
 import { converge, newFreeVariable } from '../type-utils';
 import { applyReplacements } from '../variable-utils';
-import { TypeResult, TypeWriter } from '../monad-utils';
 import { UniqueIdGenerator } from '../../utils/unique-id-generator';
-import { node } from '../constructors';
-import { shallowStripImplicits } from './utils/shallow-strip-implicits';
+import { functionType, node } from '../constructors';
+import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 import { isFreeVariable } from './utils/is-free-variable';
 
-export const attachTypeToApplication = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (
+export const attachTypeToApplication = (state: AttachTypesState) => (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (
   expression: Application<AttachedTypeNode>,
-): TypeResult<AttachedTypeNode> => {
-  const state = new TypeWriter(scope);
+): AttachedTypeNode => {
   const calleeType = shallowStripImplicits(expression.callee.decoration.type);
   const parameterType = shallowStripImplicits(expression.parameter.decoration.type);
   let finalBodyType: Value;
@@ -29,26 +29,32 @@ export const attachTypeToApplication = (makeUniqueId: UniqueIdGenerator) => (sco
       callee: calleeType
     };
   } else if (calleeType.kind === 'FunctionLiteral') {
-    const parameterReplacements = converge(scope, calleeType.parameter, parameterType);
-    if (!parameterReplacements) {
-      state.log('Given parameter did not match expected shape');
-    } else {
-      state.recordReplacements(parameterReplacements);
-    }
+    // TODO the expression types required by converge values are not convenient
+    // const [messages, parameterReplacements] = convergeValues(calleeType.parameter, expression.callee.expression as any, parameterType, expression.parameter.expression as any);
 
-    finalBodyType = parameterReplacements
-      ? applyReplacements(parameterReplacements)(calleeType.body)
+    const [[messages, replacements], leftImplicits, rightImplicits] = convergeValues(
+      calleeType,
+      expression.callee.expression as any,
+      functionType(newFreeVariable('returnType', makeUniqueId), [expression.parameter.decoration.type]),
+      expression.parameter as any,
+    );
+
+    state.log(messages);
+    state.recordInferredTypes(replacements);
+
+    finalBodyType = replacements
+      ? applyReplacements(replacements)(calleeType.body)
       : calleeType.body;
   } else {
     state.log(`Cannot call an expression of type ${calleeType.kind}`);
     finalBodyType = newFreeVariable('applicationResult$', makeUniqueId);
   }
 
-  return state.wrap(node<AttachedTypeDecoration>(
+  return node<AttachedTypeDecoration>(
     expression,
     {
       scope,
       type: finalBodyType,
     },
-  ));
+  );
 }

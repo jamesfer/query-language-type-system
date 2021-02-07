@@ -2,12 +2,13 @@ import { CoreExpression, CoreNode, desugar, stripCoreNode } from './desugar/desu
 import { removeUnusedBindings } from './optimisations/remove-unused-bindings/remove-unused-bindings';
 import parse from './parser/parse';
 import { attachPrelude } from './prelude/attach-prelude';
+import { checkTypes } from './type-checker';
 import { evaluationScope } from './type-checker/constructors';
 import { evaluateExpression } from './type-checker/evaluate';
-import { runTypePhase } from './type-checker/run-type-phase';
 import { TypedNode } from './type-checker/type-check';
 import { Message } from './type-checker/types/message';
 import { Value } from './type-checker/types/value';
+import { uniqueIdStream } from './utils/unique-id-generator';
 
 export { TypedNode } from './type-checker/type-check';
 
@@ -31,7 +32,8 @@ export function compile(code: string, options?: CompileOptions): CompileResult {
     return { messages: ['Failed to parse code'] };
   }
 
-  const [typeMessages, typedNode] = runTypePhase(
+  const [typeMessages, typedNode] = checkTypes(
+    uniqueIdStream(),
     prelude ? attachPrelude(expression) : expression,
   );
   const desugaredNode = desugar(typedNode);

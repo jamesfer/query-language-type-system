@@ -3,13 +3,12 @@ import { TypeResult, TypeWriter } from '../monad-utils';
 import { FunctionExpression } from '../types/expression';
 import { AttachedTypeDecoration, AttachedTypeNode } from './attached-type-node';
 import { Scope } from '../types/scope';
-import { shallowStripImplicits } from './utils/shallow-strip-implicits';
+import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 
 export const attachTypeToFunction = (scope: Scope) => (
   expression: FunctionExpression<AttachedTypeNode>,
-): TypeResult<AttachedTypeNode> => {
-  const state = new TypeWriter(scope);
-  return state.wrap(node<AttachedTypeDecoration>(
+): AttachedTypeNode => {
+  return node<AttachedTypeDecoration>(
     expression,
     {
       scope,
@@ -20,5 +19,5 @@ export const attachTypeToFunction = (scope: Scope) => (
         [[shallowStripImplicits(expression.parameter.decoration.type), expression.implicit]],
       ),
     },
-  ));
+  );
 }

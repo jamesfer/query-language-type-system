@@ -5,13 +5,13 @@ import { newFreeVariable } from '../type-utils';
 import { ReadRecordPropertyExpression } from '../types/expression';
 import { Scope } from '../types/scope';
 import { Value } from '../types/value';
+import { AttachTypesState } from './attach-types-state';
 import { AttachedTypeNode } from './attached-type-node';
-import { shallowStripImplicits } from './utils/shallow-strip-implicits';
+import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 
-export const attachTypeToReadRecordProperty = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (
+export const attachTypeToReadRecordProperty = (state: AttachTypesState) => (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (
   expression: ReadRecordPropertyExpression<AttachedTypeNode>,
-): TypeResult<AttachedTypeNode> => {
-  const state = new TypeWriter(scope);
+): AttachedTypeNode => {
   const recordType = shallowStripImplicits(expression.record.decoration.type);
   let resultType: Value | undefined;
   if (recordType.kind === 'RecordLiteral') {
@@ -24,8 +24,8 @@ export const attachTypeToReadRecordProperty = (makeUniqueId: UniqueIdGenerator) 
     state.log('Tried to read a record property from something that is not a record type');
   }
 
-  return state.wrap(node(expression, {
+  return node(expression, {
     scope,
     type: resultType ? shallowStripImplicits(resultType) : newFreeVariable('unknown$', makeUniqueId),
-  }));
+  });
 }

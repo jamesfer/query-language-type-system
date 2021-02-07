@@ -15,9 +15,9 @@ import {
   ReadRecordPropertyExpression,
   RecordExpression,
   StringExpression,
-  SymbolExpression, TypedNode,
+  SymbolExpression,
 } from '..';
-import { TypedDecoration } from '../type-checker/type-check';
+import { ResolvedNode, ResolvedNodeDecoration } from '../type-checker/resolve-implicits/index';
 import { mapNode } from '../type-checker/visitor-utils';
 import { performExpressionDestructuring } from './destructure-expression';
 import { combineIteratorMap } from './iterators-core';
@@ -30,7 +30,6 @@ import {
   patternMatchMapIterator,
   readDataPropertyMapIterator,
   readRecordPropertyMapIterator, recordMapIterator,
-  shallowStripNode,
 } from './iterators-specific';
 
 export interface SimpleFunctionExpression<T = Expression> {
@@ -66,9 +65,9 @@ declare module 'fp-ts/lib/HKT' {
   }
 }
 
-export interface DesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutDestructuring<DesugaredNode>> {}
+export interface DesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, DesugaredExpressionWithoutDestructuring<DesugaredNode>> {}
 
-export interface PartiallyDesugaredNode extends NodeWithExpression<TypedDecoration, Expression<DesugaredNode>> {}
+export interface PartiallyDesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, Expression<DesugaredNode>> {}
 
 function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesugaredNode): DesugaredNode {
   switch (expression.kind) {
@@ -135,8 +134,8 @@ function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesuga
   }
 }
 
-export function desugarDestructuring(node: TypedNode): DesugaredNode {
-  const internal = (node: TypedNode): DesugaredNode => shallowDesugarDestructuring(mapNode(iterator, node));
+export function desugarDestructuring(node: ResolvedNode): DesugaredNode {
+  const internal = (node: ResolvedNode): DesugaredNode => shallowDesugarDestructuring(mapNode(iterator, node));
   const iterator = makeExpressionIterator(internal);
   return internal(node);
 }

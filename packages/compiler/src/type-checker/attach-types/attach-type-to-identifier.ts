@@ -1,13 +1,12 @@
 import { freeVariable, node } from '../constructors';
-import { TypeResult, TypeWriter } from '../monad-utils';
 import { findBinding } from '../scope-utils';
 import { Identifier } from '../types/expression';
 import { Scope } from '../types/scope';
 import { AttachedTypeNode } from './attached-type-node';
 
-export const attachTypeToIdentifier = (scope: Scope) => (expression: Identifier): TypeResult<AttachedTypeNode> => {
+export const attachTypeToIdentifier = (scope: Scope) => (expression: Identifier): AttachedTypeNode => {
   const binding = findBinding(scope, expression.name);
-  return new TypeWriter(scope).wrap(node(expression, {
+  return node(expression, {
     scope,
     type: binding
       // If we found the binding in the scope, we can return its type
@@ -16,5 +15,5 @@ export const attachTypeToIdentifier = (scope: Scope) => (expression: Identifier)
       // TODO these free variables are constant globally. Instead they should be constant in some local scope such
       //      as inside a function type definition but considered different between different function types.
       : freeVariable(expression.name),
-  }));
+  });
 };

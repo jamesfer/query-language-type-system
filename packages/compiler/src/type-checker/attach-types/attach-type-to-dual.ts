@@ -1,22 +1,21 @@
 import { node } from '../constructors';
+import { convergeValues } from '../converge-values';
 import { TypeResult, TypeWriter } from '../monad-utils';
 import { converge } from '../type-utils';
 import { DualExpression } from '../types/expression';
+import { AttachTypesState } from './attach-types-state';
 import { AttachedTypeNode } from './attached-type-node';
 import { Scope } from '../types/scope';
-import { shallowStripImplicits } from './utils/shallow-strip-implicits';
+import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 
-export const attachTypeToDual = (scope: Scope) => (
+export const attachTypeToDual = (state: AttachTypesState) => (scope: Scope) => (
   expression: DualExpression<AttachedTypeNode>,
-): TypeResult<AttachedTypeNode> => {
-  const state = new TypeWriter(scope);
+): AttachedTypeNode => {
   const leftType = shallowStripImplicits(expression.left.decoration.type);
   const rightType = shallowStripImplicits(expression.right.decoration.type);
-  const replacements = converge(scope, leftType, rightType);
-  if (!replacements) {
-    state.log('Left and right side of dual expression are not the same type');
-  } else {
-    state.recordReplacements(replacements);
-  }
-  return state.wrap(node(expression, { scope, type: leftType }));
+  // TODO fix as any
+  const [messages, inferredTypes] = convergeValues(scope, leftType, expression.left.expression as any, rightType, expression.right.expression as any);
+  state.log(messages);
+  state.recordInferredTypes(inferredTypes);
+  return node(expression, { scope, type: leftType });
 }

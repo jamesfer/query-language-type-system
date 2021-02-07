@@ -1,4 +1,4 @@
-import { uniqueId } from 'lodash';
+import { uniqueId, castArray } from 'lodash';
 import { DesugaredExpressionWithoutPatternMatch } from '../desugar/desugar-pattern-match';
 import { TypedNode } from './type-check';
 import { EScopeBinding, EScopeShapeBinding, EvaluationScope } from './types/evaluation-scope';
@@ -20,6 +20,7 @@ import {
 import { Node } from './types/node';
 import { Scope, ScopeBinding } from './types/scope';
 import {
+  ApplicationValue,
   BooleanLiteral,
   DataValue,
   DualBinding,
@@ -176,6 +177,14 @@ export function dualBinding(left: Value, right: Value): DualBinding {
   };
 }
 
+export function application(callee: Value, parameter: Value): ApplicationValue {
+  return {
+    callee,
+    parameter,
+    kind: 'ApplicationValue',
+  };
+}
+
 
 /**
  * Expressions
@@ -225,16 +234,25 @@ function defaultExplicit<T>(parameters: (T | [T, boolean])[]): [T, boolean][] {
   return parameters.map(parameter => Array.isArray(parameter) ? parameter : [parameter, false]);
 }
 
-export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean])[], body: MaybeExpression<T>): Expression
-export function lambda<T extends object = Expression>(parameters: (MaybeExpression | [MaybeExpression, boolean])[], body: T): T | Expression {
-  return defaultExplicit(parameters).reduceRight(
+export function lambda(parameters: (MaybeExpression | [MaybeExpression, boolean])[], body: MaybeExpression): FunctionExpression {
+  if (parameters.length === 0) {
+    throw new Error('Cannot create a function with no parameters');
+  }
+
+  const [firstParameter, ...otherParameters] = defaultExplicit(parameters);
+  return otherParameters.reduceRight(
     (body, [parameter, implicit]): FunctionExpression => ({
       body,
       implicit,
       kind: 'FunctionExpression',
       parameter: toExpression(parameter),
     }),
-    toExpression(body) as any,
+    {
+      kind: 'FunctionExpression',
+      parameter: toExpression(firstParameter[0]),
+      body: toExpression(body),
+      implicit: firstParameter[1],
+    },
   );
 }
 
@@ -245,8 +263,10 @@ export function identifier(name: string): Identifier {
   };
 }
 
-export function apply(callee: MaybeExpression, parameters: MaybeExpression[] = []): Expression {
-  return parameters.reduce<Expression>(
+export function apply(callee: MaybeExpression, parameters: MaybeExpression[]): Expression;
+export function apply(callee: MaybeExpression, parameters: Expression): Application;
+export function apply(callee: MaybeExpression, parameters: Expression | MaybeExpression[]): Expression {
+  return castArray(parameters).reduce<Expression>(
     (callee, parameter): Application => ({
       kind: 'Application',
       callee: callee,

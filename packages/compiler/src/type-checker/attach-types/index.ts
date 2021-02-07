@@ -1,13 +1,15 @@
 import {
   applicationMapIterator,
   dualMapIterator,
-  makeExpressionIterator, readDataPropertyMapIterator, readRecordPropertyMapIterator,
+  readDataPropertyMapIterator,
+  readRecordPropertyMapIterator,
   recordMapIterator,
 } from '../../desugar/iterators-specific';
-import { Scope } from '../types/scope';
+import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import { Expression, RecordExpression } from '../types/expression';
-import { TypeResult, TypeWriter } from '../monad-utils';
+import { Scope } from '../types/scope';
 import { assertNever } from '../utils';
+import { attachTypeToApplication } from './attach-type-to-application';
 import { attachTypeToBinding } from './attach-type-to-binding';
 import { attachTypeToBindingChildren } from './attach-type-to-binding-children';
 import { attachTypeToBoolean } from './attach-type-to-boolean';
@@ -22,15 +24,14 @@ import { attachTypeToReadRecordProperty } from './attach-type-to-read-record-pro
 import { attachTypeToRecord } from './attach-type-to-record';
 import { attachTypeToString } from './attach-type-to-string';
 import { attachTypeToSymbol } from './attach-type-to-symbol';
+import { AttachTypesState } from './attach-types-state';
 import { AttachedTypeNode } from './attached-type-node';
-import { attachTypeToApplication } from './attach-type-to-application';
-import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 
 /**
  * Attach a type to each expression in the tree. Implicit parameters should be stripped from every child expression
  * before continuing. Therefore, each implicit will only exist in one place.
  */
-export const attachTypes = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (expression: Expression): TypeResult<AttachedTypeNode> => {
+const attachTypesWithState = (state: AttachTypesState, makeUniqueId: UniqueIdGenerator, scope: Scope, expression: Expression): AttachedTypeNode => {
   switch (expression.kind) {
     case 'SymbolExpression':
       return attachTypeToSymbol(scope)(expression);
@@ -44,60 +45,56 @@ export const attachTypes = (makeUniqueId: UniqueIdGenerator) => (scope: Scope) =
       return attachTypeToIdentifier(scope)(expression);
     case 'NativeExpression':
       return attachTypeToNative(scope)(makeUniqueId, expression);
-    case 'RecordExpression': {
-      const state = new TypeWriter(scope);
-      const recordExpression = recordMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
-      const attachedTypeNode = state.run(attachTypeToRecord)(recordExpression);
-      return state.wrap(attachedTypeNode);
-    }
+    case 'RecordExpression':
+      return attachTypeToRecord(scope)(
+        recordMapIterator(attachTypesWithStateCurried(state, makeUniqueId)(scope))(expression),
+      );
 
     case 'DataInstantiation':
       break;
 
     case 'FunctionExpression':
-      return new TypeWriter(scope).chain(
-        attachTypeToFunctionChildren(scope)(expression)(attachTypes(makeUniqueId)),
-        attachTypeToFunction(scope),
+      return attachTypeToFunction(scope)(
+        attachTypeToFunctionChildren(scope)(expression)(attachTypesWithStateCurried(state, makeUniqueId))
       );
 
-    case 'Application': {
-      const state = new TypeWriter(scope);
-      const applicationExpression = applicationMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
-      return attachTypeToApplication(makeUniqueId)(state.scope)(applicationExpression);
-    }
+    case 'Application':
+      return attachTypeToApplication(state)(makeUniqueId)(scope)(
+        applicationMapIterator(attachTypesWithStateCurried(state, makeUniqueId)(scope))(expression),
+      );
 
     case 'DualExpression': {
-      const state = new TypeWriter(scope);
-      const dualExpression = dualMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
-      return attachTypeToDual(state.scope)(dualExpression);
+      return attachTypeToDual(state)(scope)(
+        dualMapIterator(attachTypesWithStateCurried(state, makeUniqueId)(scope))(expression),
+      );
     }
 
     case 'BindingExpression':
-      return new TypeWriter(scope).chain(
-        attachTypeToBindingChildren(scope)(expression)(attachTypes(makeUniqueId)),
-        attachTypeToBinding(scope),
+      return attachTypeToBinding(state)(scope)(
+        attachTypeToBindingChildren(scope)(expression)(attachTypesWithStateCurried(state, makeUniqueId)),
       );
 
-    case 'ReadDataPropertyExpression': {
-      const state = new TypeWriter(scope);
-      const readDataPropertyExpression = readDataPropertyMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
-      return attachTypeToReadDataProperty(makeUniqueId)(state.scope)(readDataPropertyExpression);
-    }
+    case 'ReadDataPropertyExpression':
+      return attachTypeToReadDataProperty(state)(makeUniqueId)(scope)(
+        readDataPropertyMapIterator(attachTypesWithStateCurried(state, makeUniqueId)(scope))(expression),
+      );
 
-    case 'ReadRecordPropertyExpression': {
-      const state = new TypeWriter(scope);
-      const readRecordPropertyExpression = readRecordPropertyMapIterator(state.run(attachTypes(makeUniqueId)))(expression);
-      return attachTypeToReadRecordProperty(makeUniqueId)(state.scope)(readRecordPropertyExpression);
-    }
+    case 'ReadRecordPropertyExpression':
+      return attachTypeToReadRecordProperty(state)(makeUniqueId)(scope)(
+        readRecordPropertyMapIterator(attachTypesWithStateCurried(state, makeUniqueId)(scope))(expression),
+      );
 
-    case 'PatternMatchExpression':
-      break;
+    case 'PatternMatchExpression': {
+
+    }
 
     default:
       return assertNever(expression);
   }
 }
 
-const deepAttachTypes = (scope: Scope) => (makeUniqueId: UniqueIdGenerator) => (
-  makeExpressionIterator(attachTypes(scope)(makeUniqueId))
-);
+const attachTypesWithStateCurried = (state: AttachTypesState, makeUniqueId: UniqueIdGenerator) => (scope: Scope) => (
+  expression: Expression,
+) => attachTypesWithState(state, makeUniqueId, scope, expression);
+
+export const attachTypes = AttachTypesState.run(attachTypesWithState);
