@@ -5,7 +5,7 @@ import {
   DesugaredNode,
   makePatternMatchDesugaredNodeIterator,
 } from '../../desugar/desugar-pattern-match';
-import { TypedDecoration } from '../../type-checker/type-check';
+import { ResolvedNodeDecoration } from '../../type-checker/resolve-implicits';
 import { mapNode } from '../../type-checker/visitor-utils';
 
 function collectChildBindings<T>(node: DesugaredExpressionWithoutPatternMatch<[string[], T]>): [string[], DesugaredExpressionWithoutPatternMatch<T>] {
@@ -18,7 +18,7 @@ function collectChildBindings<T>(node: DesugaredExpressionWithoutPatternMatch<[s
   return [flatten(allVariables), expression];
 }
 
-function removedUnusedBindingsVisitor(node: NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutPatternMatch<[string[], DesugaredNode]>>): [string[], DesugaredNode] {
+function removedUnusedBindingsVisitor(node: NodeWithExpression<ResolvedNodeDecoration, DesugaredExpressionWithoutPatternMatch<[string[], DesugaredNode]>>): [string[], DesugaredNode] {
   const expression = node.expression;
   if (expression.kind === 'BindingExpression') {
     // Check if the binding is used inside the body

@@ -7,7 +7,7 @@ import {
   node,
   numberExpression,
   numberLiteral, record, recordLiteral,
-  stringExpression, stringLiteral, symbol, symbolExpression, functionType,
+  stringExpression, stringLiteral, symbol, symbolExpression, functionType, identifier,
 } from '../constructors';
 import { InferredType } from '../converge-values/converge-types';
 import { prefixlessUniqueIdGenerator, staticUniqueIdGenerator } from '../test-utils/test-unique-id-generators';
@@ -103,9 +103,17 @@ describe('attachShapes', () => {
     let namedNode: NamedNode;
 
     beforeEach(() => {
-      const recordUniqueIdGenerator = staticUniqueIdGenerator(['callee', 'parameter', 'result', 'application']);
+      const recordUniqueIdGenerator = staticUniqueIdGenerator([
+        'lambdaParameter',
+        'lambdaBody',
+        'lambda',
+        'numberLiteral',
+        'application',
+        'internalApplicationResult',
+        'internalApplicationParameter',
+      ]);
       expression = apply(
-        stringExpression('Hello'),
+        lambda([identifier('x')], stringExpression('Hello')),
         numberExpression(123),
       );
       ([messages, inferredTypes, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
@@ -115,37 +123,34 @@ describe('attachShapes', () => {
       expect(messages).toEqual([]);
     });
 
-    it('infers all the type variables', () => {
-      expect(inferredTypes).toEqual(expect.arrayContaining([
-        {
-          from: 'result',
-          to: freeVariable('application'),
-        },
-        expect.objectContaining({
-          from: 'application',
-          to: application(freeVariable('callee'), freeVariable('parameter')),
-        }),
-        {
-          from: 'callee',
-          to: stringLiteral('Hello'),
-        },
-        {
-          from: 'parameter',
-          to: numberLiteral(123),
-        },
-      ]));
+    it.each<[string, Value]>([
+      ['lambdaParameter', freeVariable('x')],
+      ['lambdaBody', stringLiteral('Hello')],
+      ['lambda', functionType(freeVariable('lambdaBody'), [freeVariable('lambdaParameter')])],
+      ['numberLiteral', numberLiteral(123)],
+      ['application', freeVariable('internalApplicationResult')],
+      ['lambda', functionType(freeVariable('lambdaBody'), [freeVariable('lambdaParameter')])],
+      ['internalApplicationParameter', freeVariable('numberLiteral')],
+    ])('infers the type of the %s variable', (from, to) => {
+      const inferredType = inferredTypes.find(inferred => inferred.from === from);
+      expect(inferredType).toHaveProperty('from', from);
+      expect(inferredType).toHaveProperty('to', to);
     });
 
     it('produces the correct named node', () => {
       const expectedExpression: Application<NamedNode> = {
         ...expression,
-        callee: makeSimpleNamedNode('callee', stringExpression('Hello'), stringLiteral('Hello')),
-        parameter: makeSimpleNamedNode('parameter', numberExpression(123), numberLiteral(123)),
+        callee: makeSimpleNamedNode(
+          'lambda',
+          expect.anything(),
+          functionType(freeVariable('lambdaBody'), [freeVariable('lambdaParameter')]),
+        ),
+        parameter: makeSimpleNamedNode('numberLiteral', numberExpression(123), numberLiteral(123)),
       };
       expect(namedNode).toEqual(makeSimpleNamedNode(
-        'result',
+        'application',
         expectedExpression,
-        freeVariable('application'),
+        freeVariable('internalApplicationResult'),
       ));
     });
   });

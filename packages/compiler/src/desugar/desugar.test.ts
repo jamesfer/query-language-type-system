@@ -10,12 +10,13 @@ function compileAndDesugar(code: string) {
     throw new Error(`Failed to parse code: ${code}`);
   }
 
-  const [typeMessages, typedNode] = checkTypes(uniqueIdStream(), expression);
+  const makeUniqueId = uniqueIdStream();
+  const [typeMessages, typedNode] = checkTypes(makeUniqueId, expression);
   if (typeMessages.length > 0) {
     throw new Error(`Failed to type code: ${typeMessages.join(', ')}`);
   }
 
-  return desugar(typedNode);
+  return desugar(makeUniqueId, typedNode);
 }
 
 describe('desugar', () => {
@@ -67,7 +68,7 @@ describe('desugar', () => {
             kind: 'Node',
             expression: {
               kind: 'SimpleFunctionExpression',
-              parameter: 'injectedParameter$',
+              parameter: expect.stringMatching(/^injectedParameter\$\d*/),
               body: {
                 kind: 'Node',
                 expression: {
@@ -107,7 +108,7 @@ describe('desugar', () => {
             kind: 'Node',
             expression: {
               kind: 'SimpleFunctionExpression',
-              parameter: 'injectedParameter$',
+              parameter: expect.stringMatching(/^injectedParameter\$\d*/),
               body: {
                 kind: 'Node',
                 expression: {
@@ -122,7 +123,7 @@ describe('desugar', () => {
                         kind: 'Node',
                         expression: {
                           kind: 'Identifier',
-                          name: 'injectedParameter$',
+                          name: expect.stringMatching(/^injectedParameter\$\d*/),
                         },
                       },
                     },
@@ -161,7 +162,7 @@ describe('desugar', () => {
             kind: 'Node',
             expression: {
               kind: 'SimpleFunctionExpression',
-              parameter: 'injectedParameter$',
+              parameter: expect.stringMatching(/^injectedParameter\$\d*/),
               body: {
                 kind: 'Node',
                 expression: {
@@ -171,7 +172,7 @@ describe('desugar', () => {
                     kind: 'Node',
                     expression: {
                       kind: 'Identifier',
-                      name: 'injectedParameter$'
+                      name: expect.stringMatching(/^injectedParameter\$\d*/),
                     },
                     decoration: {
                       type: {
@@ -189,7 +190,7 @@ describe('desugar', () => {
                         kind: 'Node',
                         expression: {
                           kind: 'Identifier',
-                          name: 'injectedParameter$'
+                          name: expect.stringMatching(/^injectedParameter\$\d*/),
                         },
                         decoration: {
                           type: {

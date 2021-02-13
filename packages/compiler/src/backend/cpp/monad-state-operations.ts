@@ -8,10 +8,6 @@ export type CppState = CombinedState<{
   globalStatements: ArrayState<CppStatement>,
 }>;
 
-export function newUniqueId(prefix: string): Monad<CppState, string> {
-  return Monad.of(state => state.child('makeUniqueId').apply(prefix));
-}
-
 export function appendGlobalStatement(statement: CppStatement): Monad<CppState, void> {
   return Monad.of((state) => {
     state.child('globalStatements').append(statement);

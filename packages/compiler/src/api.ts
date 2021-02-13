@@ -26,11 +26,10 @@ export function compile(code: string, options?: CompileOptions): CompileResult {
     return { messages: ['Failed to parse code'] };
   }
 
-  const [typeMessages, typedNode] = checkTypes(
-    uniqueIdStream(),
-    prelude ? attachPrelude(expression) : expression,
-  );
-  const desugaredNode = desugar(typedNode);
+  const makeUniqueId = uniqueIdStream();
+  const expressionWithPrelude = prelude ? attachPrelude(expression) : expression;
+  const [typeMessages, typedNode] = checkTypes(makeUniqueId, expressionWithPrelude);
+  const desugaredNode = desugar(makeUniqueId, typedNode);
   const optimizedNode = removeUnused ? removeUnusedBindings(desugaredNode) : desugaredNode;
 
   return {

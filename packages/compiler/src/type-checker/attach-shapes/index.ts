@@ -54,8 +54,12 @@ function produceValueInferences(
       return [[], recordLiteral(expression.properties)];
     case 'Application': {
       const resultType = freeVariable(makeUniqueId('applicationResult$'));
+      const parameter = freeVariable(makeUniqueId('applicationParameter$'));
       return [
-        [[resultType, application(expression.callee, expression.parameter)]],
+        [
+          [expression.callee, functionType(resultType, [parameter])],
+          [expression.parameter, parameter],
+        ],
         resultType,
       ];
     }

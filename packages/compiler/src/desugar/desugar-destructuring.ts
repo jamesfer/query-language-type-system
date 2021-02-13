@@ -18,7 +18,9 @@ import {
   SymbolExpression,
 } from '..';
 import { ResolvedNode, ResolvedNodeDecoration } from '../type-checker/resolve-implicits';
+import { Value } from '../type-checker/types/value';
 import { mapNode } from '../type-checker/visitor-utils';
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { performExpressionDestructuring } from './destructure-expression';
 import { combineIteratorMap } from './iterators-core';
 import {
@@ -35,6 +37,7 @@ import {
 export interface SimpleFunctionExpression<T = Expression> {
   kind: 'SimpleFunctionExpression';
   parameter: string;
+  parameterType: Value;
   implicit: boolean;
   body: T;
 }
@@ -69,7 +72,10 @@ export interface DesugaredNode extends NodeWithExpression<ResolvedNodeDecoration
 
 export interface PartiallyDesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, Expression<DesugaredNode>> {}
 
-function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesugaredNode): DesugaredNode {
+function shallowDesugarDestructuring(
+  makeUniqueId: UniqueIdGenerator,
+  { expression, decoration }: PartiallyDesugaredNode,
+): DesugaredNode {
   switch (expression.kind) {
     case 'Identifier':
     case 'BooleanExpression':
@@ -95,13 +101,14 @@ function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesuga
           expression: {
             kind: 'SimpleFunctionExpression',
             parameter: expression.parameter.expression.name,
+            parameterType: expression.parameter.decoration.type,
             implicit: expression.implicit,
             body: expression.body,
           },
         };
       }
 
-      const newName = 'injectedParameter$' + Math.floor(Math.random() * 1e6);
+      const newName = makeUniqueId('injectedParameter$');
       const identifierNode: DesugaredNode = {
         kind: 'Node',
         expression: { kind: 'Identifier', name: newName },
@@ -114,6 +121,7 @@ function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesuga
         expression: {
           kind: 'SimpleFunctionExpression',
           parameter: newName,
+          parameterType: expression.parameter.decoration.type,
           implicit: expression.implicit,
           body: bindings.reduce<DesugaredNode>(
             (accum, binding) => ({
@@ -134,8 +142,10 @@ function shallowDesugarDestructuring({ expression, decoration }: PartiallyDesuga
   }
 }
 
-export function desugarDestructuring(node: ResolvedNode): DesugaredNode {
-  const internal = (node: ResolvedNode): DesugaredNode => shallowDesugarDestructuring(mapNode(iterator, node));
+export function desugarDestructuring(makeUniqueId: UniqueIdGenerator, node: ResolvedNode): DesugaredNode {
+  const internal = (node: ResolvedNode): DesugaredNode => (
+    shallowDesugarDestructuring(makeUniqueId, mapNode(iterator, node))
+  );
   const iterator = makeExpressionIterator(internal);
   return internal(node);
 }
