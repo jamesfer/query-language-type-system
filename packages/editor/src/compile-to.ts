@@ -18,12 +18,17 @@ export interface CompileToResult {
 }
 
 function toBackend(expression: CoreExpression, node: CoreNode, backend: 'javascript' | 'cpp'): string | undefined {
+  let i = 0;
+  function makeUniqueId(prefix: string = 'variable'): string {
+    return `${prefix}${++i}`;
+  }
+
   switch (backend) {
     case 'javascript':
       return generateJavascript(expression, { module: 'esm' });
 
     case 'cpp':
-      return generateCpp(node);
+      return generateCpp(makeUniqueId, node);
 
     default:
       return assertNever(backend);
