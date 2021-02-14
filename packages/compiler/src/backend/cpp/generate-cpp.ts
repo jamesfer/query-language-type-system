@@ -23,7 +23,7 @@ export function generateCpp(makeUniqueId: UniqueIdGenerator, node: CoreNode): st
       name: 'main',
       returnType: {
         kind: 'Type',
-        value: 'void',
+        value: 'int',
       },
       parameters: [],
       body: {
