@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "buffer": "^5.4.3",
-    "codemirror": "^5.49.2",
+    "codemirror": "^5.58.2",
     "dedent-js": "^1.0.1",
     "lodash": "^4.17.15",
     "query-language-compiler": "^1.0.0",
