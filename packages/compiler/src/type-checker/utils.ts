@@ -35,11 +35,11 @@ export function checkedZipWith<T, U, R>(array1: T[], array2: U[], zipper: (value
   return zipWith(left, right, zipper) as any;
 }
 
-export function unzip<T1>(array: [T1][]): [T1[] | undefined];
-export function unzip<T1, T2>(array: [T1, T2][]): [T1[] | undefined, T2[] | undefined];
-export function unzip<T1, T2, T3>(array: [T1, T2, T3][]): [T1[] | undefined, T2[] | undefined, T3[] | undefined];
-export function unzip<T extends []>(array: T[]): (T[] | undefined)[] {
-  return unzipLodash(array) as any;
+export function unzip<T1>(array: [T1][]): [T1[]];
+export function unzip<T1, T2>(array: [T1, T2][]): [T1[], T2[]];
+export function unzip<T1, T2, T3>(array: [T1, T2, T3][]): [T1[], T2[], T3[]];
+export function unzip<T>(array: T[][]): T[][] {
+  return unzipLodash(array);
 }
 
 export function unzipObject<T1>(object: { [k: string]: [T1] }): [{ [k: string]: T1 } | undefined];

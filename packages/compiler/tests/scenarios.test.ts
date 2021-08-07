@@ -296,7 +296,7 @@ describe('Scenarios', () => {
     it('allows an integer number literal', () => {
       expect(compilerMessages(dedent`
         let integerOnly = implicit Float a -> a -> a
-        floatOnly 95
+        95
       `)).toEqual([]);
     });
 

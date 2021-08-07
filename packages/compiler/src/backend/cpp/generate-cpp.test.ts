@@ -13,7 +13,7 @@ function toCpp(code: string) {
 describe('generateCpp', () => {
   it('translates a simple expression', () => {
     expect(toCpp('"Hello"')).toBe(dedent`
-      void main() {
+      int main() {
           "Hello";
       }
     `);
@@ -25,7 +25,7 @@ describe('generateCpp', () => {
       f 1
     `);
     expect(result).toBe(dedent`
-      void main() {
+      int main() {
           double f = [](double a$rename$14) -> {
               return a$rename$14;
           };

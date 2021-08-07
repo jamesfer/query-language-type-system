@@ -39,7 +39,23 @@ function findImplicitsToResolve(decoration: ShapedNodeDecoration): Value[] {
   return actualParameters.slice(0, Math.max(0, actualParameters.length - expectedParameters.length));
 }
 
-function findAllMatchingImplementationsFor(state: StateRecorder<Message>, implicitsToResolve: Value[], scope: Scope): [string, Value][] {
+function isValidCombination(implicitsToResolve: Value[], combination: Value[]) {
+  const [compressMessages] = compressInferredTypes(
+    checkedZip(implicitsToResolve, combination).map(([left, right]) => [
+      left,
+      identifier('__left_resolve_implicits__'),
+      right,
+      identifier('__right_resolve_implicits___'),
+    ]),
+  );
+  return compressMessages.length === 0;
+}
+
+function findAllMatchingImplementationsFor(
+  state: StateRecorder<Message>,
+  implicitsToResolve: Value[],
+  scope: Scope,
+): [string, Value][] {
   if (implicitsToResolve.length === 0) {
     return [];
   }
@@ -51,20 +67,9 @@ function findAllMatchingImplementationsFor(state: StateRecorder<Message>, implic
   const possibleImplementationCombinations = permuteArrays(possibleImplementations);
 
   // Remove any that have conflicting binds
-  const validCombinations = possibleImplementationCombinations.filter((combination) => {
-    const pairs = checkedZip(implicitsToResolve, combination);
-    const convergeResults = pairs.map(([left, [, right]]) => (
-      // TODO fix converge expression requirements
-      convergeValues(left, identifier('__left_resolve_implicits__'), right, identifier('__right_resolve_implicits___'))
-    ));
-    assert(
-      convergeResults.every(([messages]) => messages.length === 0),
-      'Attempting to converge resolved implicits caused a message to be produced',
-    );
-
-    const [compressMessages] = compressInferredTypes(flatMap(convergeResults, ([, inferredType]) => inferredType));
-    return compressMessages.length === 0;
-  });
+  const validCombinations = possibleImplementationCombinations.filter((combination) => (
+    isValidCombination(implicitsToResolve, combination.map(([, value]) => value))
+  ));
 
   // If there is more than one possible set of replacements for a implicit parameter, that parameter is ambiguous
   if (validCombinations.length > 1) {

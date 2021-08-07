@@ -1,8 +1,11 @@
 import dedent from 'dedent-js';
 import parse from '../parser/parse';
 import { checkTypes } from '../type-checker';
+import { BindingExpression } from '../type-checker/types/expression';
+import { FreeVariable } from '../type-checker/types/value';
 import { uniqueIdStream } from '../utils/unique-id-generator';
 import { desugar } from './desugar';
+import { SimpleFunctionExpression } from './desugar-destructuring';
 
 function compileAndDesugar(code: string) {
   const { value: expression } = parse(code);
@@ -125,12 +128,6 @@ describe('desugar', () => {
                           kind: 'Identifier',
                           name: expect.stringMatching(/^injectedParameter\$\d*/),
                         },
-                      },
-                    },
-                    decoration: {
-                      type: {
-                        kind: 'FreeVariable',
-                        name: expect.stringMatching(/^a\$.*/),
                       },
                     },
                   },

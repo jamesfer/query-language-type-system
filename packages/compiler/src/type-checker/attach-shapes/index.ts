@@ -1,8 +1,6 @@
-import { flatten } from 'lodash';
 import { makeExpressionIterator } from '../../desugar/iterators-specific';
 import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import {
-  application,
   booleanLiteral,
   dataValue,
   freeVariable,
@@ -13,14 +11,11 @@ import {
   stringLiteral,
   symbol,
 } from '../constructors';
-import { convergeValues } from '../converge-values';
-import { InferredType } from '../converge-values/converge-types';
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { Expression } from '../types/expression';
 import { Message } from '../types/message';
 import { NodeWithChild } from '../types/node';
 import { FreeVariable, Value } from '../types/value';
-import { unzip } from '../utils';
 
 export interface NamedNodeDecoration {
   shapeName: string;
@@ -28,12 +23,6 @@ export interface NamedNodeDecoration {
 }
 
 export type NamedNode<T = void> = NodeWithChild<NamedNodeDecoration, T extends void ? NamedNode : T>;
-
-function getShape(node: NamedNode): FreeVariable {
-  return freeVariable(node.decoration.shapeName);
-}
-
-const childrenToShapeNames = makeExpressionIterator(getShape);
 
 function produceValueInferences(
   makeUniqueId: UniqueIdGenerator,
@@ -126,29 +115,49 @@ function produceValueInferences(
   }
 }
 
-const shallowAttachShapes = (inferredTypesState: StateRecorder<InferredType>, messagesState: StateRecorder<Message>, makeUniqueId: UniqueIdGenerator) => (
+const convertChildrenToShapeNames = makeExpressionIterator<NamedNode, FreeVariable>(node => (
+  freeVariable(node.decoration.shapeName)
+));
+
+function getPrefix(expression: Expression<any>): string {
+  if (expression.kind === 'Identifier') {
+    return `nodeIdentifier${expression.name}Type$`;
+  }
+
+  return `node${expression.kind}Type$`;
+}
+
+const shallowAttachShapes = (
+  inferredTypesState: StateRecorder<[Value, Expression, Value, Expression]>,
+  messagesState: StateRecorder<Message>,
+  makeUniqueId: UniqueIdGenerator,
+) => (
+  originalExpression: Expression,
   expression: Expression<NamedNode>
 ): NamedNode => {
-  const shapeName = makeUniqueId('nodeType$');
-  const [inferences, type] = produceValueInferences(makeUniqueId, childrenToShapeNames(expression));
-  // TODO fix expressions in converge types
-  const [convergeMessages, inferredTypes] = unzip(inferences.map(([left, right]) => convergeValues(left, expression as any, right, expression as any)));
+  const shapeName = makeUniqueId(getPrefix(expression));
+  const [inferences, type] = produceValueInferences(makeUniqueId, convertChildrenToShapeNames(expression));
 
-  // Infer the return type of the expression first
-  inferredTypesState.push({ from: shapeName, to: type } as any); // TODO fix types
-  // Then add inferred types from child expressions
-  inferredTypesState.pushAll(flatten(inferredTypes));
-  messagesState.pushAll(flatten(convergeMessages));
+  inferredTypesState.push([freeVariable(shapeName), originalExpression, type, originalExpression]);
+  inferredTypesState.pushAll(inferences.map(([left, right]) => [left, originalExpression, right, originalExpression]));
+
+  // TODO fix expressions in converge types
+  // const [convergeMessages, inferredTypes] = unzip(inferences.map(([left, right]) => convergeValues(left, expression as any, right, expression as any)));
+  // // Infer the return type of the expression first
+  // inferredTypesState.push({ from: shapeName, to: type } as any); // TODO fix types
+  // // Then add inferred types from child expressions
+  // inferredTypesState.pushAll(flatten(inferredTypes));
+  // messagesState.pushAll(flatten(convergeMessages));
 
   return node(expression, { type, shapeName });
 }
 
-export const attachShapes = (makeUniqueId: UniqueIdGenerator) => (expression: Expression): [Message[], InferredType[], NamedNode] => {
-  const inferredTypesState = new StateRecorder<InferredType>();
+export const attachShapes = (makeUniqueId: UniqueIdGenerator) => (expression: Expression): [Message[], [Value, Expression, Value, Expression][], NamedNode] => {
+  const inferencesState = new StateRecorder<[Value, Expression, Value, Expression]>();
   const messagesState = new StateRecorder<Message>();
-  const attachShapesWithState = shallowAttachShapes(inferredTypesState, messagesState, makeUniqueId);
-  const internal = (expression: Expression): NamedNode => attachShapesWithState(iterator(expression));
+  const attachShapesWithState = shallowAttachShapes(inferencesState, messagesState, makeUniqueId);
+  const internal = (expression: Expression): NamedNode => attachShapesWithState(expression, iterator(expression));
   const iterator = makeExpressionIterator(internal);
-  return [messagesState.values, inferredTypesState.values, internal(expression)];
+  return [messagesState.values, inferencesState.values, internal(expression)];
 }
 

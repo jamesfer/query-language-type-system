@@ -15,6 +15,7 @@ export interface CompressedInferredTypeSource {
   originatingExpression: Expression;
   inferringExpression: Expression;
 }
+
 export interface CompressedInferredType {
   to: Value;
   sources: CompressedInferredTypeSource[];
@@ -23,7 +24,6 @@ export interface CompressedInferredType {
 export interface CompressedInferredTypes {
   [k: string]: CompressedInferredType;
 }
-
 
 function correctImplicits(existing: Value, next: Value): Value {
   if (next.kind !== 'ImplicitFunctionLiteral') {

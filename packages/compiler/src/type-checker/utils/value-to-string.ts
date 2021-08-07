@@ -17,9 +17,9 @@ export const valueToString = visitAndTransformValue<string>((value) => {
     case 'ReadRecordProperty':
       return `${value.record}.${value.property}`;
     case 'FunctionLiteral':
-      return `${value.parameter} -> ${value.body}`;
+      return `(${value.parameter}) -> ${value.body}`;
     case 'ImplicitFunctionLiteral':
-      return `implicit ${value.parameter} -> ${value.body}`;
+      return `(implicit ${value.parameter}) -> ${value.body}`;
     case 'PatternMatchValue':
       return `${value.value} match { ... }`;
     case 'FreeVariable':

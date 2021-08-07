@@ -9,7 +9,6 @@ import {
   numberLiteral, record, recordLiteral,
   stringExpression, stringLiteral, symbol, symbolExpression, functionType, identifier,
 } from '../constructors';
-import { InferredType } from '../converge-values/converge-types';
 import { prefixlessUniqueIdGenerator, staticUniqueIdGenerator } from '../test-utils/test-unique-id-generators';
 import { Value } from '../types/value';
 import { attachShapes, NamedNode } from './index';
@@ -17,6 +16,9 @@ import { Application, Expression, FunctionExpression, Message, RecordExpression 
 
 describe('attachShapes', () => {
   let uniqueIdGenerator: UniqueIdGenerator;
+  let messages: Message[];
+  let inferences: [Value, Expression, Value, Expression][];
+  let namedNode: NamedNode;
 
   function makeSimpleNamedNode(shapeName: string, expression: Expression<NamedNode>, type: Value): NamedNode {
     return node(expression, { shapeName, type });
@@ -26,37 +28,47 @@ describe('attachShapes', () => {
     uniqueIdGenerator = prefixlessUniqueIdGenerator();
   });
 
-  it.each<[string, Expression<any>, Value]>([
+  describe.each<[string, Expression<any>, Value]>([
     ['number', numberExpression(7), numberLiteral(7)],
     ['boolean', booleanExpression(true), booleanLiteral(true)],
     ['string', stringExpression('Hello'), stringLiteral('Hello')],
     ['symbol', symbolExpression('X'), symbol('X')],
-  ])('attaches the type of a %s expression', (_, expression, value) => {
-    const [messages, inferredTypes, namedNode] = attachShapes(uniqueIdGenerator)(expression);
-    expect(messages).toEqual([]);
-    expect(inferredTypes).toEqual([{
-      from: namedNode.decoration.shapeName,
-      to: value,
-    }]);
-    expect(namedNode).toEqual(node(
-      expression,
-      {
-        shapeName: expect.any(String),
-        type: value,
-      },
-    ));
+  ])('when called on a %s expression', (_, expression, value) => {
+    beforeEach(() => {
+      ([messages, inferences, namedNode] = attachShapes(uniqueIdGenerator)(expression));
+    });
+
+    it('produces no messages', () => {
+      expect(messages).toEqual([]);
+    });
+
+    it('infers the type of the expression correctly', () => {
+      expect(inferences).toEqual([[
+        freeVariable(namedNode.decoration.shapeName),
+        expect.anything(),
+        value,
+        expect.anything(),
+      ]]);
+    });
+
+    it('decorates the node with the name and type', () => {
+      expect(namedNode).toEqual(node(
+        expression,
+        {
+          shapeName: expect.any(String),
+          type: value,
+        },
+      ));
+    });
   });
 
   describe('when the expression is a record', () => {
     let expression: RecordExpression;
-    let messages: Message[];
-    let inferredTypes: InferredType[];
-    let namedNode: NamedNode;
 
     beforeEach(() => {
       const recordUniqueIdGenerator = staticUniqueIdGenerator(['a', 'b', 'result']);
       expression = record({ a: numberExpression(7), b: stringExpression('Hello') });
-      ([messages, inferredTypes, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
+      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
     });
 
     it('produces no messages', () => {
@@ -64,19 +76,25 @@ describe('attachShapes', () => {
     });
 
     it('infers all the type variables', () => {
-      expect(inferredTypes).toEqual(expect.arrayContaining([
-        {
-          from: namedNode.decoration.shapeName,
-          to: recordLiteral({ a: freeVariable('a'), b: freeVariable('b') }),
-        },
-        {
-          from: 'a',
-          to: numberLiteral(7),
-        },
-        {
-          from: 'b',
-          to: stringLiteral('Hello'),
-        },
+      expect(inferences).toEqual(expect.arrayContaining([
+        [
+          freeVariable(namedNode.decoration.shapeName),
+          expect.anything(),
+          recordLiteral({ a: freeVariable('a'), b: freeVariable('b') }),
+          expect.anything(),
+        ],
+        [
+          freeVariable('a'),
+          expect.anything(),
+          numberLiteral(7),
+          expect.anything(),
+        ],
+        [
+          freeVariable('b'),
+          expect.anything(),
+          stringLiteral('Hello'),
+          expect.anything(),
+        ],
       ]));
     });
 
@@ -98,9 +116,6 @@ describe('attachShapes', () => {
 
   describe('when the expression is an application', () => {
     let expression: Application;
-    let messages: Message[];
-    let inferredTypes: InferredType[];
-    let namedNode: NamedNode;
 
     beforeEach(() => {
       const recordUniqueIdGenerator = staticUniqueIdGenerator([
@@ -116,7 +131,7 @@ describe('attachShapes', () => {
         lambda([identifier('x')], stringExpression('Hello')),
         numberExpression(123),
       );
-      ([messages, inferredTypes, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
+      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
     });
 
     it('produces no messages', () => {
@@ -132,9 +147,7 @@ describe('attachShapes', () => {
       ['lambda', functionType(freeVariable('lambdaBody'), [freeVariable('lambdaParameter')])],
       ['internalApplicationParameter', freeVariable('numberLiteral')],
     ])('infers the type of the %s variable', (from, to) => {
-      const inferredType = inferredTypes.find(inferred => inferred.from === from);
-      expect(inferredType).toHaveProperty('from', from);
-      expect(inferredType).toHaveProperty('to', to);
+      expect(inferences).toContainEqual(expect.arrayContaining([freeVariable(from), expect.anything(), to, expect.anything()]));
     });
 
     it('produces the correct named node', () => {
@@ -155,49 +168,41 @@ describe('attachShapes', () => {
     });
   });
 
-  describe('when the expression is a function', () => {
+  describe.each([false, true])('when the expression is a function and implicit is %s', (implicit) => {
     let expression: FunctionExpression;
-    let messages: Message[];
-    let inferredTypes: InferredType[];
-    let namedNode: NamedNode;
 
-    describe.each([
-      false,
-      true,
-    ])('and implicit is %s', (implicit) => {
-      beforeEach(() => {
-        const recordUniqueIdGenerator = staticUniqueIdGenerator(['parameter', 'body', 'result', 'X', 'Y', 'Z', 'A']);
-        expression = lambda(
-          [[stringExpression('parameter'), implicit]],
-          numberExpression(123),
-        );
-        ([messages, inferredTypes, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
-      });
+    beforeEach(() => {
+      const recordUniqueIdGenerator = staticUniqueIdGenerator(['parameter', 'body', 'result', 'X', 'Y', 'Z', 'A']);
+      expression = lambda(
+        [[stringExpression('parameter'), implicit]],
+        numberExpression(123),
+      );
+      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
+    });
 
-      it('produces no messages', () => {
-        expect(messages).toEqual([]);
-      });
+    it('produces no messages', () => {
+      expect(messages).toEqual([]);
+    });
 
-      it.each<[string, Value]>([
-        ['result', functionType(freeVariable('body'), [[freeVariable('parameter'), implicit]])],
-        ['parameter', stringLiteral('parameter')],
-        ['body', numberLiteral(123)],
-      ])('infers the type of the %s variable', (from, to) => {
-        expect(inferredTypes).toContainEqual({ from, to });
-      });
+    it.each<[string, Value]>([
+      ['result', functionType(freeVariable('body'), [[freeVariable('parameter'), implicit]])],
+      ['parameter', stringLiteral('parameter')],
+      ['body', numberLiteral(123)],
+    ])('infers the type of the %s variable', (from, to) => {
+      expect(inferences).toContainEqual([freeVariable(from), expect.anything(), to, expect.anything()]);
+    });
 
-      it('produces the correct named node', () => {
-        const expectedNode: FunctionExpression<NamedNode> = {
-          ...expression,
-          parameter: makeSimpleNamedNode('parameter', stringExpression('parameter'), stringLiteral('parameter')),
-          body: makeSimpleNamedNode('body', numberExpression(123), numberLiteral(123)),
-        };
-        expect(namedNode).toEqual(makeSimpleNamedNode(
-          'result',
-          expectedNode,
-          functionType(freeVariable('body'), [[freeVariable('parameter'), implicit]]),
-        ));
-      });
+    it('produces the correct named node', () => {
+      const expectedNode: FunctionExpression<NamedNode> = {
+        ...expression,
+        parameter: makeSimpleNamedNode('parameter', stringExpression('parameter'), stringLiteral('parameter')),
+        body: makeSimpleNamedNode('body', numberExpression(123), numberLiteral(123)),
+      };
+      expect(namedNode).toEqual(makeSimpleNamedNode(
+        'result',
+        expectedNode,
+        functionType(freeVariable('body'), [[freeVariable('parameter'), implicit]]),
+      ));
     });
   });
 });

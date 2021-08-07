@@ -165,21 +165,15 @@ export function lambda(parameters: (MaybeExpression | [MaybeExpression, boolean]
     throw new Error('Cannot create a function with no parameters');
   }
 
-  const [firstParameter, ...otherParameters] = defaultExplicit(parameters);
-  return otherParameters.reduceRight(
+  return defaultExplicit(parameters).reduceRight<Expression>(
     (body, [parameter, implicit]): FunctionExpression => ({
       body,
       implicit,
       kind: 'FunctionExpression',
       parameter: toExpression(parameter),
     }),
-    {
-      kind: 'FunctionExpression',
-      parameter: toExpression(firstParameter[0]),
-      body: toExpression(body),
-      implicit: firstParameter[1],
-    },
-  );
+    toExpression(body),
+  ) as FunctionExpression;
 }
 
 export function identifier(name: string): Identifier {
