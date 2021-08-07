@@ -35,7 +35,7 @@ describe('attachShapes', () => {
     ['symbol', symbolExpression('X'), symbol('X')],
   ])('when called on a %s expression', (_, expression, value) => {
     beforeEach(() => {
-      ([messages, inferences, namedNode] = attachShapes(uniqueIdGenerator)(expression));
+      ([messages, inferences, namedNode] = attachShapes(uniqueIdGenerator, expression));
     });
 
     it('produces no messages', () => {
@@ -68,7 +68,7 @@ describe('attachShapes', () => {
     beforeEach(() => {
       const recordUniqueIdGenerator = staticUniqueIdGenerator(['a', 'b', 'result']);
       expression = record({ a: numberExpression(7), b: stringExpression('Hello') });
-      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
+      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
     });
 
     it('produces no messages', () => {
@@ -131,7 +131,7 @@ describe('attachShapes', () => {
         lambda([identifier('x')], stringExpression('Hello')),
         numberExpression(123),
       );
-      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
+      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
     });
 
     it('produces no messages', () => {
@@ -177,7 +177,7 @@ describe('attachShapes', () => {
         [[stringExpression('parameter'), implicit]],
         numberExpression(123),
       );
-      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator)(expression));
+      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
     });
 
     it('produces no messages', () => {

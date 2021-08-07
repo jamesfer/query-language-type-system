@@ -152,7 +152,10 @@ const shallowAttachShapes = (
   return node(expression, { type, shapeName });
 }
 
-export const attachShapes = (makeUniqueId: UniqueIdGenerator) => (expression: Expression): [Message[], [Value, Expression, Value, Expression][], NamedNode] => {
+export function attachShapes(
+  makeUniqueId: UniqueIdGenerator,
+  expression: Expression,
+): [Message[], [Value, Expression, Value, Expression][], NamedNode] {
   const inferencesState = new StateRecorder<[Value, Expression, Value, Expression]>();
   const messagesState = new StateRecorder<Message>();
   const attachShapesWithState = shallowAttachShapes(inferencesState, messagesState, makeUniqueId);

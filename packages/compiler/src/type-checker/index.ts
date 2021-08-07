@@ -13,7 +13,7 @@ export function checkTypes(makeUniqueId: UniqueIdGenerator, expression: Expressi
   const renamedExpression = renameFreeVariables(makeUniqueId, expression);
 
   // Attach a partial type and a name to every node
-  const [messages, inferredTypes, namedNode] = attachShapes(makeUniqueId)(renamedExpression);
+  const [messages, inferredTypes, namedNode] = attachShapes(makeUniqueId, renamedExpression);
 
   // Compress all inferred types and detect issues where variables were inferred to different types
   const [compressionMessages, compressedInferredTypes] = compressInferredTypes(inferredTypes);
