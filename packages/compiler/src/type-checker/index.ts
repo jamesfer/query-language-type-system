@@ -5,7 +5,7 @@ import { recursivelyApplyInferredTypes } from './compress-inferred-types/recursi
 import { renameFreeVariables } from './rename-free-variables';
 import { ResolvedNode, resolveImplicits } from './resolve-implicits';
 import { Expression } from './types/expression';
-import { compressInferredTypes } from './compress-inferred-types/compress-inferred-types';
+import { compressTypeRelationships } from './compress-inferred-types/compress-type-relationships';
 import { Message } from './types/message';
 
 export function checkTypes(makeUniqueId: UniqueIdGenerator, expression: Expression): [Message[], ResolvedNode] {
@@ -13,10 +13,10 @@ export function checkTypes(makeUniqueId: UniqueIdGenerator, expression: Expressi
   const renamedExpression = renameFreeVariables(makeUniqueId, expression);
 
   // Attach a partial type and a name to every node
-  const [messages, inferredTypes, namedNode] = attachShapes(makeUniqueId, renamedExpression);
+  const [inferredTypes, namedNode] = attachShapes(makeUniqueId, renamedExpression);
 
   // Compress all inferred types and detect issues where variables were inferred to different types
-  const [compressionMessages, compressedInferredTypes] = compressInferredTypes(inferredTypes);
+  const [compressionMessages, compressedInferredTypes] = compressTypeRelationships(inferredTypes);
 
   // Reapplies all the inferred types discovered in the previous step. Type information can propagate to all expressions
   const shapedNode = recursivelyApplyInferredTypes(compressedInferredTypes)(namedNode);
@@ -29,7 +29,6 @@ export function checkTypes(makeUniqueId: UniqueIdGenerator, expression: Expressi
 
   return [
     [
-      ...messages,
       ...compressionMessages,
       ...resolvedMessages,
     ],

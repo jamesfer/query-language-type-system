@@ -11,13 +11,13 @@ import {
 } from '../constructors';
 import { prefixlessUniqueIdGenerator, staticUniqueIdGenerator } from '../test-utils/test-unique-id-generators';
 import { Value } from '../types/value';
+import { evaluatedPair, ValuePair } from '../types/value-pair';
 import { attachShapes, NamedNode } from './index';
-import { Application, Expression, FunctionExpression, Message, RecordExpression } from '../..';
+import { Application, Expression, FunctionExpression, RecordExpression } from '../..';
 
 describe('attachShapes', () => {
   let uniqueIdGenerator: UniqueIdGenerator;
-  let messages: Message[];
-  let inferences: [Value, Expression, Value, Expression][];
+  let inferences: ValuePair[];
   let namedNode: NamedNode;
 
   function makeSimpleNamedNode(shapeName: string, expression: Expression<NamedNode>, type: Value): NamedNode {
@@ -35,20 +35,14 @@ describe('attachShapes', () => {
     ['symbol', symbolExpression('X'), symbol('X')],
   ])('when called on a %s expression', (_, expression, value) => {
     beforeEach(() => {
-      ([messages, inferences, namedNode] = attachShapes(uniqueIdGenerator, expression));
-    });
-
-    it('produces no messages', () => {
-      expect(messages).toEqual([]);
+      ([inferences, namedNode] = attachShapes(uniqueIdGenerator, expression));
     });
 
     it('infers the type of the expression correctly', () => {
-      expect(inferences).toEqual([[
-        freeVariable(namedNode.decoration.shapeName),
-        expect.anything(),
-        value,
-        expect.anything(),
-      ]]);
+      expect(inferences).toEqual([evaluatedPair(
+        { value: freeVariable(namedNode.decoration.shapeName), expression: expect.anything() },
+        { value, expression: expect.anything() },
+      )]);
     });
 
     it('decorates the node with the name and type', () => {
@@ -68,33 +62,23 @@ describe('attachShapes', () => {
     beforeEach(() => {
       const recordUniqueIdGenerator = staticUniqueIdGenerator(['a', 'b', 'result']);
       expression = record({ a: numberExpression(7), b: stringExpression('Hello') });
-      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
-    });
-
-    it('produces no messages', () => {
-      expect(messages).toEqual([]);
+      ([inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
     });
 
     it('infers all the type variables', () => {
       expect(inferences).toEqual(expect.arrayContaining([
-        [
-          freeVariable(namedNode.decoration.shapeName),
-          expect.anything(),
-          recordLiteral({ a: freeVariable('a'), b: freeVariable('b') }),
-          expect.anything(),
-        ],
-        [
-          freeVariable('a'),
-          expect.anything(),
-          numberLiteral(7),
-          expect.anything(),
-        ],
-        [
-          freeVariable('b'),
-          expect.anything(),
-          stringLiteral('Hello'),
-          expect.anything(),
-        ],
+        evaluatedPair(
+          { value: freeVariable(namedNode.decoration.shapeName), expression: expect.anything() },
+          { value: recordLiteral({ a: freeVariable('a'), b: freeVariable('b') }), expression: expect.anything() },
+        ),
+        evaluatedPair(
+          { value: freeVariable('a'), expression: expect.anything() },
+          { value: numberLiteral(7), expression: expect.anything() },
+        ),
+        evaluatedPair(
+          { value: freeVariable('b'), expression: expect.anything() },
+          { value: stringLiteral('Hello'), expression: expect.anything() },
+        ),
       ]));
     });
 
@@ -131,11 +115,7 @@ describe('attachShapes', () => {
         lambda([identifier('x')], stringExpression('Hello')),
         numberExpression(123),
       );
-      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
-    });
-
-    it('produces no messages', () => {
-      expect(messages).toEqual([]);
+      ([inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
     });
 
     it.each<[string, Value]>([
@@ -147,7 +127,10 @@ describe('attachShapes', () => {
       ['lambda', functionType(freeVariable('lambdaBody'), [freeVariable('lambdaParameter')])],
       ['internalApplicationParameter', freeVariable('numberLiteral')],
     ])('infers the type of the %s variable', (from, to) => {
-      expect(inferences).toContainEqual(expect.arrayContaining([freeVariable(from), expect.anything(), to, expect.anything()]));
+      expect(inferences).toContainEqual(evaluatedPair(
+        { value: freeVariable(from), expression: expect.anything() },
+        { value: to, expression: expect.anything() },
+      ));
     });
 
     it('produces the correct named node', () => {
@@ -177,11 +160,7 @@ describe('attachShapes', () => {
         [[stringExpression('parameter'), implicit]],
         numberExpression(123),
       );
-      ([messages, inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
-    });
-
-    it('produces no messages', () => {
-      expect(messages).toEqual([]);
+      ([inferences, namedNode] = attachShapes(recordUniqueIdGenerator, expression));
     });
 
     it.each<[string, Value]>([
@@ -189,7 +168,10 @@ describe('attachShapes', () => {
       ['parameter', stringLiteral('parameter')],
       ['body', numberLiteral(123)],
     ])('infers the type of the %s variable', (from, to) => {
-      expect(inferences).toContainEqual([freeVariable(from), expect.anything(), to, expect.anything()]);
+      expect(inferences).toContainEqual(evaluatedPair(
+        { value: freeVariable(from), expression: expect.anything() },
+        { value: to, expression: expect.anything() },
+      ));
     });
 
     it('produces the correct named node', () => {

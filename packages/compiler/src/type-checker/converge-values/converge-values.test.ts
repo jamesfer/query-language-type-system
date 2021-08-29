@@ -3,9 +3,10 @@ import {
   dataValue,
   freeVariable,
   functionType,
-  numberLiteral,
+  numberLiteral, recordLiteral,
 } from '../constructors';
 import { Value } from '../types/value';
+import { InferredType } from './converge-types';
 import { convergeValues } from './converge-values';
 
 describe('convergeValues', () => {
@@ -73,6 +74,49 @@ describe('convergeValues', () => {
       expect(messages).toEqual([
         expect.any(String),
       ]);
+    });
+
+    it('infers a variable type containing an implicit parameter', () => {
+      const [messages, inferredTypes] = convergeWithShape(freeVariable('p'));
+      expect(messages).toHaveLength(0)
+      expect(inferredTypes).toContainEqual(expect.objectContaining<Partial<InferredType>>({
+        from: 'p',
+        to: functionType(booleanLiteral(true), [[dataValue('Num', [freeVariable('x')]), true], freeVariable('x')]),
+      }));
+    })
+  });
+
+  describe('when converging complex types', () => {
+    it('nested implicit args are not accepted', () => {
+      const [messages] = converge(
+        recordLiteral({ go: functionType(booleanLiteral(true), [numberLiteral(7)]) }),
+        recordLiteral({ go: functionType(booleanLiteral(true), [[numberLiteral(7), true], numberLiteral(7)]) }),
+      );
+      expect(messages).toEqual([expect.any(String)]);
+    });
+
+    it.skip('more specific nested implicit args are accepted', () => {
+      const [messages] = converge(
+        recordLiteral({
+          go: functionType(booleanLiteral(true), [[dataValue('Num', [freeVariable('x')]), true], numberLiteral(7)]),
+        }),
+        recordLiteral({
+          go: functionType(booleanLiteral(true), [[dataValue('Num', [numberLiteral(7)]), true], numberLiteral(7)]),
+        }),
+      );
+      expect(messages).toEqual([]);
+    });
+
+    it('less specific nested implicit args are accepted', () => {
+      const [messages] = converge(
+        recordLiteral({
+          go: functionType(booleanLiteral(true), [[dataValue('Num', [numberLiteral(7)]), true], numberLiteral(7)]),
+        }),
+        recordLiteral({
+          go: functionType(booleanLiteral(true), [[dataValue('Num', [freeVariable('x')]), true], numberLiteral(7)]),
+        }),
+      );
+      expect(messages).toEqual([]);
     });
   });
 });

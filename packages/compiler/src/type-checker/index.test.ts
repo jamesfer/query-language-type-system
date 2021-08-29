@@ -72,36 +72,11 @@ describe('checkTypes', () => {
     let node: ResolvedNode;
 
     beforeEach(() => {
-      uniqueIdGenerator = prefixlessUniqueIdGenerator();
+      uniqueIdGenerator = uniqueIdStream();
       expression = pipe(
         data('Integer', ['a']),
         bind('integerIdentity', lambda([[apply('Integer', ['b']), true], identifier('b')], identifier('b'))),
         apply('integerIdentity', [1]),
-      );
-      [messages, node] = checkTypes(uniqueIdGenerator, expression);
-    });
-
-    it('produces no messages', () => {
-      expect(messages).toEqual([]);
-    });
-
-    it('infers the type of the result', () => {
-      expect(node.decoration.type).toEqual(numberLiteral(1));
-    });
-  });
-
-  describe.skip('when checking an expression with implicit parameters', () => {
-    let uniqueIdGenerator: UniqueIdGenerator;
-    let expression: Expression;
-    let messages: Message[];
-    let node: ResolvedNode;
-
-    beforeEach(() => {
-      uniqueIdGenerator = prefixlessUniqueIdGenerator();
-      expression = pipe(
-        data('Integer', ['a']),
-        bind('integerIdentity', lambda([[apply('Integer', ['b']), true], identifier('b'), identifier('b')], identifier('b'))),
-        numberExpression(1),
       );
       [messages, node] = checkTypes(uniqueIdGenerator, expression);
     });

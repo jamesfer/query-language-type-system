@@ -22,14 +22,6 @@ export const convergeValuesWithState = (
   leftValue: Value,
   rightValue: Value,
 ): ConvergeResult => {
-  if (leftValue.kind === 'ImplicitFunctionLiteral') {
-    return convergeImplicitFunctions(state, leftValue, rightValue);
-  }
-
-  if (rightValue.kind === 'ImplicitFunctionLiteral') {
-    return convergeValuesWithState(state, leftValue, shallowStripImplicits(rightValue));
-  }
-
   if (rightValue.kind === 'FreeVariable') {
     return convergeFreeVariableOnRight(state, leftValue, rightValue);
   }
@@ -44,6 +36,14 @@ export const convergeValuesWithState = (
 
   if (rightValue.kind === 'DualBinding') {
     return convergeDualBindingOnRight(state, leftValue, rightValue);
+  }
+
+  if (leftValue.kind === 'ImplicitFunctionLiteral') {
+    return convergeImplicitFunctions(state, leftValue, rightValue);
+  }
+
+  if (rightValue.kind === 'ImplicitFunctionLiteral') {
+    return convergeImplicitFunctions(state, rightValue, leftValue);
   }
 
   switch (leftValue.kind) {

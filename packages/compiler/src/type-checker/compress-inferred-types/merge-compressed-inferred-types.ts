@@ -118,7 +118,9 @@ function combineAllInferredTypes(
   return [resultingCompressedTypes, allNewInferredTypes];
 }
 
-export function mergeCompressedInferredTypes(compressedInferredTypes: CompressedInferredTypes[]): [Message[], CompressedInferredTypes] {
+export function mergeCompressedInferredTypes(
+  compressedInferredTypes: CompressedInferredTypes[]
+): [Message[], CompressedInferredTypes] {
   const compressedInferredTypesCopy = [...compressedInferredTypes];
   const messages: Message[] = [];
   let accumulatedInferredTypes: CompressedInferredTypes = {};

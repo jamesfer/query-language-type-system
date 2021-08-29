@@ -1,14 +1,12 @@
-import { flatMap } from 'lodash';
 import { Message, Node } from '../..';
 import { makeExpressionIterator } from '../../desugar/iterators-specific';
-import { assert } from '../../utils/assert';
 import { Scope, ScopedNode } from '../build-scoped-node';
-import { compressInferredTypes } from '../compress-inferred-types/compress-inferred-types';
+import { compressTypeRelationships } from '../compress-inferred-types/compress-type-relationships';
 import { ShapedNodeDecoration } from '../compress-inferred-types/recursively-apply-inferred-types';
 import { identifier, node } from '../constructors';
-import { convergeValues } from '../converge-values';
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { Value } from '../types/value';
+import { evaluatedPair } from '../types/value-pair';
 import { checkedZip, permuteArrays } from '../utils';
 import { selectImplicitParameters } from '../utils/select-implicit-parameters';
 import { mapNode } from '../visitor-utils';
@@ -40,13 +38,17 @@ function findImplicitsToResolve(decoration: ShapedNodeDecoration): Value[] {
 }
 
 function isValidCombination(implicitsToResolve: Value[], combination: Value[]) {
-  const [compressMessages] = compressInferredTypes(
-    checkedZip(implicitsToResolve, combination).map(([left, right]) => [
-      left,
-      identifier('__left_resolve_implicits__'),
-      right,
-      identifier('__right_resolve_implicits___'),
-    ]),
+  const [compressMessages] = compressTypeRelationships(
+    checkedZip(implicitsToResolve, combination).map(([left, right]) => evaluatedPair(
+      {
+        value: left,
+        expression: identifier('__left_resolve_implicits__'),
+      },
+      {
+        value: right,
+        expression: identifier('__right_resolve_implicits__'),
+      }
+    )),
   );
   return compressMessages.length === 0;
 }
