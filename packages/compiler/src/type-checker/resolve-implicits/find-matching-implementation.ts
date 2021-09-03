@@ -1,4 +1,6 @@
 import { convergeValues } from '../converge-values';
+import { StateRecorder } from '../state-recorder/state-recorder';
+import { Message } from '../types/message';
 import { Value } from '../types/value';
 import { visitAndTransformValue } from '../visitor-utils';
 import { Scope } from '../build-scoped-node';
@@ -80,8 +82,9 @@ function hasBuiltInImplementation(scope: Scope, value: Value): Value | undefined
 
 const canSatisfyShape = (shape: Value) => (child: Value): boolean => {
   // TODO fix converge expression requirements types
-  const [messages] = convergeValues(shape, null as any, child, null as any, 'leftSpecific');
-  return messages.length === 0;
+  const messageState = new StateRecorder<Message>();
+  convergeValues(messageState, shape, null as any, child, null as any, 'leftSpecific');
+  return messageState.values.length === 0;
 }
 
 export function findMatchingImplementations(scope: Scope, value: Value): [string, Value][] {

@@ -1,8 +1,11 @@
 import { booleanLiteral, dataValue, freeVariable, functionType, identifier, numberLiteral, stringLiteral } from '../constructors';
+import { StateRecorder } from '../state-recorder/state-recorder';
 import { Value } from '../types/value';
 import { CompressedInferredType, mergeCompressedInferredTypes } from './merge-compressed-inferred-types';
+import { Message } from '../types/message';
 
 describe('mergeCompressedInferredTypes', () => {
+  let messageState: StateRecorder<Message>;
   function makeCIT(expressionName: string, to: Value): CompressedInferredType {
     return {
       to,
@@ -13,6 +16,10 @@ describe('mergeCompressedInferredTypes', () => {
       }],
     };
   }
+
+  beforeEach(() => {
+    messageState = new StateRecorder<Message>();
+  });
 
   it('appends inferred types for different variables', () => {
     const a: CompressedInferredType = {
@@ -31,9 +38,9 @@ describe('mergeCompressedInferredTypes', () => {
         inferringExpression: identifier('inferring'),
       }],
     };
-    const [messages, compressed] = mergeCompressedInferredTypes([{ a }, { b }]);
-    expect(messages).toEqual([]);
+    const compressed = mergeCompressedInferredTypes(messageState, [{ a }, { b }]);
     expect(compressed).toEqual({ a, b });
+    expect(messageState.values).toEqual([]);
   });
 
   it('merges inferred types for the same variable', () => {
@@ -53,11 +60,11 @@ describe('mergeCompressedInferredTypes', () => {
         inferringExpression: identifier('inferring'),
       }],
     };
-    const [messages, compressed] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
-    expect(messages).toEqual([]);
+    const compressed = mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
     expect(compressed).toHaveProperty('a', expect.objectContaining({
       to: functionType(booleanLiteral(false), [booleanLiteral(true)]),
     }));
+    expect(messageState.values).toEqual([]);
   });
 
   it('applies new inferred types to existing types', () => {
@@ -77,11 +84,11 @@ describe('mergeCompressedInferredTypes', () => {
         inferringExpression: identifier('inferring'),
       }],
     };
-    const [messages, compressed] = mergeCompressedInferredTypes([{ a }, { b }]);
-    expect(messages).toEqual([]);
+    const compressed = mergeCompressedInferredTypes(messageState, [{ a }, { b }]);
     expect(compressed).toHaveProperty('a', expect.objectContaining({
       to: numberLiteral(7),
     }));
+    expect(messageState.values).toEqual([]);
   });
 
   it('applies existing replacements to new inferred types', () => {
@@ -101,11 +108,11 @@ describe('mergeCompressedInferredTypes', () => {
         inferringExpression: identifier('inferring'),
       }],
     };
-    const [messages, compressed] = mergeCompressedInferredTypes([{ a }, { b }]);
-    expect(messages).toEqual([]);
+    const compressed = mergeCompressedInferredTypes(messageState, [{ a }, { b }]);
     expect(compressed).toHaveProperty('b', expect.objectContaining({
       to: numberLiteral(7),
     }));
+    expect(messageState.values).toEqual([]);
   });
 
   describe('when compressing simple compatible inferred types for the same variable', () => {
@@ -127,15 +134,15 @@ describe('mergeCompressedInferredTypes', () => {
     };
 
     it('combines them into a single entry', () => {
-      const [messages, compressed] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
-      expect(messages).toEqual([]);
+      const compressed = mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
       expect(compressed).toHaveProperty('a', expect.objectContaining({ to: a2.to }));
+      expect(messageState.values).toEqual([]);
     });
 
     it('appends their sources', () => {
-      const [messages, compressed] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
-      expect(messages).toEqual([]);
+      const compressed = mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
       expect(compressed.a.sources).toEqual([...a1.sources, ...a2.sources]);
+      expect(messageState.values).toEqual([]);
     });
   });
 
@@ -172,17 +179,17 @@ describe('mergeCompressedInferredTypes', () => {
     };
 
     it('emits no messages', () => {
-      const [messages] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
-      expect(messages).toEqual([]);
+      mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
+      expect(messageState.values).toEqual([]);
     })
 
     it('combines them into a single entry', () => {
-      const [, compressed] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
+      const compressed = mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
       expect(compressed).toHaveProperty('a', expect.objectContaining({ to: a2.to }));
     });
 
     it('adds a new inferred type for the free variable', () => {
-      const [, compressed] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
+      const compressed = mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
       expect(compressed).toHaveProperty<CompressedInferredType>('q', {
         to: numberLiteral(7),
         sources: [{
@@ -213,13 +220,13 @@ describe('mergeCompressedInferredTypes', () => {
     };
 
     it('leaves the first entry in the result', () => {
-      const [, compressed] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
+      const compressed = mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
       expect(compressed).toHaveProperty('a', expect.objectContaining({ to: a1.to }));
     });
 
     it('emits an error message', () => {
-      const [messages] = mergeCompressedInferredTypes([{ a: a1 }, { a: a2 }]);
-      expect(messages).toEqual([
+      mergeCompressedInferredTypes(messageState, [{ a: a1 }, { a: a2 }]);
+      expect(messageState.values).toEqual([
         'Type mismatch between true and false in context :X:<7, true> and :X:<7, false>',
       ]);
     });
@@ -239,13 +246,13 @@ describe('mergeCompressedInferredTypes', () => {
       [stringLiteral('implicitParam'), true],
       numberLiteral(7),
     ]));
-    const [messages, result] = mergeCompressedInferredTypes([
+    const result = mergeCompressedInferredTypes(messageState, [
       { a: a1 },
       { a: a2 },
       { b },
       { c },
     ]);
-    expect(messages).toEqual([]);
+    expect(messageState.values).toEqual([]);
     expect(result).toHaveProperty('a', expect.objectContaining({
       to: a1.to,
     }));

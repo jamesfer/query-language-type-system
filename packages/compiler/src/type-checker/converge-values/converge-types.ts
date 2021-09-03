@@ -1,5 +1,4 @@
 import { Expression } from '../types/expression';
-import { Message } from '../types/message';
 import { Value } from '../types/value';
 
 export type ConvergeDirection = 'either' | 'leftSpecific';
@@ -20,4 +19,4 @@ export interface InferredType {
   inferringExpression: Expression;
 }
 
-export type ConvergeResult = [Message[], InferredType[]];
+export type ConvergeResult = InferredType[];

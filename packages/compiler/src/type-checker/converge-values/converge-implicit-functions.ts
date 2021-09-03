@@ -1,23 +1,32 @@
+import { StateRecorder } from '../state-recorder/state-recorder';
+import { Message } from '../types/message';
 import { ImplicitFunctionLiteral, Value } from '../types/value';
-import { ConvergeResult, ConvergeState } from './converge-types';
-import { join, mismatchResult } from './converge-utils';
+import { ConvergeState, InferredType } from './converge-types';
+import { mismatchResult } from './converge-utils';
 import { convergeValuesWithState } from './converge-values-with-state';
 
 export function convergeImplicitFunctions(
+  messageState: StateRecorder<Message>,
   state: ConvergeState,
   implicitFunction: ImplicitFunctionLiteral,
   other: Value,
-): ConvergeResult {
-  if (other.kind === 'ImplicitFunctionLiteral') {
-    return join([
-      convergeValuesWithState(
-        { ...state, direction: 'leftSpecific' },
-        implicitFunction.parameter,
-        other.parameter,
-      ),
-      convergeValuesWithState(state, implicitFunction.body, other.body),
-    ]);
+): InferredType[] {
+  if (other.kind !== 'ImplicitFunctionLiteral') {
+    return mismatchResult(messageState, state, implicitFunction, other);
   }
 
-  return mismatchResult(state, implicitFunction, other);
+  return [
+    ...convergeValuesWithState(
+      messageState,
+      { ...state, direction: 'leftSpecific' },
+      implicitFunction.parameter,
+      other.parameter,
+    ),
+    ...convergeValuesWithState(
+      messageState,
+      state,
+      implicitFunction.body,
+      other.body,
+    ),
+  ];
 }

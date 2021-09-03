@@ -1,13 +1,16 @@
+import { StateRecorder } from '../state-recorder/state-recorder';
+import { Message } from '../types/message';
 import { NumberLiteral, Value } from '../types/value';
-import { ConvergeResult, ConvergeState } from './converge-types';
+import { ConvergeState, InferredType } from './converge-types';
 import { mismatchResult } from './converge-utils';
 
 export function convergeNumbers(
+  messageState: StateRecorder<Message>,
   state: ConvergeState,
   number: NumberLiteral,
   other: Value,
-): ConvergeResult {
+): InferredType[] {
   return other.kind === 'NumberLiteral' && other.value === number.value
-    ? [[], []]
-    : mismatchResult(state, number, other);
+    ? []
+    : mismatchResult(messageState, state, number, other);
 }

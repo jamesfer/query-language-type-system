@@ -1,10 +1,9 @@
-import { flatten } from 'lodash';
 import { Message } from '../../index';
 import { convergeValues } from '../converge-values';
-import { ConvergeResult } from '../converge-values/converge-types';
+import { InferredType } from '../converge-values/converge-types';
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { ValuePair } from '../types/value-pair';
-import { assertNever, unzip } from '../utils';
+import { assertNever } from '../utils';
 import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 import { convertInferredTypeToCompressed } from './convert-inferred-type-to-compressed';
 import {
@@ -12,10 +11,15 @@ import {
   mergeCompressedInferredTypes,
 } from './merge-compressed-inferred-types';
 
-function convergePairs(pair: ValuePair): ConvergeResult {
+const convergePairs = (
+  messageState: StateRecorder<Message>
+) => (
+  pair: ValuePair,
+): InferredType[] => {
   switch (pair.kind) {
     case 'Exact':
       return convergeValues(
+        messageState,
         pair.left.value,
         pair.left.expression,
         pair.right.value,
@@ -23,6 +27,7 @@ function convergePairs(pair: ValuePair): ConvergeResult {
       );
     case 'Evaluated':
       return convergeValues(
+        messageState,
         shallowStripImplicits(pair.left.value),
         pair.left.expression,
         shallowStripImplicits(pair.right.value),
@@ -33,16 +38,13 @@ function convergePairs(pair: ValuePair): ConvergeResult {
   }
 }
 
-export function compressTypeRelationships(pairedValues: ValuePair[]): [Message[], CompressedInferredTypes] {
-  const messageRecorder = new StateRecorder<Message>()
-
-  const [messageArray, inferredTypesArray] = unzip(pairedValues.map(convergePairs));
-  messageRecorder.pushAll(flatten(messageArray));
-
-  const [messages, compressedInferredTypes] = mergeCompressedInferredTypes(
-    flatten(inferredTypesArray).map(convertInferredTypeToCompressed),
+export function compressTypeRelationships(
+  messageState: StateRecorder<Message>,
+  pairedValues: ValuePair[],
+): CompressedInferredTypes {
+  const inferredTypesArray = pairedValues.flatMap(convergePairs(messageState));
+  return mergeCompressedInferredTypes(
+    messageState,
+    inferredTypesArray.map(convertInferredTypeToCompressed),
   );
-  messageRecorder.pushAll(messages);
-
-  return [messageRecorder.values, compressedInferredTypes]
 }

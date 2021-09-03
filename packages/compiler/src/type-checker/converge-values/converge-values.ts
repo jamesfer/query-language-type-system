@@ -1,6 +1,8 @@
+import { StateRecorder } from '../state-recorder/state-recorder';
 import { Expression } from '../types/expression';
+import { Message } from '../types/message';
 import { Value } from '../types/value';
-import { ConvergeDirection, ConvergeResult, ConvergeState } from './converge-types';
+import { ConvergeDirection, ConvergeState, InferredType } from './converge-types';
 import { convergeValuesWithState } from './converge-values-with-state';
 
 /**
@@ -10,12 +12,13 @@ import { convergeValuesWithState } from './converge-values-with-state';
  * the inferred types which will reveal conflicts.
  */
 export function convergeValues(
+  messageState: StateRecorder<Message>,
   leftValue: Value,
   leftExpression: Expression,
   rightValue: Value,
   rightExpression: Expression,
   direction: ConvergeDirection = 'either',
-): ConvergeResult {
+): InferredType[] {
   const state: ConvergeState = {
     direction,
     leftExpression,
@@ -23,5 +26,5 @@ export function convergeValues(
     leftEntireValue: leftValue,
     rightEntireValue: rightValue,
   };
-  return convergeValuesWithState(state, leftValue, rightValue);
+  return convergeValuesWithState(messageState, state, leftValue, rightValue);
 }

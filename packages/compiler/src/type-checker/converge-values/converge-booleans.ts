@@ -1,13 +1,16 @@
+import { StateRecorder } from '../state-recorder/state-recorder';
+import { Message } from '../types/message';
 import { BooleanLiteral, Value } from '../types/value';
-import { ConvergeResult, ConvergeState } from './converge-types';
+import { ConvergeState, InferredType } from './converge-types';
 import { mismatchResult } from './converge-utils';
 
 export function convergeBooleans(
+  messageState: StateRecorder<Message>,
   state: ConvergeState,
   boolean: BooleanLiteral,
   other: Value,
-): ConvergeResult {
+): InferredType[] {
   return other.kind === 'BooleanLiteral' && other.value === boolean.value
-    ? [[], []]
-    : mismatchResult(state, boolean, other);
+    ? []
+    : mismatchResult(messageState, state, boolean, other);
 }

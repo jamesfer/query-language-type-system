@@ -1,5 +1,6 @@
 import { Message, Node } from '../..';
 import { makeExpressionIterator } from '../../desugar/iterators-specific';
+import { MessageState } from '../../parser/interpret-expression/message-state';
 import { Scope, ScopedNode } from '../build-scoped-node';
 import { compressTypeRelationships } from '../compress-inferred-types/compress-type-relationships';
 import { ShapedNodeDecoration } from '../compress-inferred-types/recursively-apply-inferred-types';
@@ -38,19 +39,22 @@ function findImplicitsToResolve(decoration: ShapedNodeDecoration): Value[] {
 }
 
 function isValidCombination(implicitsToResolve: Value[], combination: Value[]) {
-  const [compressMessages] = compressTypeRelationships(
-    checkedZip(implicitsToResolve, combination).map(([left, right]) => evaluatedPair(
-      {
-        value: left,
-        expression: identifier('__left_resolve_implicits__'),
-      },
-      {
-        value: right,
-        expression: identifier('__right_resolve_implicits__'),
-      }
-    )),
-  );
-  return compressMessages.length === 0;
+  const messageState = new StateRecorder<Message>();
+  const pairedValues = checkedZip(
+    implicitsToResolve,
+    combination,
+  ).map(([left, right]) => evaluatedPair(
+    {
+      value: left,
+      expression: identifier('__left_resolve_implicits__'),
+    },
+    {
+      value: right,
+      expression: identifier('__right_resolve_implicits__'),
+    },
+  ));
+  compressTypeRelationships(messageState, pairedValues);
+  return messageState.values.length === 0;
 }
 
 function findAllMatchingImplementationsFor(

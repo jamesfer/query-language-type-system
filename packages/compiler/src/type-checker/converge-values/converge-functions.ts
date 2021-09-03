@@ -1,19 +1,22 @@
+import { StateRecorder } from '../state-recorder/state-recorder';
+import { Message } from '../types/message';
 import { FunctionLiteral, Value } from '../types/value';
-import { ConvergeResult, ConvergeState } from './converge-types';
-import { join, mismatchResult } from './converge-utils';
+import { ConvergeState, InferredType } from './converge-types';
+import { mismatchResult } from './converge-utils';
 import { convergeValuesWithState } from './converge-values-with-state';
 
 export function convergeFunctions(
+  messageState: StateRecorder<Message>,
   state: ConvergeState,
   functionValue: FunctionLiteral,
   other: Value,
-): ConvergeResult {
+): InferredType[] {
   if (other.kind !== 'FunctionLiteral') {
-    return mismatchResult(state, functionValue, other);
+    return mismatchResult(messageState, state, functionValue, other);
   }
 
-  return join([
-    convergeValuesWithState(state, functionValue.parameter, other.parameter),
-    convergeValuesWithState(state, functionValue.body, other.body),
-  ]);
+  return [
+    ...convergeValuesWithState(messageState, state, functionValue.parameter, other.parameter),
+    ...convergeValuesWithState(messageState, state, functionValue.body, other.body),
+  ];
 }

@@ -1,14 +1,8 @@
-import { flatten } from 'lodash';
+import { StateRecorder } from '../state-recorder/state-recorder';
 import { Message } from '../types/message';
 import { Value } from '../types/value';
-import { unzip } from '../utils';
 import { valueToString } from '../utils/value-to-string';
-import { ConvergeResult, ConvergeState, InferredType } from './converge-types';
-
-export function join(results: ConvergeResult[]): ConvergeResult {
-  const [allMessages, allInferredTypes] = unzip(results);
-  return [flatten(allMessages), flatten(allInferredTypes)];
-}
+import { ConvergeState, InferredType } from './converge-types';
 
 export function mismatchMessage(
   state: ConvergeState,
@@ -23,11 +17,13 @@ export function mismatchMessage(
 }
 
 export function mismatchResult(
+  messageState: StateRecorder<Message>,
   state: ConvergeState,
   leftValue: Value,
   rightValue: Value,
-): ConvergeResult {
-  return [[mismatchMessage(state, leftValue, rightValue)], []];
+): InferredType[] {
+  messageState.push(mismatchMessage(state, leftValue, rightValue));
+  return [];
 }
 
 export function inferredType(

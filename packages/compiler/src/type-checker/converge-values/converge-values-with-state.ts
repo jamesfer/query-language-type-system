@@ -1,6 +1,7 @@
+import { StateRecorder } from '../state-recorder/state-recorder';
+import { Message } from '../types/message';
 import { Value } from '../types/value';
 import { assertNever } from '../utils';
-import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 import { convergeApplications } from './converge-applications';
 import { convergeBooleans } from './converge-booleans';
 import { convergeDataValues } from './converge-data-values';
@@ -14,59 +15,60 @@ import { convergeNumbers } from './converge-numbers';
 import { convergeRecords } from './converge-records';
 import { convergeStrings } from './converge-strings';
 import { convergeSymbols } from './converge-symbols';
-import { ConvergeResult, ConvergeState } from './converge-types';
+import { ConvergeState, InferredType } from './converge-types';
 import { mismatchResult } from './converge-utils';
 
 export const convergeValuesWithState = (
+  messageState: StateRecorder<Message>,
   state: ConvergeState,
   leftValue: Value,
   rightValue: Value,
-): ConvergeResult => {
+): InferredType[] => {
   if (rightValue.kind === 'FreeVariable') {
     return convergeFreeVariableOnRight(state, leftValue, rightValue);
   }
 
   if (leftValue.kind === 'FreeVariable') {
-    return convergeFreeVariableOnLeft(state, leftValue, rightValue);
+    return convergeFreeVariableOnLeft(messageState, state, leftValue, rightValue);
   }
 
   if (leftValue.kind === 'DualBinding') {
-    return convergeDualBindingOnLeft(state, leftValue, rightValue);
+    return convergeDualBindingOnLeft(messageState, state, leftValue, rightValue);
   }
 
   if (rightValue.kind === 'DualBinding') {
-    return convergeDualBindingOnRight(state, leftValue, rightValue);
+    return convergeDualBindingOnRight(messageState, state, leftValue, rightValue);
   }
 
   if (leftValue.kind === 'ImplicitFunctionLiteral') {
-    return convergeImplicitFunctions(state, leftValue, rightValue);
+    return convergeImplicitFunctions(messageState, state, leftValue, rightValue);
   }
 
   if (rightValue.kind === 'ImplicitFunctionLiteral') {
-    return convergeImplicitFunctions(state, rightValue, leftValue);
+    return convergeImplicitFunctions(messageState, state, rightValue, leftValue);
   }
 
   switch (leftValue.kind) {
     case 'DataValue':
-      return convergeDataValues(state, leftValue, rightValue);
+      return convergeDataValues(messageState, state, leftValue, rightValue);
     case 'RecordLiteral':
-      return convergeRecords(state, leftValue, rightValue);
+      return convergeRecords(messageState, state, leftValue, rightValue);
     case 'ApplicationValue':
-      return convergeApplications(state, leftValue, rightValue);
+      return convergeApplications(messageState, state, leftValue, rightValue);
     case 'FunctionLiteral':
-      return convergeFunctions(state, leftValue, rightValue);
+      return convergeFunctions(messageState, state, leftValue, rightValue);
     case 'SymbolLiteral':
-      return convergeSymbols(state, leftValue, rightValue);
+      return convergeSymbols(messageState, state, leftValue, rightValue);
     case 'BooleanLiteral':
-      return convergeBooleans(state, leftValue, rightValue);
+      return convergeBooleans(messageState, state, leftValue, rightValue);
     case 'NumberLiteral':
-      return convergeNumbers(state, leftValue, rightValue);
+      return convergeNumbers(messageState, state, leftValue, rightValue);
     case 'StringLiteral':
-      return convergeStrings(state, leftValue, rightValue);
+      return convergeStrings(messageState, state, leftValue, rightValue);
     case 'ReadDataValueProperty':
     case 'ReadRecordProperty':
     case 'PatternMatchValue':
-      return mismatchResult(state, leftValue, rightValue);
+      return mismatchResult(messageState, state, leftValue, rightValue);
 
     default:
       return assertNever(leftValue);

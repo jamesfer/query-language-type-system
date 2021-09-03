@@ -4,6 +4,7 @@ import { assert } from '../../utils/assert';
 import { getGenElement } from '../../utils/get-gen-element';
 import { convergeValues } from '../converge-values';
 import { InferredType } from '../converge-values/converge-types';
+import { StateRecorder } from '../state-recorder/state-recorder';
 import { Value } from '../types/value';
 import { selectImplicitParameters } from '../utils/select-implicit-parameters';
 import { unfoldParameters } from '../visitor-utils';
@@ -46,10 +47,10 @@ function correctImplicits(existing: Value, next: Value): Value {
 }
 
 function combineInferredType(
-  name: string,
+  messageState: StateRecorder<Message>,
   existing: CompressedInferredType,
   next: CompressedInferredType,
-): [Message[], InferredType[], CompressedInferredType] {
+): [InferredType[], CompressedInferredType] {
   assert(existing.sources.length > 0, 'Tried to combine an inferred type that has no sources');
   assert(next.sources.length > 0, 'Tried to combine an inferred type that has no sources');
 
@@ -57,26 +58,35 @@ function combineInferredType(
   const correctedNextValue = correctImplicits(existing.to, next.to);
 
   // Attempt to converge the two destination values
-  const [messages, newInferredTypes] = convergeValues(
+  const nestedMessageState = new StateRecorder<Message>();
+  const newInferredTypes = convergeValues(
+    nestedMessageState,
     existing.to,
     existing.sources[next.sources.length - 1].inferringExpression,
     correctedNextValue,
     next.sources[next.sources.length - 1].inferringExpression,
   );
 
-  const result = messages.length === 0
-    ? {
+  if (nestedMessageState.values.length === 0) {
+    const result = {
       to: correctedNextValue,
       sources: [
         ...existing.sources,
         ...next.sources,
       ],
-    }
-    : existing;
-  return [messages, newInferredTypes, result];
+    };
+    return [newInferredTypes, result];
+  }
+
+  messageState.pushAll(nestedMessageState.values);
+  return [newInferredTypes, existing];
 }
 
-function appendNewInferredType(existing: CompressedInferredTypes, name: string, newType: CompressedInferredType): CompressedInferredTypes {
+function appendNewInferredType(
+  existing: CompressedInferredTypes,
+  name: string,
+  newType: CompressedInferredType,
+): CompressedInferredTypes {
   const newCompressedType: CompressedInferredTypes = { [name]: newType };
   return {
     ...mapValues(existing, existingType => ({
@@ -88,7 +98,7 @@ function appendNewInferredType(existing: CompressedInferredTypes, name: string, 
 }
 
 function combineAllInferredTypes(
-  messages: Message[],
+  messageState: StateRecorder<Message>,
   existing: CompressedInferredTypes,
   next: CompressedInferredTypes,
 ): [CompressedInferredTypes, InferredType[]] {
@@ -103,14 +113,15 @@ function combineAllInferredTypes(
     if (!(name in resultingCompressedTypes)) {
       resultingCompressedTypes = appendNewInferredType(resultingCompressedTypes, name, inferredType);
     } else {
-      const [newMessages, newInferredTypes, newCompressedType] = combineInferredType(
-        name,
+      const nestedMessageState = new StateRecorder<Message>();
+      const [newInferredTypes, newCompressedType] = combineInferredType(
+        nestedMessageState,
         existing[name],
         inferredType,
       );
-      messages.push(...newMessages);
       allNewInferredTypes.push(...newInferredTypes)
-      if (newMessages.length === 0) {
+      messageState.pushAll(nestedMessageState.values);
+      if (nestedMessageState.values.length === 0) {
         resultingCompressedTypes = appendNewInferredType(resultingCompressedTypes, name, newCompressedType);
       }
     }
@@ -119,20 +130,20 @@ function combineAllInferredTypes(
 }
 
 export function mergeCompressedInferredTypes(
-  compressedInferredTypes: CompressedInferredTypes[]
-): [Message[], CompressedInferredTypes] {
+  messageState: StateRecorder<Message>,
+  compressedInferredTypes: CompressedInferredTypes[],
+): CompressedInferredTypes {
   const compressedInferredTypesCopy = [...compressedInferredTypes];
-  const messages: Message[] = [];
   let accumulatedInferredTypes: CompressedInferredTypes = {};
   let newInferredTypes;
   while (compressedInferredTypesCopy.length > 0) {
     ([accumulatedInferredTypes, newInferredTypes] = combineAllInferredTypes(
-      messages,
+      messageState,
       accumulatedInferredTypes,
       compressedInferredTypesCopy.shift()!,
     ));
     compressedInferredTypesCopy.unshift(...newInferredTypes.map(convertInferredTypeToCompressed));
   }
 
-  return [messages, accumulatedInferredTypes];
+  return accumulatedInferredTypes;
 }
