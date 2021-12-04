@@ -1,4 +1,4 @@
-import { adhocCollect } from '../../utils/adhoc-reduce';
+import { adhocCollect } from '../../utils/adhoc-collect';
 import { Value } from '../types/value';
 
 export function selectImplicitParameters(inputValue: Value): Value[] {

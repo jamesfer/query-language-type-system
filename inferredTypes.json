@@ -1,0 +1,3282 @@
+[
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierIAddableType$8",
+    "to": {
+      "name": "IAddable",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "IAddable",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "IAddable",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierIntegerType$9",
+    "to": {
+      "name": "Integer",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "Integer",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "Integer",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierintegerIdentityType$10",
+    "to": {
+      "name": "integerIdentity",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "integerIdentity",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "integerIdentity",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatesTo",
+    "from": "nodeIdentifierIAddableType$8",
+    "to": {
+      "body": {
+        "name": "applicationResult$11",
+        "kind": "FreeVariable"
+      },
+      "parameter": {
+        "name": "nodeIdentifierIntegerType$9",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral"
+    },
+    "origin": {
+      "name": "IAddable",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "name": "IAddable",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "Integer",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeApplicationType$12",
+    "to": {
+      "name": "applicationResult$11",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "kind": "Application",
+      "callee": {
+        "name": "IAddable",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "Integer",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "name": "IAddable",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "Integer",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeRecordExpressionType$13",
+    "to": {
+      "properties": {
+        "go": {
+          "name": "nodeIdentifierintegerIdentityType$10",
+          "kind": "FreeVariable"
+        }
+      },
+      "kind": "RecordLiteral"
+    },
+    "origin": {
+      "properties": {
+        "go": {
+          "name": "integerIdentity",
+          "kind": "Identifier"
+        }
+      },
+      "kind": "RecordExpression"
+    },
+    "inferrer": {
+      "properties": {
+        "go": {
+          "name": "integerIdentity",
+          "kind": "Identifier"
+        }
+      },
+      "kind": "RecordExpression"
+    }
+  },
+  {
+    "operator": "EvaluatesTo",
+    "from": "nodeApplicationType$12",
+    "to": {
+      "body": {
+        "name": "applicationResult$15",
+        "kind": "FreeVariable"
+      },
+      "parameter": {
+        "name": "nodeRecordExpressionType$13",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral"
+    },
+    "origin": {
+      "kind": "Application",
+      "callee": {
+        "name": "IAddable",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "Integer",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "kind": "Application",
+        "callee": {
+          "name": "IAddable",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "Integer",
+          "kind": "Identifier"
+        }
+      },
+      "parameter": {
+        "properties": {
+          "go": {
+            "name": "integerIdentity",
+            "kind": "Identifier"
+          }
+        },
+        "kind": "RecordExpression"
+      }
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeApplicationType$16",
+    "to": {
+      "name": "applicationResult$15",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "kind": "Application",
+      "callee": {
+        "kind": "Application",
+        "callee": {
+          "name": "IAddable",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "Integer",
+          "kind": "Identifier"
+        }
+      },
+      "parameter": {
+        "properties": {
+          "go": {
+            "name": "integerIdentity",
+            "kind": "Identifier"
+          }
+        },
+        "kind": "RecordExpression"
+      }
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "kind": "Application",
+        "callee": {
+          "name": "IAddable",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "Integer",
+          "kind": "Identifier"
+        }
+      },
+      "parameter": {
+        "properties": {
+          "go": {
+            "name": "integerIdentity",
+            "kind": "Identifier"
+          }
+        },
+        "kind": "RecordExpression"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeNumberExpressionType$14",
+    "to": {
+      "value": 111111,
+      "kind": "NumberLiteral"
+    },
+    "origin": {
+      "value": 111111,
+      "kind": "NumberExpression"
+    },
+    "inferrer": {
+      "value": 111111,
+      "kind": "NumberExpression"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierIntegerType$17",
+    "to": {
+      "name": "Integer",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "Integer",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "Integer",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierb$rename$7Type$18",
+    "to": {
+      "name": "b$rename$7",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "b$rename$7",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "b$rename$7",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierb$rename$7Type$19",
+    "to": {
+      "name": "b$rename$7",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "b$rename$7",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "b$rename$7",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierb$rename$7Type$20",
+    "to": {
+      "name": "b$rename$7",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "b$rename$7",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "b$rename$7",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatesTo",
+    "from": "nodeIdentifierIntegerType$17",
+    "to": {
+      "body": {
+        "name": "applicationResult$21",
+        "kind": "FreeVariable"
+      },
+      "parameter": {
+        "name": "nodeIdentifierb$rename$7Type$18",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral"
+    },
+    "origin": {
+      "name": "Integer",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "name": "Integer",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "b$rename$7",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeApplicationType$22",
+    "to": {
+      "name": "applicationResult$21",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "kind": "Application",
+      "callee": {
+        "name": "Integer",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "b$rename$7",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "name": "Integer",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "b$rename$7",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeFunctionExpressionType$23",
+    "to": {
+      "body": {
+        "name": "nodeIdentifierb$rename$7Type$20",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral",
+      "parameter": {
+        "name": "nodeIdentifierb$rename$7Type$19",
+        "kind": "FreeVariable"
+      }
+    },
+    "origin": {
+      "body": {
+        "name": "b$rename$7",
+        "kind": "Identifier"
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "b$rename$7",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "body": {
+        "name": "b$rename$7",
+        "kind": "Identifier"
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "b$rename$7",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeApplicationType$16",
+    "to": {
+      "name": "implementation",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "kind": "Application",
+      "callee": {
+        "kind": "Application",
+        "callee": {
+          "name": "IAddable",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "Integer",
+          "kind": "Identifier"
+        }
+      },
+      "parameter": {
+        "properties": {
+          "go": {
+            "name": "integerIdentity",
+            "kind": "Identifier"
+          }
+        },
+        "kind": "RecordExpression"
+      }
+    },
+    "inferrer": {
+      "name": "implementation",
+      "body": {
+        "value": 111111,
+        "kind": "NumberExpression"
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "kind": "Application",
+        "callee": {
+          "kind": "Application",
+          "callee": {
+            "name": "IAddable",
+            "kind": "Identifier"
+          },
+          "parameter": {
+            "name": "Integer",
+            "kind": "Identifier"
+          }
+        },
+        "parameter": {
+          "properties": {
+            "go": {
+              "name": "integerIdentity",
+              "kind": "Identifier"
+            }
+          },
+          "kind": "RecordExpression"
+        }
+      }
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeFunctionExpressionType$25",
+    "to": {
+      "body": {
+        "name": "nodeFunctionExpressionType$23",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral",
+      "parameter": {
+        "name": "nodeApplicationType$22",
+        "kind": "FreeVariable"
+      }
+    },
+    "origin": {
+      "body": {
+        "body": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "kind": "Application",
+        "callee": {
+          "name": "Integer",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        }
+      }
+    },
+    "inferrer": {
+      "body": {
+        "body": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "kind": "Application",
+        "callee": {
+          "name": "Integer",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        }
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeBindingExpressionType$24",
+    "to": {
+      "name": "nodeNumberExpressionType$14",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "implementation",
+      "body": {
+        "value": 111111,
+        "kind": "NumberExpression"
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "kind": "Application",
+        "callee": {
+          "kind": "Application",
+          "callee": {
+            "name": "IAddable",
+            "kind": "Identifier"
+          },
+          "parameter": {
+            "name": "Integer",
+            "kind": "Identifier"
+          }
+        },
+        "parameter": {
+          "properties": {
+            "go": {
+              "name": "integerIdentity",
+              "kind": "Identifier"
+            }
+          },
+          "kind": "RecordExpression"
+        }
+      }
+    },
+    "inferrer": {
+      "name": "implementation",
+      "body": {
+        "value": 111111,
+        "kind": "NumberExpression"
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "kind": "Application",
+        "callee": {
+          "kind": "Application",
+          "callee": {
+            "name": "IAddable",
+            "kind": "Identifier"
+          },
+          "parameter": {
+            "name": "Integer",
+            "kind": "Identifier"
+          }
+        },
+        "parameter": {
+          "properties": {
+            "go": {
+              "name": "integerIdentity",
+              "kind": "Identifier"
+            }
+          },
+          "kind": "RecordExpression"
+        }
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierI$rename$3Type$26",
+    "to": {
+      "name": "I$rename$3",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "I$rename$3",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "I$rename$3",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifiern$rename$4Type$27",
+    "to": {
+      "name": "n$rename$4",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "n$rename$4",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "n$rename$4",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifiern$rename$4Type$28",
+    "to": {
+      "name": "n$rename$4",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "n$rename$4",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "n$rename$4",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifiern$rename$4Type$29",
+    "to": {
+      "name": "n$rename$4",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "n$rename$4",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "n$rename$4",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatesTo",
+    "from": "nodeIdentifierI$rename$3Type$26",
+    "to": {
+      "body": {
+        "name": "applicationResult$30",
+        "kind": "FreeVariable"
+      },
+      "parameter": {
+        "name": "nodeIdentifiern$rename$4Type$27",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral"
+    },
+    "origin": {
+      "name": "I$rename$3",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "name": "I$rename$3",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "n$rename$4",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeApplicationType$31",
+    "to": {
+      "name": "applicationResult$30",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "kind": "Application",
+      "callee": {
+        "name": "I$rename$3",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "n$rename$4",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "kind": "Application",
+      "callee": {
+        "name": "I$rename$3",
+        "kind": "Identifier"
+      },
+      "parameter": {
+        "name": "n$rename$4",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeFunctionExpressionType$32",
+    "to": {
+      "body": {
+        "name": "nodeIdentifiern$rename$4Type$29",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral",
+      "parameter": {
+        "name": "nodeIdentifiern$rename$4Type$28",
+        "kind": "FreeVariable"
+      }
+    },
+    "origin": {
+      "body": {
+        "name": "n$rename$4",
+        "kind": "Identifier"
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "n$rename$4",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "body": {
+        "name": "n$rename$4",
+        "kind": "Identifier"
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "n$rename$4",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeFunctionExpressionType$33",
+    "to": {
+      "body": {
+        "name": "nodeFunctionExpressionType$32",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral",
+      "parameter": {
+        "name": "nodeApplicationType$31",
+        "kind": "FreeVariable"
+      }
+    },
+    "origin": {
+      "body": {
+        "body": {
+          "name": "n$rename$4",
+          "kind": "Identifier"
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "n$rename$4",
+          "kind": "Identifier"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "kind": "Application",
+        "callee": {
+          "name": "I$rename$3",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "n$rename$4",
+          "kind": "Identifier"
+        }
+      }
+    },
+    "inferrer": {
+      "body": {
+        "body": {
+          "name": "n$rename$4",
+          "kind": "Identifier"
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "n$rename$4",
+          "kind": "Identifier"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "kind": "Application",
+        "callee": {
+          "name": "I$rename$3",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "n$rename$4",
+          "kind": "Identifier"
+        }
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeSymbolExpressionType$34",
+    "to": {
+      "name": "IAddable",
+      "kind": "SymbolLiteral"
+    },
+    "origin": {
+      "name": "IAddable",
+      "kind": "SymbolExpression"
+    },
+    "inferrer": {
+      "name": "IAddable",
+      "kind": "SymbolExpression"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierI$rename$5Type$35",
+    "to": {
+      "name": "I$rename$5",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "I$rename$5",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "I$rename$5",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifiermethods$rename$6Type$36",
+    "to": {
+      "name": "methods$rename$6",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "methods$rename$6",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "methods$rename$6",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeRecordExpressionType$37",
+    "to": {
+      "properties": {
+        "go": {
+          "name": "nodeFunctionExpressionType$33",
+          "kind": "FreeVariable"
+        }
+      },
+      "kind": "RecordLiteral"
+    },
+    "origin": {
+      "properties": {
+        "go": {
+          "body": {
+            "body": {
+              "name": "n$rename$4",
+              "kind": "Identifier"
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "name": "n$rename$4",
+              "kind": "Identifier"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "kind": "Application",
+            "callee": {
+              "name": "I$rename$3",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "n$rename$4",
+              "kind": "Identifier"
+            }
+          }
+        }
+      },
+      "kind": "RecordExpression"
+    },
+    "inferrer": {
+      "properties": {
+        "go": {
+          "body": {
+            "body": {
+              "name": "n$rename$4",
+              "kind": "Identifier"
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "name": "n$rename$4",
+              "kind": "Identifier"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "kind": "Application",
+            "callee": {
+              "name": "I$rename$3",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "n$rename$4",
+              "kind": "Identifier"
+            }
+          }
+        }
+      },
+      "kind": "RecordExpression"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeDataInstantiationType$38",
+    "to": {
+      "parameters": [
+        {
+          "name": "nodeIdentifierI$rename$5Type$35",
+          "kind": "FreeVariable"
+        },
+        {
+          "name": "nodeIdentifiermethods$rename$6Type$36",
+          "kind": "FreeVariable"
+        }
+      ],
+      "name": {
+        "name": "nodeSymbolExpressionType$34",
+        "kind": "FreeVariable"
+      },
+      "kind": "DataValue"
+    },
+    "origin": {
+      "kind": "DataInstantiation",
+      "callee": {
+        "name": "IAddable",
+        "kind": "SymbolExpression"
+      },
+      "parameters": [
+        {
+          "name": "I$rename$5",
+          "kind": "Identifier"
+        },
+        {
+          "name": "methods$rename$6",
+          "kind": "Identifier"
+        }
+      ],
+      "parameterShapes": [
+        [
+          {
+            "name": "x",
+            "kind": "Identifier"
+          },
+          false
+        ],
+        [
+          {
+            "properties": {
+              "go": {
+                "body": {
+                  "body": {
+                    "name": "n",
+                    "kind": "Identifier"
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "name": "n",
+                    "kind": "Identifier"
+                  }
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "kind": "Application",
+                  "callee": {
+                    "name": "I",
+                    "kind": "Identifier"
+                  },
+                  "parameter": {
+                    "name": "n",
+                    "kind": "Identifier"
+                  }
+                }
+              }
+            },
+            "kind": "RecordExpression"
+          },
+          false
+        ]
+      ]
+    },
+    "inferrer": {
+      "kind": "DataInstantiation",
+      "callee": {
+        "name": "IAddable",
+        "kind": "SymbolExpression"
+      },
+      "parameters": [
+        {
+          "name": "I$rename$5",
+          "kind": "Identifier"
+        },
+        {
+          "name": "methods$rename$6",
+          "kind": "Identifier"
+        }
+      ],
+      "parameterShapes": [
+        [
+          {
+            "name": "x",
+            "kind": "Identifier"
+          },
+          false
+        ],
+        [
+          {
+            "properties": {
+              "go": {
+                "body": {
+                  "body": {
+                    "name": "n",
+                    "kind": "Identifier"
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "name": "n",
+                    "kind": "Identifier"
+                  }
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "kind": "Application",
+                  "callee": {
+                    "name": "I",
+                    "kind": "Identifier"
+                  },
+                  "parameter": {
+                    "name": "n",
+                    "kind": "Identifier"
+                  }
+                }
+              }
+            },
+            "kind": "RecordExpression"
+          },
+          false
+        ]
+      ]
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifierx$rename$2Type$39",
+    "to": {
+      "name": "x$rename$2",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "x$rename$2",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "x$rename$2",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeFunctionExpressionType$40",
+    "to": {
+      "body": {
+        "name": "nodeDataInstantiationType$38",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral",
+      "parameter": {
+        "name": "nodeRecordExpressionType$37",
+        "kind": "FreeVariable"
+      }
+    },
+    "origin": {
+      "body": {
+        "kind": "DataInstantiation",
+        "callee": {
+          "name": "IAddable",
+          "kind": "SymbolExpression"
+        },
+        "parameters": [
+          {
+            "name": "I$rename$5",
+            "kind": "Identifier"
+          },
+          {
+            "name": "methods$rename$6",
+            "kind": "Identifier"
+          }
+        ],
+        "parameterShapes": [
+          [
+            {
+              "name": "x",
+              "kind": "Identifier"
+            },
+            false
+          ],
+          [
+            {
+              "properties": {
+                "go": {
+                  "body": {
+                    "body": {
+                      "name": "n",
+                      "kind": "Identifier"
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "name": "n",
+                      "kind": "Identifier"
+                    }
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "kind": "Application",
+                    "callee": {
+                      "name": "I",
+                      "kind": "Identifier"
+                    },
+                    "parameter": {
+                      "name": "n",
+                      "kind": "Identifier"
+                    }
+                  }
+                }
+              },
+              "kind": "RecordExpression"
+            },
+            false
+          ]
+        ]
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "properties": {
+          "go": {
+            "body": {
+              "body": {
+                "name": "n$rename$4",
+                "kind": "Identifier"
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "name": "n$rename$4",
+                "kind": "Identifier"
+              }
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "kind": "Application",
+              "callee": {
+                "name": "I$rename$3",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "n$rename$4",
+                "kind": "Identifier"
+              }
+            }
+          }
+        },
+        "kind": "RecordExpression"
+      }
+    },
+    "inferrer": {
+      "body": {
+        "kind": "DataInstantiation",
+        "callee": {
+          "name": "IAddable",
+          "kind": "SymbolExpression"
+        },
+        "parameters": [
+          {
+            "name": "I$rename$5",
+            "kind": "Identifier"
+          },
+          {
+            "name": "methods$rename$6",
+            "kind": "Identifier"
+          }
+        ],
+        "parameterShapes": [
+          [
+            {
+              "name": "x",
+              "kind": "Identifier"
+            },
+            false
+          ],
+          [
+            {
+              "properties": {
+                "go": {
+                  "body": {
+                    "body": {
+                      "name": "n",
+                      "kind": "Identifier"
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "name": "n",
+                      "kind": "Identifier"
+                    }
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "kind": "Application",
+                    "callee": {
+                      "name": "I",
+                      "kind": "Identifier"
+                    },
+                    "parameter": {
+                      "name": "n",
+                      "kind": "Identifier"
+                    }
+                  }
+                }
+              },
+              "kind": "RecordExpression"
+            },
+            false
+          ]
+        ]
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "properties": {
+          "go": {
+            "body": {
+              "body": {
+                "name": "n$rename$4",
+                "kind": "Identifier"
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "name": "n$rename$4",
+                "kind": "Identifier"
+              }
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "kind": "Application",
+              "callee": {
+                "name": "I$rename$3",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "n$rename$4",
+                "kind": "Identifier"
+              }
+            }
+          }
+        },
+        "kind": "RecordExpression"
+      }
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeFunctionExpressionType$25",
+    "to": {
+      "name": "integerIdentity",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "body": {
+        "body": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "kind": "Application",
+        "callee": {
+          "name": "Integer",
+          "kind": "Identifier"
+        },
+        "parameter": {
+          "name": "b$rename$7",
+          "kind": "Identifier"
+        }
+      }
+    },
+    "inferrer": {
+      "name": "integerIdentity",
+      "body": {
+        "name": "implementation",
+        "body": {
+          "value": 111111,
+          "kind": "NumberExpression"
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "kind": "Application",
+          "callee": {
+            "kind": "Application",
+            "callee": {
+              "name": "IAddable",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "Integer",
+              "kind": "Identifier"
+            }
+          },
+          "parameter": {
+            "properties": {
+              "go": {
+                "name": "integerIdentity",
+                "kind": "Identifier"
+              }
+            },
+            "kind": "RecordExpression"
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "body": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          }
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "kind": "Application",
+          "callee": {
+            "name": "Integer",
+            "kind": "Identifier"
+          },
+          "parameter": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          }
+        }
+      }
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeFunctionExpressionType$42",
+    "to": {
+      "body": {
+        "name": "nodeFunctionExpressionType$40",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral",
+      "parameter": {
+        "name": "nodeIdentifierx$rename$2Type$39",
+        "kind": "FreeVariable"
+      }
+    },
+    "origin": {
+      "body": {
+        "body": {
+          "kind": "DataInstantiation",
+          "callee": {
+            "name": "IAddable",
+            "kind": "SymbolExpression"
+          },
+          "parameters": [
+            {
+              "name": "I$rename$5",
+              "kind": "Identifier"
+            },
+            {
+              "name": "methods$rename$6",
+              "kind": "Identifier"
+            }
+          ],
+          "parameterShapes": [
+            [
+              {
+                "name": "x",
+                "kind": "Identifier"
+              },
+              false
+            ],
+            [
+              {
+                "properties": {
+                  "go": {
+                    "body": {
+                      "body": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      },
+                      "implicit": false,
+                      "kind": "FunctionExpression",
+                      "parameter": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      }
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "kind": "Application",
+                      "callee": {
+                        "name": "I",
+                        "kind": "Identifier"
+                      },
+                      "parameter": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      }
+                    }
+                  }
+                },
+                "kind": "RecordExpression"
+              },
+              false
+            ]
+          ]
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "properties": {
+            "go": {
+              "body": {
+                "body": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                }
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "kind": "Application",
+                "callee": {
+                  "name": "I$rename$3",
+                  "kind": "Identifier"
+                },
+                "parameter": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                }
+              }
+            }
+          },
+          "kind": "RecordExpression"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "x$rename$2",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "body": {
+        "body": {
+          "kind": "DataInstantiation",
+          "callee": {
+            "name": "IAddable",
+            "kind": "SymbolExpression"
+          },
+          "parameters": [
+            {
+              "name": "I$rename$5",
+              "kind": "Identifier"
+            },
+            {
+              "name": "methods$rename$6",
+              "kind": "Identifier"
+            }
+          ],
+          "parameterShapes": [
+            [
+              {
+                "name": "x",
+                "kind": "Identifier"
+              },
+              false
+            ],
+            [
+              {
+                "properties": {
+                  "go": {
+                    "body": {
+                      "body": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      },
+                      "implicit": false,
+                      "kind": "FunctionExpression",
+                      "parameter": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      }
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "kind": "Application",
+                      "callee": {
+                        "name": "I",
+                        "kind": "Identifier"
+                      },
+                      "parameter": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      }
+                    }
+                  }
+                },
+                "kind": "RecordExpression"
+              },
+              false
+            ]
+          ]
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "properties": {
+            "go": {
+              "body": {
+                "body": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                }
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "kind": "Application",
+                "callee": {
+                  "name": "I$rename$3",
+                  "kind": "Identifier"
+                },
+                "parameter": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                }
+              }
+            }
+          },
+          "kind": "RecordExpression"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "x$rename$2",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeBindingExpressionType$41",
+    "to": {
+      "name": "nodeBindingExpressionType$24",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "integerIdentity",
+      "body": {
+        "name": "implementation",
+        "body": {
+          "value": 111111,
+          "kind": "NumberExpression"
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "kind": "Application",
+          "callee": {
+            "kind": "Application",
+            "callee": {
+              "name": "IAddable",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "Integer",
+              "kind": "Identifier"
+            }
+          },
+          "parameter": {
+            "properties": {
+              "go": {
+                "name": "integerIdentity",
+                "kind": "Identifier"
+              }
+            },
+            "kind": "RecordExpression"
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "body": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          }
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "kind": "Application",
+          "callee": {
+            "name": "Integer",
+            "kind": "Identifier"
+          },
+          "parameter": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          }
+        }
+      }
+    },
+    "inferrer": {
+      "name": "integerIdentity",
+      "body": {
+        "name": "implementation",
+        "body": {
+          "value": 111111,
+          "kind": "NumberExpression"
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "kind": "Application",
+          "callee": {
+            "kind": "Application",
+            "callee": {
+              "name": "IAddable",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "Integer",
+              "kind": "Identifier"
+            }
+          },
+          "parameter": {
+            "properties": {
+              "go": {
+                "name": "integerIdentity",
+                "kind": "Identifier"
+              }
+            },
+            "kind": "RecordExpression"
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "body": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          }
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "kind": "Application",
+          "callee": {
+            "name": "Integer",
+            "kind": "Identifier"
+          },
+          "parameter": {
+            "name": "b$rename$7",
+            "kind": "Identifier"
+          }
+        }
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeSymbolExpressionType$43",
+    "to": {
+      "name": "Integer",
+      "kind": "SymbolLiteral"
+    },
+    "origin": {
+      "name": "Integer",
+      "kind": "SymbolExpression"
+    },
+    "inferrer": {
+      "name": "Integer",
+      "kind": "SymbolExpression"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifiera$rename$1Type$44",
+    "to": {
+      "name": "a$rename$1",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "a$rename$1",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "a$rename$1",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeIdentifiera$rename$1Type$45",
+    "to": {
+      "name": "a$rename$1",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "a$rename$1",
+      "kind": "Identifier"
+    },
+    "inferrer": {
+      "name": "a$rename$1",
+      "kind": "Identifier"
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeDataInstantiationType$46",
+    "to": {
+      "parameters": [
+        {
+          "name": "nodeIdentifiera$rename$1Type$44",
+          "kind": "FreeVariable"
+        }
+      ],
+      "name": {
+        "name": "nodeSymbolExpressionType$43",
+        "kind": "FreeVariable"
+      },
+      "kind": "DataValue"
+    },
+    "origin": {
+      "kind": "DataInstantiation",
+      "callee": {
+        "name": "Integer",
+        "kind": "SymbolExpression"
+      },
+      "parameters": [
+        {
+          "name": "a$rename$1",
+          "kind": "Identifier"
+        }
+      ],
+      "parameterShapes": [
+        [
+          {
+            "name": "a",
+            "kind": "Identifier"
+          },
+          false
+        ]
+      ]
+    },
+    "inferrer": {
+      "kind": "DataInstantiation",
+      "callee": {
+        "name": "Integer",
+        "kind": "SymbolExpression"
+      },
+      "parameters": [
+        {
+          "name": "a$rename$1",
+          "kind": "Identifier"
+        }
+      ],
+      "parameterShapes": [
+        [
+          {
+            "name": "a",
+            "kind": "Identifier"
+          },
+          false
+        ]
+      ]
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeFunctionExpressionType$42",
+    "to": {
+      "name": "IAddable",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "body": {
+        "body": {
+          "kind": "DataInstantiation",
+          "callee": {
+            "name": "IAddable",
+            "kind": "SymbolExpression"
+          },
+          "parameters": [
+            {
+              "name": "I$rename$5",
+              "kind": "Identifier"
+            },
+            {
+              "name": "methods$rename$6",
+              "kind": "Identifier"
+            }
+          ],
+          "parameterShapes": [
+            [
+              {
+                "name": "x",
+                "kind": "Identifier"
+              },
+              false
+            ],
+            [
+              {
+                "properties": {
+                  "go": {
+                    "body": {
+                      "body": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      },
+                      "implicit": false,
+                      "kind": "FunctionExpression",
+                      "parameter": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      }
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "kind": "Application",
+                      "callee": {
+                        "name": "I",
+                        "kind": "Identifier"
+                      },
+                      "parameter": {
+                        "name": "n",
+                        "kind": "Identifier"
+                      }
+                    }
+                  }
+                },
+                "kind": "RecordExpression"
+              },
+              false
+            ]
+          ]
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "properties": {
+            "go": {
+              "body": {
+                "body": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                }
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "kind": "Application",
+                "callee": {
+                  "name": "I$rename$3",
+                  "kind": "Identifier"
+                },
+                "parameter": {
+                  "name": "n$rename$4",
+                  "kind": "Identifier"
+                }
+              }
+            }
+          },
+          "kind": "RecordExpression"
+        }
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "x$rename$2",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "name": "IAddable",
+      "body": {
+        "name": "integerIdentity",
+        "body": {
+          "name": "implementation",
+          "body": {
+            "value": 111111,
+            "kind": "NumberExpression"
+          },
+          "kind": "BindingExpression",
+          "value": {
+            "kind": "Application",
+            "callee": {
+              "kind": "Application",
+              "callee": {
+                "name": "IAddable",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "Integer",
+                "kind": "Identifier"
+              }
+            },
+            "parameter": {
+              "properties": {
+                "go": {
+                  "name": "integerIdentity",
+                  "kind": "Identifier"
+                }
+              },
+              "kind": "RecordExpression"
+            }
+          }
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "body": {
+            "body": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "kind": "Application",
+            "callee": {
+              "name": "Integer",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            }
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "body": {
+            "kind": "DataInstantiation",
+            "callee": {
+              "name": "IAddable",
+              "kind": "SymbolExpression"
+            },
+            "parameters": [
+              {
+                "name": "I$rename$5",
+                "kind": "Identifier"
+              },
+              {
+                "name": "methods$rename$6",
+                "kind": "Identifier"
+              }
+            ],
+            "parameterShapes": [
+              [
+                {
+                  "name": "x",
+                  "kind": "Identifier"
+                },
+                false
+              ],
+              [
+                {
+                  "properties": {
+                    "go": {
+                      "body": {
+                        "body": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        },
+                        "implicit": false,
+                        "kind": "FunctionExpression",
+                        "parameter": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        }
+                      },
+                      "implicit": false,
+                      "kind": "FunctionExpression",
+                      "parameter": {
+                        "kind": "Application",
+                        "callee": {
+                          "name": "I",
+                          "kind": "Identifier"
+                        },
+                        "parameter": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        }
+                      }
+                    }
+                  },
+                  "kind": "RecordExpression"
+                },
+                false
+              ]
+            ]
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "properties": {
+              "go": {
+                "body": {
+                  "body": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  }
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "kind": "Application",
+                  "callee": {
+                    "name": "I$rename$3",
+                    "kind": "Identifier"
+                  },
+                  "parameter": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  }
+                }
+              }
+            },
+            "kind": "RecordExpression"
+          }
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "x$rename$2",
+          "kind": "Identifier"
+        }
+      }
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeFunctionExpressionType$48",
+    "to": {
+      "body": {
+        "name": "nodeDataInstantiationType$46",
+        "kind": "FreeVariable"
+      },
+      "kind": "FunctionLiteral",
+      "parameter": {
+        "name": "nodeIdentifiera$rename$1Type$45",
+        "kind": "FreeVariable"
+      }
+    },
+    "origin": {
+      "body": {
+        "kind": "DataInstantiation",
+        "callee": {
+          "name": "Integer",
+          "kind": "SymbolExpression"
+        },
+        "parameters": [
+          {
+            "name": "a$rename$1",
+            "kind": "Identifier"
+          }
+        ],
+        "parameterShapes": [
+          [
+            {
+              "name": "a",
+              "kind": "Identifier"
+            },
+            false
+          ]
+        ]
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "a$rename$1",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "body": {
+        "kind": "DataInstantiation",
+        "callee": {
+          "name": "Integer",
+          "kind": "SymbolExpression"
+        },
+        "parameters": [
+          {
+            "name": "a$rename$1",
+            "kind": "Identifier"
+          }
+        ],
+        "parameterShapes": [
+          [
+            {
+              "name": "a",
+              "kind": "Identifier"
+            },
+            false
+          ]
+        ]
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "a$rename$1",
+        "kind": "Identifier"
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeBindingExpressionType$47",
+    "to": {
+      "name": "nodeBindingExpressionType$41",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "IAddable",
+      "body": {
+        "name": "integerIdentity",
+        "body": {
+          "name": "implementation",
+          "body": {
+            "value": 111111,
+            "kind": "NumberExpression"
+          },
+          "kind": "BindingExpression",
+          "value": {
+            "kind": "Application",
+            "callee": {
+              "kind": "Application",
+              "callee": {
+                "name": "IAddable",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "Integer",
+                "kind": "Identifier"
+              }
+            },
+            "parameter": {
+              "properties": {
+                "go": {
+                  "name": "integerIdentity",
+                  "kind": "Identifier"
+                }
+              },
+              "kind": "RecordExpression"
+            }
+          }
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "body": {
+            "body": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "kind": "Application",
+            "callee": {
+              "name": "Integer",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            }
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "body": {
+            "kind": "DataInstantiation",
+            "callee": {
+              "name": "IAddable",
+              "kind": "SymbolExpression"
+            },
+            "parameters": [
+              {
+                "name": "I$rename$5",
+                "kind": "Identifier"
+              },
+              {
+                "name": "methods$rename$6",
+                "kind": "Identifier"
+              }
+            ],
+            "parameterShapes": [
+              [
+                {
+                  "name": "x",
+                  "kind": "Identifier"
+                },
+                false
+              ],
+              [
+                {
+                  "properties": {
+                    "go": {
+                      "body": {
+                        "body": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        },
+                        "implicit": false,
+                        "kind": "FunctionExpression",
+                        "parameter": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        }
+                      },
+                      "implicit": false,
+                      "kind": "FunctionExpression",
+                      "parameter": {
+                        "kind": "Application",
+                        "callee": {
+                          "name": "I",
+                          "kind": "Identifier"
+                        },
+                        "parameter": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        }
+                      }
+                    }
+                  },
+                  "kind": "RecordExpression"
+                },
+                false
+              ]
+            ]
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "properties": {
+              "go": {
+                "body": {
+                  "body": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  }
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "kind": "Application",
+                  "callee": {
+                    "name": "I$rename$3",
+                    "kind": "Identifier"
+                  },
+                  "parameter": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  }
+                }
+              }
+            },
+            "kind": "RecordExpression"
+          }
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "x$rename$2",
+          "kind": "Identifier"
+        }
+      }
+    },
+    "inferrer": {
+      "name": "IAddable",
+      "body": {
+        "name": "integerIdentity",
+        "body": {
+          "name": "implementation",
+          "body": {
+            "value": 111111,
+            "kind": "NumberExpression"
+          },
+          "kind": "BindingExpression",
+          "value": {
+            "kind": "Application",
+            "callee": {
+              "kind": "Application",
+              "callee": {
+                "name": "IAddable",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "Integer",
+                "kind": "Identifier"
+              }
+            },
+            "parameter": {
+              "properties": {
+                "go": {
+                  "name": "integerIdentity",
+                  "kind": "Identifier"
+                }
+              },
+              "kind": "RecordExpression"
+            }
+          }
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "body": {
+            "body": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "kind": "Application",
+            "callee": {
+              "name": "Integer",
+              "kind": "Identifier"
+            },
+            "parameter": {
+              "name": "b$rename$7",
+              "kind": "Identifier"
+            }
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "body": {
+            "kind": "DataInstantiation",
+            "callee": {
+              "name": "IAddable",
+              "kind": "SymbolExpression"
+            },
+            "parameters": [
+              {
+                "name": "I$rename$5",
+                "kind": "Identifier"
+              },
+              {
+                "name": "methods$rename$6",
+                "kind": "Identifier"
+              }
+            ],
+            "parameterShapes": [
+              [
+                {
+                  "name": "x",
+                  "kind": "Identifier"
+                },
+                false
+              ],
+              [
+                {
+                  "properties": {
+                    "go": {
+                      "body": {
+                        "body": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        },
+                        "implicit": false,
+                        "kind": "FunctionExpression",
+                        "parameter": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        }
+                      },
+                      "implicit": false,
+                      "kind": "FunctionExpression",
+                      "parameter": {
+                        "kind": "Application",
+                        "callee": {
+                          "name": "I",
+                          "kind": "Identifier"
+                        },
+                        "parameter": {
+                          "name": "n",
+                          "kind": "Identifier"
+                        }
+                      }
+                    }
+                  },
+                  "kind": "RecordExpression"
+                },
+                false
+              ]
+            ]
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "properties": {
+              "go": {
+                "body": {
+                  "body": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  }
+                },
+                "implicit": false,
+                "kind": "FunctionExpression",
+                "parameter": {
+                  "kind": "Application",
+                  "callee": {
+                    "name": "I$rename$3",
+                    "kind": "Identifier"
+                  },
+                  "parameter": {
+                    "name": "n$rename$4",
+                    "kind": "Identifier"
+                  }
+                }
+              }
+            },
+            "kind": "RecordExpression"
+          }
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "x$rename$2",
+          "kind": "Identifier"
+        }
+      }
+    }
+  },
+  {
+    "operator": "Equals",
+    "from": "nodeFunctionExpressionType$48",
+    "to": {
+      "name": "Integer",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "body": {
+        "kind": "DataInstantiation",
+        "callee": {
+          "name": "Integer",
+          "kind": "SymbolExpression"
+        },
+        "parameters": [
+          {
+            "name": "a$rename$1",
+            "kind": "Identifier"
+          }
+        ],
+        "parameterShapes": [
+          [
+            {
+              "name": "a",
+              "kind": "Identifier"
+            },
+            false
+          ]
+        ]
+      },
+      "implicit": false,
+      "kind": "FunctionExpression",
+      "parameter": {
+        "name": "a$rename$1",
+        "kind": "Identifier"
+      }
+    },
+    "inferrer": {
+      "name": "Integer",
+      "body": {
+        "name": "IAddable",
+        "body": {
+          "name": "integerIdentity",
+          "body": {
+            "name": "implementation",
+            "body": {
+              "value": 111111,
+              "kind": "NumberExpression"
+            },
+            "kind": "BindingExpression",
+            "value": {
+              "kind": "Application",
+              "callee": {
+                "kind": "Application",
+                "callee": {
+                  "name": "IAddable",
+                  "kind": "Identifier"
+                },
+                "parameter": {
+                  "name": "Integer",
+                  "kind": "Identifier"
+                }
+              },
+              "parameter": {
+                "properties": {
+                  "go": {
+                    "name": "integerIdentity",
+                    "kind": "Identifier"
+                  }
+                },
+                "kind": "RecordExpression"
+              }
+            }
+          },
+          "kind": "BindingExpression",
+          "value": {
+            "body": {
+              "body": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              }
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "kind": "Application",
+              "callee": {
+                "name": "Integer",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              }
+            }
+          }
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "body": {
+            "body": {
+              "kind": "DataInstantiation",
+              "callee": {
+                "name": "IAddable",
+                "kind": "SymbolExpression"
+              },
+              "parameters": [
+                {
+                  "name": "I$rename$5",
+                  "kind": "Identifier"
+                },
+                {
+                  "name": "methods$rename$6",
+                  "kind": "Identifier"
+                }
+              ],
+              "parameterShapes": [
+                [
+                  {
+                    "name": "x",
+                    "kind": "Identifier"
+                  },
+                  false
+                ],
+                [
+                  {
+                    "properties": {
+                      "go": {
+                        "body": {
+                          "body": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          },
+                          "implicit": false,
+                          "kind": "FunctionExpression",
+                          "parameter": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          }
+                        },
+                        "implicit": false,
+                        "kind": "FunctionExpression",
+                        "parameter": {
+                          "kind": "Application",
+                          "callee": {
+                            "name": "I",
+                            "kind": "Identifier"
+                          },
+                          "parameter": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          }
+                        }
+                      }
+                    },
+                    "kind": "RecordExpression"
+                  },
+                  false
+                ]
+              ]
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "properties": {
+                "go": {
+                  "body": {
+                    "body": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    }
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "kind": "Application",
+                    "callee": {
+                      "name": "I$rename$3",
+                      "kind": "Identifier"
+                    },
+                    "parameter": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    }
+                  }
+                }
+              },
+              "kind": "RecordExpression"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "name": "x$rename$2",
+            "kind": "Identifier"
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "kind": "DataInstantiation",
+          "callee": {
+            "name": "Integer",
+            "kind": "SymbolExpression"
+          },
+          "parameters": [
+            {
+              "name": "a$rename$1",
+              "kind": "Identifier"
+            }
+          ],
+          "parameterShapes": [
+            [
+              {
+                "name": "a",
+                "kind": "Identifier"
+              },
+              false
+            ]
+          ]
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "a$rename$1",
+          "kind": "Identifier"
+        }
+      }
+    }
+  },
+  {
+    "operator": "EvaluatedFrom",
+    "from": "nodeBindingExpressionType$49",
+    "to": {
+      "name": "nodeBindingExpressionType$47",
+      "kind": "FreeVariable"
+    },
+    "origin": {
+      "name": "Integer",
+      "body": {
+        "name": "IAddable",
+        "body": {
+          "name": "integerIdentity",
+          "body": {
+            "name": "implementation",
+            "body": {
+              "value": 111111,
+              "kind": "NumberExpression"
+            },
+            "kind": "BindingExpression",
+            "value": {
+              "kind": "Application",
+              "callee": {
+                "kind": "Application",
+                "callee": {
+                  "name": "IAddable",
+                  "kind": "Identifier"
+                },
+                "parameter": {
+                  "name": "Integer",
+                  "kind": "Identifier"
+                }
+              },
+              "parameter": {
+                "properties": {
+                  "go": {
+                    "name": "integerIdentity",
+                    "kind": "Identifier"
+                  }
+                },
+                "kind": "RecordExpression"
+              }
+            }
+          },
+          "kind": "BindingExpression",
+          "value": {
+            "body": {
+              "body": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              }
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "kind": "Application",
+              "callee": {
+                "name": "Integer",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              }
+            }
+          }
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "body": {
+            "body": {
+              "kind": "DataInstantiation",
+              "callee": {
+                "name": "IAddable",
+                "kind": "SymbolExpression"
+              },
+              "parameters": [
+                {
+                  "name": "I$rename$5",
+                  "kind": "Identifier"
+                },
+                {
+                  "name": "methods$rename$6",
+                  "kind": "Identifier"
+                }
+              ],
+              "parameterShapes": [
+                [
+                  {
+                    "name": "x",
+                    "kind": "Identifier"
+                  },
+                  false
+                ],
+                [
+                  {
+                    "properties": {
+                      "go": {
+                        "body": {
+                          "body": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          },
+                          "implicit": false,
+                          "kind": "FunctionExpression",
+                          "parameter": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          }
+                        },
+                        "implicit": false,
+                        "kind": "FunctionExpression",
+                        "parameter": {
+                          "kind": "Application",
+                          "callee": {
+                            "name": "I",
+                            "kind": "Identifier"
+                          },
+                          "parameter": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          }
+                        }
+                      }
+                    },
+                    "kind": "RecordExpression"
+                  },
+                  false
+                ]
+              ]
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "properties": {
+                "go": {
+                  "body": {
+                    "body": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    }
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "kind": "Application",
+                    "callee": {
+                      "name": "I$rename$3",
+                      "kind": "Identifier"
+                    },
+                    "parameter": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    }
+                  }
+                }
+              },
+              "kind": "RecordExpression"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "name": "x$rename$2",
+            "kind": "Identifier"
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "kind": "DataInstantiation",
+          "callee": {
+            "name": "Integer",
+            "kind": "SymbolExpression"
+          },
+          "parameters": [
+            {
+              "name": "a$rename$1",
+              "kind": "Identifier"
+            }
+          ],
+          "parameterShapes": [
+            [
+              {
+                "name": "a",
+                "kind": "Identifier"
+              },
+              false
+            ]
+          ]
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "a$rename$1",
+          "kind": "Identifier"
+        }
+      }
+    },
+    "inferrer": {
+      "name": "Integer",
+      "body": {
+        "name": "IAddable",
+        "body": {
+          "name": "integerIdentity",
+          "body": {
+            "name": "implementation",
+            "body": {
+              "value": 111111,
+              "kind": "NumberExpression"
+            },
+            "kind": "BindingExpression",
+            "value": {
+              "kind": "Application",
+              "callee": {
+                "kind": "Application",
+                "callee": {
+                  "name": "IAddable",
+                  "kind": "Identifier"
+                },
+                "parameter": {
+                  "name": "Integer",
+                  "kind": "Identifier"
+                }
+              },
+              "parameter": {
+                "properties": {
+                  "go": {
+                    "name": "integerIdentity",
+                    "kind": "Identifier"
+                  }
+                },
+                "kind": "RecordExpression"
+              }
+            }
+          },
+          "kind": "BindingExpression",
+          "value": {
+            "body": {
+              "body": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              },
+              "implicit": false,
+              "kind": "FunctionExpression",
+              "parameter": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              }
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "kind": "Application",
+              "callee": {
+                "name": "Integer",
+                "kind": "Identifier"
+              },
+              "parameter": {
+                "name": "b$rename$7",
+                "kind": "Identifier"
+              }
+            }
+          }
+        },
+        "kind": "BindingExpression",
+        "value": {
+          "body": {
+            "body": {
+              "kind": "DataInstantiation",
+              "callee": {
+                "name": "IAddable",
+                "kind": "SymbolExpression"
+              },
+              "parameters": [
+                {
+                  "name": "I$rename$5",
+                  "kind": "Identifier"
+                },
+                {
+                  "name": "methods$rename$6",
+                  "kind": "Identifier"
+                }
+              ],
+              "parameterShapes": [
+                [
+                  {
+                    "name": "x",
+                    "kind": "Identifier"
+                  },
+                  false
+                ],
+                [
+                  {
+                    "properties": {
+                      "go": {
+                        "body": {
+                          "body": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          },
+                          "implicit": false,
+                          "kind": "FunctionExpression",
+                          "parameter": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          }
+                        },
+                        "implicit": false,
+                        "kind": "FunctionExpression",
+                        "parameter": {
+                          "kind": "Application",
+                          "callee": {
+                            "name": "I",
+                            "kind": "Identifier"
+                          },
+                          "parameter": {
+                            "name": "n",
+                            "kind": "Identifier"
+                          }
+                        }
+                      }
+                    },
+                    "kind": "RecordExpression"
+                  },
+                  false
+                ]
+              ]
+            },
+            "implicit": false,
+            "kind": "FunctionExpression",
+            "parameter": {
+              "properties": {
+                "go": {
+                  "body": {
+                    "body": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    },
+                    "implicit": false,
+                    "kind": "FunctionExpression",
+                    "parameter": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    }
+                  },
+                  "implicit": false,
+                  "kind": "FunctionExpression",
+                  "parameter": {
+                    "kind": "Application",
+                    "callee": {
+                      "name": "I$rename$3",
+                      "kind": "Identifier"
+                    },
+                    "parameter": {
+                      "name": "n$rename$4",
+                      "kind": "Identifier"
+                    }
+                  }
+                }
+              },
+              "kind": "RecordExpression"
+            }
+          },
+          "implicit": false,
+          "kind": "FunctionExpression",
+          "parameter": {
+            "name": "x$rename$2",
+            "kind": "Identifier"
+          }
+        }
+      },
+      "kind": "BindingExpression",
+      "value": {
+        "body": {
+          "kind": "DataInstantiation",
+          "callee": {
+            "name": "Integer",
+            "kind": "SymbolExpression"
+          },
+          "parameters": [
+            {
+              "name": "a$rename$1",
+              "kind": "Identifier"
+            }
+          ],
+          "parameterShapes": [
+            [
+              {
+                "name": "a",
+                "kind": "Identifier"
+              },
+              false
+            ]
+          ]
+        },
+        "implicit": false,
+        "kind": "FunctionExpression",
+        "parameter": {
+          "name": "a$rename$1",
+          "kind": "Identifier"
+        }
+      }
+    }
+  }
+]

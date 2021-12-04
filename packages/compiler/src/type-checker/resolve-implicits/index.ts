@@ -1,14 +1,19 @@
+import { pipe } from 'fp-ts/function';
+import { zip, chainWithIndex, map } from 'fp-ts/Array';
 import { Message, Node } from '../..';
 import { makeExpressionIterator } from '../../desugar/iterators-specific';
-import { MessageState } from '../../parser/interpret-expression/message-state';
 import { Scope, ScopedNode } from '../build-scoped-node';
-import { compressTypeRelationships } from '../compress-inferred-types/compress-type-relationships';
+import { collapseInferredTypes } from '../compress-inferred-types/collapse-inferred-types';
 import { ShapedNodeDecoration } from '../compress-inferred-types/recursively-apply-inferred-types';
 import { identifier, node } from '../constructors';
 import { StateRecorder } from '../state-recorder/state-recorder';
+import {
+  InferredType,
+  InferredTypeOperator,
+  makeInferredType,
+} from '../types/inferred-type';
 import { Value } from '../types/value';
-import { evaluatedPair } from '../types/value-pair';
-import { checkedZip, permuteArrays } from '../utils';
+import { permuteArrays } from '../utils';
 import { selectImplicitParameters } from '../utils/select-implicit-parameters';
 import { mapNode } from '../visitor-utils';
 import { findMatchingImplementations } from './find-matching-implementation';
@@ -40,20 +45,21 @@ function findImplicitsToResolve(decoration: ShapedNodeDecoration): Value[] {
 
 function isValidCombination(implicitsToResolve: Value[], combination: Value[]) {
   const messageState = new StateRecorder<Message>();
-  const pairedValues = checkedZip(
-    implicitsToResolve,
-    combination,
-  ).map(([left, right]) => evaluatedPair(
-    {
-      value: left,
-      expression: identifier('__left_resolve_implicits__'),
-    },
-    {
-      value: right,
-      expression: identifier('__right_resolve_implicits__'),
-    },
-  ));
-  compressTypeRelationships(messageState, pairedValues);
+  const origin = identifier('__resolve_implicits_origin__');
+  const inferrer = identifier('__resolve_implicits_inferrer__');
+  const pairs = pipe(
+    zip(implicitsToResolve, combination),
+    map(zip(['Equals', 'EvaluatedFrom'] as InferredTypeOperator[])),
+    chainWithIndex((index, pair) => zip([index, index], pair)),
+    map(([index, [to, operator]]): InferredType => makeInferredType(
+      operator,
+      `v${index}`,
+      to,
+      origin,
+      inferrer,
+    )),
+  )
+  collapseInferredTypes(messageState, pairs);
   return messageState.values.length === 0;
 }
 

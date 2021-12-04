@@ -22,7 +22,7 @@ describe('checkTypes', () => {
     let node: ResolvedNode;
 
     beforeEach(() => {
-      uniqueIdGenerator = prefixlessUniqueIdGenerator();
+      uniqueIdGenerator = uniqueIdStream();
       expression = pipe(
         bind('number', 123),
         bind('identity', lambda(['a'], 'a')),

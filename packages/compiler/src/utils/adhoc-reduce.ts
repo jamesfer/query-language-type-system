@@ -1,15 +1,15 @@
-export function adhocCollect<T, R>(initial: T, f: (value: T) => [T, R] | []): R[] {
-  let next = initial;
-  const accumulator: R[] = [];
-  while (true) {
-    const result = f(next);
-    if (result.length === 0) {
-      break;
-    }
-
-    next = result[0];
-    accumulator.push(result[1]);
+export function adhocReduce<A, T>(
+  accumulator: A,
+  array: T[],
+  f: (accumulator: A, element: T) => [A, T[]],
+): A {
+  let currentAccumulator = accumulator;
+  let remaining = array;
+  while (remaining.length > 0) {
+    const next = remaining.shift()!;
+    const [newAccumulator, newElements] = f(currentAccumulator, next);
+    currentAccumulator = newAccumulator;
+    remaining = [...newElements, ...remaining];
   }
-
-  return accumulator;
+  return currentAccumulator;
 }
