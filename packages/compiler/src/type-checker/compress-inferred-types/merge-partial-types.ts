@@ -31,7 +31,7 @@ const exactlyMergeTypesWithState = (
       operator: 'Equals',
       to: right,
     }));
-    return left;
+    return right;
   }
 
   if (right.kind === 'FreeVariable') {
@@ -40,7 +40,7 @@ const exactlyMergeTypesWithState = (
       operator: 'Equals',
       to: left,
     }));
-    return right;
+    return left;
   }
 
   switch (left.kind) {
