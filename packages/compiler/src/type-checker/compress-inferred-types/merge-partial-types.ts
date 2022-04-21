@@ -2,7 +2,7 @@ import { map, zip } from 'fp-ts/Array';
 import { Either, left as leftE, right as rightE } from 'fp-ts/Either';
 import { absurd, pipe, tupled } from 'fp-ts/function';
 import { isEmpty, map as mapR, separate as separateR } from 'fp-ts/Record';
-import { mapLeft as mapLeftS } from 'fp-ts/separated';
+import { mapLeft as mapLeftS } from 'fp-ts/Separated';
 import { isBoth } from 'fp-ts/These';
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { Message } from '../types/message';
@@ -15,6 +15,8 @@ import {
   PartialType,
 } from './partial-type';
 import { zipRecords } from './utils/zip-records';
+import { shallowExtractImplicits } from '../utils/shallow-extract-implicits';
+import { functionType } from '../constructors';
 
 const exactlyMergeTypesWithState = (
   messageState: StateRecorder<Message>,
@@ -234,8 +236,32 @@ function stripLeftImplicitsAndConverge(
     assumptionsState,
   )(
     leftValue,
-    right.to
+    right.to,
   ));
+}
+
+function stripAndRestoreLeftImplicitsAndConverge(
+  messageState: StateRecorder<Message>,
+  assumptionsState: StateRecorder<Either<NamedPartialType, NamedPartialType>>,
+  left: PartialType,
+  right: PartialType,
+): PartialType {
+  const [leftValue, implicits] = shallowExtractImplicits(left.to);
+
+  if (leftValue.kind === 'FreeVariable') {
+    assumptionsState.push(leftE(evaluatesToPartialType(leftValue.name, right.to)));
+    return left;
+  }
+
+  // converge
+  const convergedValue = exactlyMergeTypesWithState(
+    messageState,
+    assumptionsState,
+  )(
+    leftValue,
+    right.to,
+  );
+  return equalsPartialType(functionType(convergedValue, implicits.map(implicit => [implicit, true])));
 }
 
 /**
@@ -262,8 +288,32 @@ function stripRightImplicitsAndConverge(
     assumptionsState,
   )(
     left.to,
-    rightValue
+    rightValue,
   ));
+}
+
+function stripAndRestoreRightImplicitsAndConverge(
+  messageState: StateRecorder<Message>,
+  assumptionsState: StateRecorder<Either<NamedPartialType, NamedPartialType>>,
+  left: PartialType,
+  right: PartialType,
+): PartialType {
+  const [rightValue, implicits] = shallowExtractImplicits(right.to);
+
+  if (rightValue.kind === 'FreeVariable') {
+    assumptionsState.push(rightE(evaluatesToPartialType(rightValue.name, left.to)));
+    return right;
+  }
+
+  // converge
+  const convergedValue = exactlyMergeTypesWithState(
+    messageState,
+    assumptionsState,
+  )(
+    left.to,
+    rightValue,
+  );
+  return equalsPartialType(functionType(convergedValue, implicits.map(implicit => [implicit, true])));
 }
 
 export function mergePartialTypes(
@@ -280,7 +330,7 @@ export function mergePartialTypes(
         case 'Equals':
           return equalsPartialType(exactlyMergeTypes(left.to, right.to));
         case 'EvaluatesTo':
-          return stripLeftImplicitsAndConverge(messageState, assumptionsState, left, right);
+          return stripAndRestoreLeftImplicitsAndConverge(messageState, assumptionsState, left, right);
         case 'EvaluatedFrom':
           return stripRightImplicitsAndConverge(messageState, assumptionsState, left, right);
         default:
@@ -289,7 +339,7 @@ export function mergePartialTypes(
     case 'EvaluatesTo':
       switch (right.operator) {
         case 'Equals':
-          return stripRightImplicitsAndConverge(messageState, assumptionsState, left, right);
+          return stripAndRestoreRightImplicitsAndConverge(messageState, assumptionsState, left, right);
         case 'EvaluatesTo':
           return equalsPartialType(exactlyMergeTypes(left.to, right.to));
         case 'EvaluatedFrom':

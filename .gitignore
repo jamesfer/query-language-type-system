@@ -3,3 +3,4 @@ build
 
 yarn*.log
 npm*.log
+.idea/*
