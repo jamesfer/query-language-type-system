@@ -4,8 +4,10 @@ import {
   bind,
   data,
   identifier,
-  lambda, numberExpression,
-  numberLiteral, record,
+  lambda,
+  numberExpression,
+  numberLiteral,
+  record,
 } from './constructors';
 import { checkTypes } from './index';
 import { prefixlessUniqueIdGenerator } from './test-utils/test-unique-id-generators';

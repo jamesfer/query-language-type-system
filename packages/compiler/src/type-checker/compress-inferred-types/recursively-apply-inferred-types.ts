@@ -5,6 +5,7 @@ import { CollapsedInferredTypeMap } from '../types/inferred-type';
 import { NodeWithChild } from '../types/node';
 import { Value } from '../types/value';
 import { mapNode, visitAndTransformValue } from '../visitor-utils';
+import { CountMap } from '../../utils/count-map';
 
 export interface ShapedNodeDecoration {
   /**
@@ -19,32 +20,52 @@ export interface ShapedNodeDecoration {
 
 export type ShapedNode<T = void> = NodeWithChild<ShapedNodeDecoration, T extends void ? ShapedNode : T>;
 
-function applyCompressedInferredTypes(inferredTypes: CollapsedInferredTypeMap, value: Value): Value {
-  return visitAndTransformValue((value: Value) => (
-    value.kind === 'FreeVariable' && value.name in inferredTypes
-      ? applyCompressedInferredTypes(inferredTypes, inferredTypes[value.name].to)
-      : value
-  ))(value);
+function applyCompressedInferredTypesRecursively(
+  inferredTypes: CollapsedInferredTypeMap,
+  value: Value,
+  visitedVariables: CountMap<string>,
+): Value {
+  return visitAndTransformValue((value: Value) => {
+    if (value.kind !== 'FreeVariable' || !(value.name in inferredTypes)) {
+      return value;
+    }
+
+    // If the type is recursive, skip it
+    if (visitedVariables.has(value.name)) {
+      return value;
+    }
+
+    visitedVariables.increment(value.name);
+    const result = applyCompressedInferredTypesRecursively(
+      inferredTypes,
+      inferredTypes[value.name].to,
+      visitedVariables,
+    );
+    visitedVariables.decrement(value.name);
+    return result;
+  })(value);
+}
+
+function applyCompressedInferredTypes(
+  inferredTypes: CollapsedInferredTypeMap,
+  value: Value,
+): Value {
+  return applyCompressedInferredTypesRecursively(inferredTypes, value, new CountMap());
 }
 
 const applyInferredTypesAttachedTypeNode = (inferredTypes: CollapsedInferredTypeMap) => (
   node: NamedNode<ShapedNode>,
 ): ShapedNode => {
-  console.log('Applying to', node.decoration.shapeName);
   const shape = applyCompressedInferredTypes(
     inferredTypes,
-    freeVariable(node.decoration.shapeName)
+    freeVariable(node.decoration.shapeName),
   );
-  console.log('Applying to', node.decoration.type);
   const type = applyCompressedInferredTypes(inferredTypes, node.decoration.type);
   return {
     ...node,
-    decoration: {
-      shape: shape,
-      type: type,
-    },
+    decoration: { shape, type },
   };
-}
+};
 
 export function recursivelyApplyInferredTypes(
   inferredTypes: CollapsedInferredTypeMap,
