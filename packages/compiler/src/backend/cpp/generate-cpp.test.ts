@@ -1,7 +1,7 @@
 import { compile } from '../../api';
 import { uniqueIdStream } from '../../utils/unique-id-generator';
 import { generateCpp } from './generate-cpp';
-import dedent from 'dedent-js';
+import dedentJs from 'dedent-js';
 
 function toCpp(code: string) {
   const result = compile(code);
@@ -12,7 +12,7 @@ function toCpp(code: string) {
 
 describe('generateCpp', () => {
   it('translates a simple expression', () => {
-    expect(toCpp('"Hello"')).toBe(dedent`
+    expect(toCpp('"Hello"')).toBe(dedentJs`
       int main() {
           "Hello";
       }
@@ -20,14 +20,14 @@ describe('generateCpp', () => {
   });
 
   it('extracts anonymous functions', () => {
-    const result = toCpp(dedent`
+    const result = toCpp(dedentJs`
       let f = a -> a
       f 1
     `);
-    expect(result).toBe(dedent`
+    expect(result).toBe(dedentJs`
       int main() {
-          double f = [](double a$rename$14) -> {
-              return a$rename$14;
+          double f = [](double a$rename$5) -> {
+              return a$rename$5;
           };
           f(1);
       }
