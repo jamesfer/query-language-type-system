@@ -26,8 +26,8 @@ describe('generateCpp', () => {
     `);
     expect(result).toBe(dedentJs`
       int main() {
-          double f = [](double a$rename$5) -> {
-              return a$rename$5;
+          double f = [](double a$rename$25) -> {
+              return a$rename$25;
           };
           f(1);
       }

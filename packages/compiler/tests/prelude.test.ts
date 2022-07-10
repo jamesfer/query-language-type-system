@@ -56,11 +56,4 @@ describe('prelude', () => {
       expect(result).toBe(1000);
     });
   });
-
-  describe('addMe', () => {
-    it('adds numbers', () => {
-      const result = run('addMe 1 2');
-      expect(result).toBe(3);
-    });
-  });
 });

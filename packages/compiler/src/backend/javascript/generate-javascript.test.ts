@@ -30,15 +30,15 @@ describe('generateJavascript', () => {
 
   it('translates a function expression', () => {
     expect(toJavascript('a -> b -> 1')).toEqual(
-      'export default (a$rename$5 => b$rename$6 => 1);',
+      'export default (a$rename$25 => b$rename$26 => 1);',
     );
   });
 
   it('translates a function expression with bindings', () => {
     expect(toJavascript('a:b -> a')).toEqual(dedent`
-      export default (injectedParameter$40 => {
-        const a$rename$5 = injectedParameter$40;
-        return a$rename$5;
+      export default (injectedParameter$155 => {
+        const a$rename$25 = injectedParameter$155;
+        return a$rename$25;
       });
     `);
   });
@@ -88,11 +88,11 @@ describe('generateJavascript', () => {
 
   it('translates a data declaration', () => {
     expect(toJavascript('data a = x, y, z\na 1 2 3')).toEqual(dedent`
-      const a = x$rename$5 => y$rename$6 => z$rename$7 => ({
+      const a = x$rename$25 => y$rename$26 => z$rename$27 => ({
         $DATA_NAME$: "$SYMBOL$a",
-        0: x$rename$5,
-        1: y$rename$6,
-        2: z$rename$7
+        0: x$rename$25,
+        1: y$rename$26,
+        2: z$rename$27
       });
 
       export default a(1)(2)(3);

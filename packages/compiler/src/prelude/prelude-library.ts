@@ -21,14 +21,14 @@ data Boolean = a
 --let trueBooleanImpl = Boolean True
 --let falseBooleanImpl = Boolean False
 
---let add = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "+", }, }
---let subtract = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "-", }, }
---let multiply = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "*", }, }
---let divide = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "/", }, }
---let modulo = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "%", }, }
---let power = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "**", }, }
---let equals = (implicit Boolean r -> a -> b -> r):#{ evaluator = { kind = "builtin", name = "equals", }, javascript = { kind = "binaryOperation", operator = "===", }, }
---let if = (implicit Boolean c -> implicit t a -> implicit t b -> implicit t r -> c -> a -> b -> r):#{ evaluator = { kind = "builtin", name = "if", }, javascript = { kind = "ternaryOperator", }, }
+let add = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "+", }, }
+let subtract = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "-", }, }
+let multiply = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "*", }, }
+let divide = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "/", }, }
+let modulo = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "%", }, }
+let power = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "**", }, }
+let equals = (implicit Boolean r -> a -> b -> r):#{ evaluator = { kind = "builtin", name = "equals", }, javascript = { kind = "binaryOperation", operator = "===", }, }
+let if = (implicit Boolean c -> implicit t a -> implicit t b -> implicit t r -> c -> a -> b -> r):#{ evaluator = { kind = "builtin", name = "if", }, javascript = { kind = "ternaryOperator", }, }
 "END"
 `;
 
