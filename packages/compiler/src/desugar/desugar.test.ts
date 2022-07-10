@@ -174,7 +174,7 @@ describe('desugar', () => {
                     decoration: {
                       type: {
                         kind: 'FreeVariable',
-                        name: expect.stringMatching(/^a\$.*/),
+                        name: expect.stringMatching(/^dualExpression\$.*/),
                       },
                     },
                   },
@@ -192,7 +192,7 @@ describe('desugar', () => {
                         decoration: {
                           type: {
                             kind: 'FreeVariable',
-                            name: expect.stringMatching(/^a\$.*/),
+                            name: expect.stringMatching(/^dualExpression\$.*/),
                           },
                         },
                       },
