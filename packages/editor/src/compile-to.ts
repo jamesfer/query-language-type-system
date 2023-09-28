@@ -17,10 +17,15 @@ export interface CompileToResult {
   messages: Message[];
 }
 
-function toBackend(expression: CoreExpression, node: CoreNode, backend: 'javascript' | 'cpp'): string | undefined {
+function toBackend(
+  expression: CoreExpression,
+  node: CoreNode,
+  backend: 'javascript' | 'cpp',
+): string | undefined {
   let i = 0;
   function makeUniqueId(prefix: string = 'variable'): string {
-    return `${prefix}${++i}`;
+    i += 1;
+    return `${prefix}${i}`;
   }
 
   switch (backend) {

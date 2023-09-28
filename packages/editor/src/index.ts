@@ -1,7 +1,7 @@
 import 'codemirror/lib/codemirror.css';
 import 'codemirror/theme/monokai.css';
 import '../index.css';
-import App from './app';
+import { App } from './app';
 
 // Insert html content into the body
 const element = document.createElement('div');
@@ -40,4 +40,3 @@ new App(
   jsLanguageButton as HTMLButtonElement,
   cppLanguageButton as HTMLButtonElement,
 );
-

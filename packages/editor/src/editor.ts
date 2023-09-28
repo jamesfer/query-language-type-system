@@ -10,7 +10,7 @@ export interface EditorSettings {
   code?: string;
 }
 
-export default class Editor {
+export class Editor {
   private readonly editor: CMEditor;
   private changesSubject$ = new Subject<EditorChangeLinkedList[]>();
   public changes$ = this.changesSubject$.asObservable();
