@@ -7,11 +7,10 @@
     "esModuleInterop": true,
     "importHelpers": true,
     "lib": [
-      "es2018",
-      "esnext.asynciterable",
+      "ES2020",
       "dom"
     ],
-    "module": "es6",
+    "module": "commonjs",
     "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitThis": true,
@@ -19,7 +18,8 @@
     "strict": true,
     "strictNullChecks": true,
     "suppressImplicitAnyIndexErrors": true,
-    "target": "es6"
+    "target": "es6",
+    "resolveJsonModule": true
   },
   "include": [
     "packages/*/src/**/*.ts",

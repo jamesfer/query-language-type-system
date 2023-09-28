@@ -2,10 +2,14 @@ import requireFromString from 'require-from-string';
 import { compile, generateJavascript } from '../src';
 
 function run(code: string) {
-  const { expression } = compile(code);
+  const { expression, messages } = compile(code);
   if (expression) {
     const javascriptCode = generateJavascript(expression, { module: 'commonjs' });
-    return requireFromString(javascriptCode);
+    try {
+      return requireFromString(javascriptCode);
+    } catch (error) {
+      throw new Error(`Encountered an error while requiring generated code\n${error}\n\nCode: ${javascriptCode}`);
+    }
   }
   return undefined;
 }

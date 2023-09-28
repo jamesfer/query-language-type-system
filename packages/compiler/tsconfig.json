@@ -10,10 +10,7 @@
     ]
   },
   "include": [
-    "src/**/*.ts"
-  ],
-  "exclude": [
-    "src/**/*.test.ts",
-    "src/**/*.benchmark.ts"
+    "src/**/*.ts",
+    "tests/**/*.ts"
   ]
 }

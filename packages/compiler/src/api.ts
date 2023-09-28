@@ -2,14 +2,9 @@ import { CoreExpression, CoreNode, desugar, stripCoreNode } from './desugar/desu
 import { removeUnusedBindings } from './optimisations/remove-unused-bindings/remove-unused-bindings';
 import parse from './parser/parse';
 import { attachPrelude } from './prelude/attach-prelude';
-import { evaluationScope } from './type-checker/constructors';
-import { evaluateExpression } from './type-checker/evaluate';
-import { runTypePhase } from './type-checker/run-type-phase';
-import { TypedNode } from './type-checker/type-check';
+import { checkTypes } from './type-checker';
 import { Message } from './type-checker/types/message';
-import { Value } from './type-checker/types/value';
-
-export { TypedNode } from './type-checker/type-check';
+import { uniqueIdStream } from './utils/unique-id-generator';
 
 export interface CompileResult {
   expression?: CoreExpression;
@@ -31,10 +26,10 @@ export function compile(code: string, options?: CompileOptions): CompileResult {
     return { messages: ['Failed to parse code'] };
   }
 
-  const [typeMessages, typedNode] = runTypePhase(
-    prelude ? attachPrelude(expression) : expression,
-  );
-  const desugaredNode = desugar(typedNode);
+  const makeUniqueId = uniqueIdStream();
+  const expressionWithPrelude = prelude ? attachPrelude(expression) : expression;
+  const [typeMessages, typedNode] = checkTypes(makeUniqueId, expressionWithPrelude);
+  const desugaredNode = desugar(makeUniqueId, typedNode);
   const optimizedNode = removeUnused ? removeUnusedBindings(desugaredNode) : desugaredNode;
 
   return {
@@ -42,12 +37,4 @@ export function compile(code: string, options?: CompileOptions): CompileResult {
     node: optimizedNode,
     messages: typeMessages,
   };
-}
-
-export function evaluate(code: string): Value | undefined {
-  const { expression } = compile(code);
-  if (expression) {
-    return evaluateExpression(evaluationScope())(expression);
-  }
-  return undefined;
 }

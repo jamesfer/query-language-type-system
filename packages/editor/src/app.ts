@@ -1,8 +1,8 @@
-import dedent from 'dedent-js';
+import dedentJs from 'dedent-js';
 import compileTo, { CompileToOptions } from './compile-to';
 import { BehaviorSubject, combineLatest, fromEvent, Observable } from 'rxjs';
 import { map, mapTo } from 'rxjs/operators';
-import Editor from './editor';
+import { Editor } from './editor';
 
 type CompilationOutput =
   | { code: string }
@@ -10,7 +10,7 @@ type CompilationOutput =
 
 const activeLanguageButtonClass = 'selected';
 
-export default class App {
+export class App {
   private editor = new Editor(this.inputElement);
   private outputEditor = new Editor(this.outputElement, {
     readOnly: true,
@@ -27,10 +27,10 @@ export default class App {
     mapTo<any, 'cpp'>('cpp'),
   ).subscribe(this.backendOption$);
 
-  private compilationSubscription = combineLatest(
+  private compilationSubscription = combineLatest([
     this.inputCodeObservable(),
     this.inputCompileOptions(),
-  ).subscribe(([code, options]) => {
+  ]).subscribe(([code, options]) => {
     this.displayCompiledCode(this.generateCompilationOutput(code, options));
   });
 
@@ -78,26 +78,25 @@ export default class App {
       const { messages, output } = compileTo(code, options);
       if (output) {
         return { code: output };
-      } else {
-        const formattedMessages = messages.map(message => ` *    ✖ ${message}`);
-        return {
-          error: dedent`
-            /**
-             * Code failed to compile:
-             ${formattedMessages.join('\n')}
-             */
-          `,
-        };
       }
+
+      const formattedMessages = messages.map(message => ` *    ✖ ${message}`);
+      return {
+        error: dedentJs`
+          /**
+           * Code failed to compile:
+           ${formattedMessages.join('\n')}
+           */
+        `,
+      };
     } catch (error) {
       return {
-        error: dedent`
+        error: dedentJs`
           /**
-            Compiler threw an exception: ${error}
-          */
+           * Compiler threw an exception: ${error}
+           */
         `,
       };
     }
   }
 }
-

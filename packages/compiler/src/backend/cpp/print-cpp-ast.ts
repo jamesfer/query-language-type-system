@@ -1,20 +1,14 @@
 import { assertNever } from '../../type-checker/utils';
 import {
-  CppExpression,
   CppExpressionWithChild,
   CppParameter,
   CppStatement,
   CppStatementWithChild,
 } from './cpp-ast';
-import dedent from 'dedent-js';
 import { visitAndTransformCppStatement } from './cpp-ast-visitors';
 
 function indentLines(lines: string[]): string[] {
-  return lines.map(line => `    ${line}`);
-}
-
-function indent(string: string): string {
-  return indentLines(string.split('\n')).join('\n');
+  return lines.join('\n').split('\n').map(line => `    ${line}`);
 }
 
 function printCppExpression(expression: CppExpressionWithChild<string>): string {
@@ -32,15 +26,17 @@ function printCppExpression(expression: CppExpressionWithChild<string>): string 
       return `"${expression.value}"`;
 
     case 'Application':
-      return `${expression.callee}(${expression.parameters.join(', ')}`;
+      return `${expression.callee}(${expression.parameters.join(', ')})`;
 
     case 'StructConstruction':
       return `${expression.structName}{${expression.parameters.join(', ')}`;
 
     case 'Lambda':
-      return `[](${expression.parameters.map(printParameter).join(', ')}) -> {
-        ${indentLines(expression.body.statements).map(line => `${line};`).join('\n')}
-      }`;
+      return [
+        `[](${expression.parameters.map(printParameter).join(', ')}) -> {`,
+        ...indentLines(expression.body.statements),
+        '}',
+      ].join('\n');
 
     case 'ReadProperty':
       return `${expression.object}.${expression.property}`;
@@ -48,7 +44,7 @@ function printCppExpression(expression: CppExpressionWithChild<string>): string 
 }
 
 function printParameter({ identifier, type }: CppParameter): string {
-  return `${type.value} ${identifier}`;
+  return `${type.value} ${identifier.name}`;
 }
 
 function printCppStatement(statement: CppStatementWithChild<string>): string {
@@ -60,24 +56,25 @@ function printCppStatement(statement: CppStatementWithChild<string>): string {
       return `return ${statement.value};`;
 
     case 'Binding':
-      return `${statement.type.value} ${statement.name} = ${statement.value}`;
+      return `${statement.type.value} ${statement.name} = ${statement.value};`;
 
     case 'Struct': {
       const properties = statement.properties.map(printParameter).map(line => `${line};`);
-      return dedent`
-        struct ${statement.name} {
-            ${indentLines(properties).join('\n')}
-        };
-      `;
+      return [
+        `struct ${statement.name} {`,
+        ...indentLines(properties),
+        '};',
+      ].join('\n');
     }
 
-    case 'Function':
+    case 'Function': {
       const parameters = statement.parameters.map(printParameter).map(line => `${line};`);
-      return dedent`
-        ${statement.returnType.value} ${statement.name}(${parameters.join(', ')}) {
-        ${indentLines(statement.body.statements).join('\n')}
-        }
-      `;
+      return [
+        `${statement.returnType.value} ${statement.name}(${parameters.join(', ')}) {`,
+        ...indentLines(statement.body.statements),
+        '}',
+      ].join('\n');
+    }
 
     default:
       return assertNever(statement);

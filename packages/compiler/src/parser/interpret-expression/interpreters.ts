@@ -1,4 +1,4 @@
-import { fromPairs, map, maxBy, flatMap } from 'lodash';
+import { fromPairs, maxBy, flatMap } from 'lodash';
 import {
   Application,
   BindingExpression,

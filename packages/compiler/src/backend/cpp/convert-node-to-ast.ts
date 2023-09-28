@@ -1,48 +1,47 @@
 import { CoreExpression, NodeWithExpression } from '../..';
-import { TypedDecoration } from '../../type-checker/type-check';
+import { ResolvedNodeDecoration } from '../../type-checker/resolve-implicits';
 import { assertNever } from '../../type-checker/utils';
+import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import { convertValueToType } from './convert-value-to-type';
-import { CppExpression, CppStructConstruction } from './cpp-ast';
+import { CppExpression } from './cpp-ast';
+import { GenerateCppState } from './generate-cpp-state';
 import { makeRecordLiteralStruct } from './make-record-literal-struct';
-import { mapM, Monad, pipeRecord, sequenceM } from './monad';
-import {
-  appendLocalStatement,
-  clearLocalStatements,
-  CppState,
-  getLocalStatements,
-} from './monad-state-operations';
 
-export function convertNodeToAst({ expression, decoration }: NodeWithExpression<TypedDecoration, CoreExpression<Monad<CppState, CppExpression>>>): Monad<CppState, CppExpression> {
+export function convertNodeToAst(
+  state: GenerateCppState,
+  makeUniqueId: UniqueIdGenerator,
+  { expression, decoration }: NodeWithExpression<ResolvedNodeDecoration, CoreExpression<CppExpression>>,
+): CppExpression {
   switch (expression.kind) {
     case 'Identifier':
-      return Monad.pure<CppState, CppExpression>({
+      return {
         kind: 'Identifier',
         name: expression.name,
-      });
+      };
 
     case 'BooleanExpression':
-      return Monad.pure<CppState, CppExpression>({
+      return {
         kind: 'Boolean',
         value: expression.value,
-      });
+      };
 
     case 'NumberExpression':
-      return Monad.pure<CppState, CppExpression>({
+      return {
         kind: 'Number',
         value: expression.value,
-      });
+      };
 
     case 'StringExpression':
-      return Monad.pure<CppState, CppExpression>({
+      return {
         kind: 'String',
         value: expression.value,
-      });
+      };
 
     case 'SymbolExpression':
-      return Monad.pure<CppState, CppExpression>({
+      return {
         kind: 'String',
         value: `SYMBOL$${expression.name}`,
-      });
+      };
 
     case 'RecordExpression': {
       const type = decoration.type;
@@ -50,90 +49,75 @@ export function convertNodeToAst({ expression, decoration }: NodeWithExpression<
         throw new Error('Cannot handle a record expression that does not have a record literal type');
       }
 
-      return pipeRecord(
-        { parameters: sequenceM(Object.values(expression.properties)) },
-        () => ({ structName: makeRecordLiteralStruct(type) }),
-        ({ parameters, structName }) => ({ structName, parameters, kind: 'StructConstruction' }),
-      );
+      const parameters = Object.values(expression.properties);
+      const structName = makeRecordLiteralStruct(state, makeUniqueId, type);
+      return { structName, parameters, kind: 'StructConstruction' };
     }
 
-    case 'DataInstantiation':
-      return pipeRecord(
-        { callee: expression.callee, parameters: sequenceM(expression.parameters) },
-        ({ callee, parameters }): CppStructConstruction => {
-          if (callee.kind !== 'Identifier') {
-            throw new Error('Cannot instantiate a data type that has a callee that is not an identifier');
-          }
+    case 'DataInstantiation': {
+      if (expression.callee.kind !== 'Identifier') {
+        throw new Error('Cannot instantiate a data type that has a callee that is not an identifier');
+      }
 
-          return {
-            parameters,
-            kind: 'StructConstruction',
-            structName: callee.name,
-          };
-        },
-      );
+      return {
+        kind: 'StructConstruction',
+        parameters: expression.parameters,
+        structName: expression.callee.name,
+      };
+    }
 
-    case 'Application':
-      return pipeRecord(
-        { callee: expression.callee, parameter: expression.parameter },
-        ({ callee, parameter }) => ({
-          callee,
-          kind: 'Application',
-          parameters: [parameter],
-        }),
-      );
+    case 'Application': {
+      return {
+        kind: 'Application',
+        callee: expression.callee,
+        parameters: [expression.parameter],
+      };
+    }
 
-    case 'SimpleFunctionExpression':
-      return pipeRecord(
-        { body: expression.body },
-        () => ({ localStatements: getLocalStatements() }),
-        () => ({ _: clearLocalStatements() }),
-        ({ body, localStatements }) => ({
-          kind: 'Lambda',
-          parameters: [],
-          body: {
-            kind: 'Block',
-            statements: [
-              ...localStatements,
-              {
-                kind: 'Return',
-                value: body,
-              }
-            ],
+    case 'SimpleFunctionExpression': {
+      const localStatements = [...state.localStatements.values];
+      state.localStatements.clear();
+
+      return {
+        kind: 'Lambda',
+        parameters: [{
+          kind: 'Parameter',
+          type: convertValueToType(state, makeUniqueId, expression.parameterType),
+          identifier: {
+            kind: 'Identifier',
+            name: expression.parameter,
           },
-        }),
-      );
+        }],
+        body: {
+          kind: 'Block',
+          statements: [
+            ...localStatements,
+            {
+              kind: 'Return',
+              value: expression.body,
+            }
+          ],
+        },
+      };
+    }
 
     case 'BindingExpression':
-      return pipeRecord(
-        {
-          type: convertValueToType(decoration.type),
-          value: expression.value,
-          body: expression.body,
-        },
-        ({ type, value }) => ({
-          _: appendLocalStatement({
-            value,
-            type,
-            kind: 'Binding',
-            name: expression.name,
-          }),
-        }),
-        ({ body }) => body,
-      );
-
-    // case 'DualExpression':
-    //   return expression.right;
+      state.localStatements.push({
+        kind: 'Binding',
+        name: expression.name,
+        value: expression.value,
+        type: convertValueToType(state, makeUniqueId, decoration.type),
+      });
+      return expression.body;
 
     case 'ReadRecordPropertyExpression':
-      return mapM(expression.record, (record) => ({
+      return {
         kind: 'ReadProperty',
-        object: record,
+        object: expression.record,
         property: expression.property,
-      }));
+      }
 
     case 'ReadDataPropertyExpression':
-    // case 'PatternMatchExpression':
     case 'NativeExpression':
       throw new Error('Not implemented yet');
 

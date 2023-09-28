@@ -19,26 +19,8 @@ import {
   RecordExpression,
   StringExpression,
   SymbolExpression,
-  TypedNode,
 } from '..';
-import { TypedDecoration } from '../type-checker/type-check';
-import { DesugaredExpressionWithoutDestructuring } from './desugar-destructuring';
 import { combineIteratorMap } from './iterators-core';
-
-// export function passThroughNodeIterator<A, B, D>(f: (value: A) => B): (node: NodeWithExpression<D, A>) => NodeWithExpression<D, B> {
-//   return passThroughIterator('expression')(f);
-// }
-//
-// export function strippingNodeIterator<A, B, D>(f: (value: A) => B): (node: NodeWithExpression<D, A>) => B {
-//   return node => f(node.expression);
-// }
-
-// type Keys<K extends string, E extends { kind: string }> = E extends { kind: K } ? keyof E : never;
-//
-// const expressionChildPropertyMap: { [K in Expression['kind']]: Keys<K, Expression>[] } = {
-//   Application: ['callee'],
-//   DataInstantiation: ['callee', 'parameters']
-// };
 
 export function emptyMapIterator<A, B, E extends Identifier | BooleanExpression | StringExpression | NumberExpression | SymbolExpression | NativeExpression>(f: (a: A) => B): (expression: E) => E {
   return expression => expression;
@@ -149,38 +131,3 @@ export function makeStripNode<D>(
   );
   return iterator;
 }
-
-export const stripExpressionNodes = makeStripNode(makeExpressionIterator);
-
-export function stripNode<D>(node: Node<D>) {
-  return stripExpressionNodes(shallowStripNode(node));
-}
-
-
-
-
-// function reduceExpression<A>(f: (input: Expression<A>) => A): (input: Expression) => A {
-//   // Doesn't work, will just cause infinite loop
-//   const nestedIterator = (expression: Expression) => reduceIterator(expression);
-//   const iterators: ReductionIteratorMap<Expression['kind'], Expression, Expression, A> = {
-//     Identifier: f,
-//     BooleanExpression: f,
-//     StringExpression: f,
-//     NumberExpression: f,
-//     SymbolExpression: f,
-//     DataInstantiation: nestedIterator,
-//     Application: applicationMapIterator(f),
-//     ReadDataPropertyExpression: nestedIterator,
-//     ReadRecordPropertyExpression: nestedIterator,
-//     FunctionExpression: nestedIterator,
-//     DualExpression: nestedIterator,
-//     BindingExpression: nestedIterator,
-//     NativeExpression: nestedIterator,
-//     PatternMatchExpression: nestedIterator,
-//     RecordExpression: nestedIterator,
-//   };
-//   const reduceIterator = makeReduceIterator<'Expression', Expression, Expression, A>(iterators);
-//   return reduceIterator;
-// }
-
-// function a<D, A>(f: NodeWithExpression<D, A>): (node: NodeWithExpression<D, any>)

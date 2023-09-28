@@ -5,7 +5,7 @@
   "types": "build/index.d.ts",
   "license": "MIT",
   "scripts": {
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc --project tsconfig.build.json",
     "test": "jest"
   },
   "jest": {
@@ -16,7 +16,7 @@
     "@babel/types": "^7.7.4",
     "chalk": "^3.0.0",
     "dedent-js": "^1.0.1",
-    "fp-ts": "^2.6.3",
+    "fp-ts": "^2.11.1",
     "lodash": "^4.17.15",
     "moo": "^0.5.1"
   },

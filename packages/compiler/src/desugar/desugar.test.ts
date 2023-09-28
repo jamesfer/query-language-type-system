@@ -1,7 +1,11 @@
 import dedent from 'dedent-js';
 import parse from '../parser/parse';
-import { runTypePhase } from '../type-checker/run-type-phase';
+import { checkTypes } from '../type-checker';
+import { BindingExpression } from '../type-checker/types/expression';
+import { FreeVariable } from '../type-checker/types/value';
+import { uniqueIdStream } from '../utils/unique-id-generator';
 import { desugar } from './desugar';
+import { SimpleFunctionExpression } from './desugar-destructuring';
 
 function compileAndDesugar(code: string) {
   const { value: expression } = parse(code);
@@ -9,12 +13,13 @@ function compileAndDesugar(code: string) {
     throw new Error(`Failed to parse code: ${code}`);
   }
 
-  const [typeMessages, typedNode] = runTypePhase(expression);
+  const makeUniqueId = uniqueIdStream();
+  const [typeMessages, typedNode] = checkTypes(makeUniqueId, expression);
   if (typeMessages.length > 0) {
     throw new Error(`Failed to type code: ${typeMessages.join(', ')}`);
   }
 
-  return desugar(typedNode);
+  return desugar(makeUniqueId, typedNode);
 }
 
 describe('desugar', () => {
@@ -66,7 +71,7 @@ describe('desugar', () => {
             kind: 'Node',
             expression: {
               kind: 'SimpleFunctionExpression',
-              parameter: 'injectedParameter$',
+              parameter: expect.stringMatching(/^injectedParameter\$\d*/),
               body: {
                 kind: 'Node',
                 expression: {
@@ -106,7 +111,7 @@ describe('desugar', () => {
             kind: 'Node',
             expression: {
               kind: 'SimpleFunctionExpression',
-              parameter: 'injectedParameter$',
+              parameter: expect.stringMatching(/^injectedParameter\$\d*/),
               body: {
                 kind: 'Node',
                 expression: {
@@ -121,14 +126,8 @@ describe('desugar', () => {
                         kind: 'Node',
                         expression: {
                           kind: 'Identifier',
-                          name: 'injectedParameter$',
+                          name: expect.stringMatching(/^injectedParameter\$\d*/),
                         },
-                      },
-                    },
-                    decoration: {
-                      type: {
-                        kind: 'FreeVariable',
-                        name: expect.stringMatching(/^a\$.*/),
                       },
                     },
                   },
@@ -160,7 +159,7 @@ describe('desugar', () => {
             kind: 'Node',
             expression: {
               kind: 'SimpleFunctionExpression',
-              parameter: 'injectedParameter$',
+              parameter: expect.stringMatching(/^injectedParameter\$\d*/),
               body: {
                 kind: 'Node',
                 expression: {
@@ -170,12 +169,12 @@ describe('desugar', () => {
                     kind: 'Node',
                     expression: {
                       kind: 'Identifier',
-                      name: 'injectedParameter$'
+                      name: expect.stringMatching(/^injectedParameter\$\d*/),
                     },
                     decoration: {
                       type: {
                         kind: 'FreeVariable',
-                        name: expect.stringMatching(/^a\$.*/),
+                        name: expect.stringMatching(/^dualExpression\$.*/),
                       },
                     },
                   },
@@ -188,12 +187,12 @@ describe('desugar', () => {
                         kind: 'Node',
                         expression: {
                           kind: 'Identifier',
-                          name: 'injectedParameter$'
+                          name: expect.stringMatching(/^injectedParameter\$\d*/),
                         },
                         decoration: {
                           type: {
                             kind: 'FreeVariable',
-                            name: expect.stringMatching(/^a\$.*/),
+                            name: expect.stringMatching(/^dualExpression\$.*/),
                           },
                         },
                       },

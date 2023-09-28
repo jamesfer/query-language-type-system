@@ -1,10 +1,11 @@
-import generate from '@babel/generator';
+import generator from '@babel/generator';
 import * as types from '@babel/types';
-import { map, flatten } from 'lodash';
+import { flatten, map, range } from 'lodash';
 import { CoreExpression } from '../..';
 import { assertNever, unzip } from '../../type-checker/utils';
 
-// const destructureExpression = (base: Expression) => (value: Expression): [string, Expression][] => {
+// const destructureExpression = (base: Expression) =>
+//   (value: Expression): [string, Expression][] => {
 //   switch (value.kind) {
 //     case 'SymbolExpression':
 //     case 'BooleanExpression':
@@ -49,10 +50,31 @@ import { assertNever, unzip } from '../../type-checker/utils';
 //   }
 // };
 
-function convertExpressionToCode(expression: CoreExpression): [types.Statement[], types.Expression] {
+const reservedKeywords = new Set([
+  'if',
+  'return',
+  'for',
+  'const',
+  'let',
+]);
+
+function makeIdentifierSafe(name: string): string {
+  // strip all the trailing underscores from the name
+  const strippedName = name.replace(/_*$/, '');
+  if (reservedKeywords.has(strippedName)) {
+    return `${name}_`;
+  }
+
+  return name;
+}
+
+function convertExpressionToCode(
+  expression: CoreExpression,
+): [types.Statement[], types.Expression] {
   switch (expression.kind) {
-    case 'Identifier':
-      return [[], types.identifier(expression.name)];
+    case 'Identifier': {
+      return [[], types.identifier(makeIdentifierSafe(expression.name))];
+    }
 
     case 'SymbolExpression':
       return [[], types.stringLiteral(`$SYMBOL$${expression.name}`)];
@@ -66,32 +88,37 @@ function convertExpressionToCode(expression: CoreExpression): [types.Statement[]
     case 'StringExpression':
       return [[], types.stringLiteral(expression.value)];
 
-    case 'RecordExpression':
-      const [childStatements = [], properties = []] = unzip(map(expression.properties, (property, key) => {
-        const [propertyStatements, value] = convertExpressionToCode(property);
-        return [propertyStatements, types.objectProperty(types.identifier(key), value)];
-      }));
+    case 'RecordExpression': {
+      const [childStatements = [], properties = []] = unzip(
+        map(expression.properties, (property, key) => {
+          const [propertyStatements, value] = convertExpressionToCode(property);
+          return [propertyStatements, types.objectProperty(types.identifier(key), value)];
+        }),
+      );
       return [flatten([[], ...childStatements]), types.objectExpression(properties)];
+    }
 
     case 'Application': {
       const [calleeStatements, callee] = convertExpressionToCode(expression.callee);
       const [parameterStatements, parameter] = convertExpressionToCode(expression.parameter);
-      return [[...calleeStatements, ...parameterStatements], types.callExpression(callee, [parameter])];
+      const callExpression = types.callExpression(callee, [parameter]);
+      return [[...calleeStatements, ...parameterStatements], callExpression];
     }
 
     case 'SimpleFunctionExpression': {
       const [bodyStatements, body] = convertExpressionToCode(expression.body);
 
-        return [[], types.arrowFunctionExpression(
-          [types.identifier(expression.parameter)],
-          bodyStatements.length === 0 ? body : types.blockStatement([
-            ...bodyStatements,
-            types.returnStatement(body),
-          ]),
-        )];
+      return [[], types.arrowFunctionExpression(
+        [types.identifier(expression.parameter)],
+        bodyStatements.length === 0 ? body : types.blockStatement([
+          ...bodyStatements,
+          types.returnStatement(body),
+        ]),
+      )];
 
       // const parameterName = `$PARAMETER$1`;
-      // const destructuredParameters = destructureExpression(identifier(parameterName))(expression.parameter);
+      // const destructuredParameters =
+      //   destructureExpression(identifier(parameterName))(expression.parameter);
       // const destructuringStatements = flatMap(destructuredParameters, ([name, expression]) => {
       //   const [parameterStatements, parameter] = convertExpressionToCode(expression);
       //   return [...parameterStatements, types.variableDeclaration('const', [
@@ -107,35 +134,42 @@ function convertExpressionToCode(expression: CoreExpression): [types.Statement[]
       // )];
     }
 
-    case 'DataInstantiation':
+    case 'DataInstantiation': {
       const [calleeStatements, callee] = convertExpressionToCode(expression.callee);
       const [allPropertyStatements = [], objectProperties = []] = unzip(
         expression.parameters.map((value, index) => {
           const [propertyStatements, property] = convertExpressionToCode(value);
           return [propertyStatements, types.objectProperty(types.identifier(`${index}`), property)];
-        })
+        }),
       );
       return [flatten([calleeStatements, ...allPropertyStatements]), types.objectExpression([
         types.objectProperty(types.identifier('$DATA_NAME$'), callee),
         ...objectProperties,
       ])];
+    }
 
-    case 'BindingExpression':
+    case 'BindingExpression': {
       const [valueStatements, value] = convertExpressionToCode(expression.value);
       const [bodyStatements, body] = convertExpressionToCode(expression.body);
       const declaration = types.variableDeclaration('const', [
-        types.variableDeclarator(types.identifier(expression.name), value),
+        types.variableDeclarator(types.identifier(makeIdentifierSafe(expression.name)), value),
       ]);
       return [[...valueStatements, declaration, ...bodyStatements], body];
+    }
 
-    case 'ReadRecordPropertyExpression':
-      // return types.memberExpression(convertExpressionToCode(expression.record), expression.property);
+    case 'ReadRecordPropertyExpression': {
+      // return types.memberExpression(
+      //   convertExpressionToCode(expression.record),
+      //   expression.property);
       const [recordStatements, record] = convertExpressionToCode(expression.record);
-      return [recordStatements, types.memberExpression(record, types.identifier(expression.property))];
+      const identifier = types.identifier(expression.property);
+      const memberExpression = types.memberExpression(record, identifier);
+      return [recordStatements, memberExpression];
+    }
 
     case 'ReadDataPropertyExpression':
       const [dataValueStatements, dataValue] = convertExpressionToCode(expression.dataValue);
-      return [dataValueStatements, types.memberExpression(dataValue, types.identifier(`${expression.property}`))];
+      return [dataValueStatements, types.memberExpression(dataValue, types.identifier(`${expression.property}`), true)];
 
     case 'NativeExpression': {
       const nativeData = expression.data.javascript;
@@ -152,10 +186,11 @@ function convertExpressionToCode(expression: CoreExpression): [types.Statement[]
           }
 
           const callee = types.memberExpression(types.identifier(object), types.identifier(name));
-          const parameterNames = Array(arity).fill(0).map((_, index) => `$nativeParameter$${index}`);
+          const parameterNames = range(arity).map(index => `$nativeParameter$${index}`);
+          const parameters = parameterNames.map(parameterName => types.identifier(parameterName));
           const result = parameterNames.reduceRight<types.Expression>(
             (body, name) => types.arrowFunctionExpression([types.identifier(name)], body),
-            types.callExpression(callee, parameterNames.map(parameterName => types.identifier(parameterName))),
+            types.callExpression(callee, parameters),
           );
           return [[], result];
         }
@@ -167,11 +202,15 @@ function convertExpressionToCode(expression: CoreExpression): [types.Statement[]
           }
 
           const objectName = '$nativeObject';
-          const callee = types.memberExpression(types.identifier(objectName), types.identifier(name));
-          const parameterNames = Array(arity).fill(0).map((_, index) => `$nativeParameter$${index}`);
+          const callee = types.memberExpression(
+            types.identifier(objectName),
+            types.identifier(name),
+          );
+          const parameterNames = range(arity).map(index => `$nativeParameter$${index}`);
+          const parameters = parameterNames.map(parameterName => types.identifier(parameterName));
           const result = [objectName, ...parameterNames].reduceRight<types.Expression>(
             (body, name) => types.arrowFunctionExpression([types.identifier(name)], body),
-            types.callExpression(callee, parameterNames.map(parameterName => types.identifier(parameterName))),
+            types.callExpression(callee, parameters),
           );
           return [[], result];
         }
@@ -182,8 +221,8 @@ function convertExpressionToCode(expression: CoreExpression): [types.Statement[]
             throw new Error('Cannot output a binary operation without an operator');
           }
 
-          const left = types.identifier(`$leftBinaryParam`);
-          const right = types.identifier(`$rightBinaryParam`);
+          const left = types.identifier('$leftBinaryParam');
+          const right = types.identifier('$rightBinaryParam');
           const result = [left, right].reduceRight<types.Expression>(
             (body, identifier) => types.arrowFunctionExpression([identifier], body),
             types.binaryExpression(operator as any, left, right),
@@ -222,7 +261,11 @@ export interface JavascriptBackendOptions {
   module: 'commonjs' | 'esm';
 }
 
-function wrapInExport(moduleType: 'commonjs' | 'esm', statements: types.Statement[], value: types.Expression): types.Program {
+function wrapInExport(
+  moduleType: 'commonjs' | 'esm',
+  statements: types.Statement[],
+  value: types.Expression,
+): types.Program {
   return types.program([
     ...statements,
     moduleType === 'esm'
@@ -232,11 +275,14 @@ function wrapInExport(moduleType: 'commonjs' | 'esm', statements: types.Statemen
         types.memberExpression(types.identifier('module'), types.identifier('exports')),
         value,
       )),
-  ])
+  ]);
 }
 
-export function generateJavascript(expression: CoreExpression, options: JavascriptBackendOptions): string {
+export function generateJavascript(
+  expression: CoreExpression,
+  options: JavascriptBackendOptions,
+): string {
   const [statements, value] = convertExpressionToCode(expression);
   const program = wrapInExport(options.module, statements, value);
-  return generate(program).code;
+  return generator(program).code;
 }

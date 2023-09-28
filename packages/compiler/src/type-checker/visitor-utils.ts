@@ -1,5 +1,4 @@
 import { mapValues } from 'lodash';
-import { TypedNode } from './type-check';
 import { Expression } from './types/expression';
 import { Node, NodeWithChild, NodeWithExpression } from './types/node';
 import { Value } from './types/value';
@@ -434,33 +433,6 @@ const visitAndTransformChildValues = <T>(callback: (value: Value) => T extends v
 
 export const visitAndTransformValue = <T>(visitor: (value: Value<T>) => T extends void ? Value : T) => (value: Value): T extends void ? Value : T => {
   return visitor(visitAndTransformChildValues(visitAndTransformValue(visitor))(value))
-};
-
-export const visitValueForState = <S>(initial: S, visitor: Visitor<[S, Value]>) => (value: Value): S => {
-  let state = initial;
-  const wrap = (visitor: (s: [S, Value]) => [S, Value]) => (value: Value) => {
-    const [newState, newValue] = visitor([state, value]);
-    state = newState;
-    return newValue;
-  };
-  visitValue({
-    before: visitor.before ? wrap(visitor.before) : undefined,
-    after: visitor.after ? wrap(visitor.after) : undefined,
-  })(value);
-  return state;
-};
-
-export const visitValueWithState = <S>(initial: S, visitor: Visitor<[S, Value]>) => (value: Value): Value => {
-  let state = initial;
-  const wrap = (visitor: (s: [S, Value]) => [S, Value]) => (value: Value) => {
-    const [newState, newValue] = visitor([state, value]);
-    state = newState;
-    return newValue;
-  };
-  return visitValue({
-    before: visitor.before ? wrap(visitor.before) : undefined,
-    after: visitor.after ? wrap(visitor.after) : undefined,
-  })(value);
 };
 
 export function mapNode<D, E, F>(f: (e: E) => F, node: NodeWithExpression<D, E>): NodeWithExpression<D, F> {

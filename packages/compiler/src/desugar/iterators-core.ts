@@ -11,16 +11,16 @@ export type ReductionIteratorMap<Keys extends string, E extends { kind: URIS }, 
     // : never
 );
 
-export function makeReduceIterator<EU extends URIS, E extends { kind: URIS } & Kind<EU, any>, A, B>(
-  iterators: ReductionIteratorMap<E['kind'], E, A, B>,
-): (input: Kind<EU, A>) => B {
-  return (input) => {
-    if (input.kind in iterators) {
-      return iterators[input.kind](input);
-    }
-    throw new Error(`Unknown iterator for object with a kind of ${input.kind}. Known iterators: ${Object.keys(iterators).join(', ')}`);
-  }
-}
+// export function makeReduceIterator<EU extends URIS, E extends { kind: URIS } & Kind<EU, any>, A, B>(
+//   iterators: ReductionIteratorMap<E['kind'], E, A, B>,
+// ): (input: Kind<EU, A>) => B {
+//   return (input) => {
+//     if (input.kind in iterators) {
+//       return iterators[input.kind](input);
+//     }
+//     throw new Error(`Unknown iterator for object with a kind of ${input.kind}. Known iterators: ${Object.keys(iterators).join(', ')}`);
+//   }
+// }
 
 export type IteratorMapIterator<K extends URIS, A, B> = ((f: (a: A) => B) => (expression: Kind<K, A>) => Kind<K, B>);
 
@@ -34,7 +34,7 @@ export type IteratorMap<Keys extends string, E extends { kind: URIS }, A, B> = (
 
 export function combineIteratorMap<EU extends URIS, E extends { kind: URIS } & Kind<EU, any>, A, B>(
   iterators: IteratorMap<E['kind'], E, A, B>
-): (f: (a: A) => B) => (input: Kind<EU, A>) => Kind<EU, B> {
+): (f: (a: A) => B) => (input: Kind<EU, A> & { kind: URIS }) => Kind<EU, B> {
   return f => (input) => {
     if (input.kind in iterators) {
       return iterators[input.kind](f)(input);

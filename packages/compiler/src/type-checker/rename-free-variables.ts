@@ -147,7 +147,7 @@ const renameFreeVariablesInScope = (makeUniqueId: UniqueIdGenerator) => (scopes:
   }
 };
 
-export function renameFreeVariables(expression: Expression): Expression {
-  const [, result] = renameFreeVariablesInScope(uniqueIdStream())([], expression);
+export function renameFreeVariables(makeUniqueId: UniqueIdGenerator, expression: Expression): Expression {
+  const [, result] = renameFreeVariablesInScope(makeUniqueId)([], expression);
   return result;
 }

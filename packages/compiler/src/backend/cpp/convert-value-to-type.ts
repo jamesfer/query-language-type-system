@@ -1,25 +1,19 @@
 import { Value } from '../../type-checker/types/value';
+import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import { CppType } from './cpp-ast';
+import { GenerateCppState } from './generate-cpp-state';
 import { makeRecordLiteralStruct } from './make-record-literal-struct';
-import { mapM, Monad, pipeRecord, traverseM } from './monad';
-import { CppState } from './monad-state-operations';
 
-const shallowConvertValueToType = (value: Value): Monad<CppState, string> => {
+const shallowConvertValueToType = (state: GenerateCppState, makeUniqueId: UniqueIdGenerator) => (value: Value): string => {
   switch (value.kind) {
-    case 'DataValue':
-      return pipeRecord(
-        {
-          name: shallowConvertValueToType(value.name),
-          parameters: traverseM(value.parameters, shallowConvertValueToType),
-        },
-        ({ name, parameters }) => `${name}<${parameters.join(', ')}>`,
-      );
+    case 'DataValue': {
+      const name = shallowConvertValueToType(state, makeUniqueId)(value.name);
+      const parameters = value.parameters.map(shallowConvertValueToType(state, makeUniqueId));
+      return `${name}<${parameters.join(', ')}>`;
+    }
 
     case 'RecordLiteral':
-      return pipeRecord(
-        { struct: makeRecordLiteralStruct(value) },
-        ({ struct }) => struct,
-      );
+      return makeRecordLiteralStruct(state, makeUniqueId, value);
 
     case 'ApplicationValue': {
       // Collect all parameters to un-curry the application
@@ -30,39 +24,32 @@ const shallowConvertValueToType = (value: Value): Monad<CppState, string> => {
         callee = callee.callee;
       }
 
-      return pipeRecord(
-        {
-          callee: shallowConvertValueToType(callee),
-          parameters: traverseM(parameters, shallowConvertValueToType),
-        },
-        ({ callee, parameters }) => `${callee}<${parameters.join(', ')}>`,
-      );
+      const resultCallee = shallowConvertValueToType(state, makeUniqueId)(callee);
+      const resultParameters = parameters.map(shallowConvertValueToType(state, makeUniqueId));
+      return `${resultCallee}<${resultParameters.join(', ')}>`;
     }
 
-    case 'FunctionLiteral':
-      return pipeRecord(
-        {
-          body: shallowConvertValueToType(value.body),
-          parameter: shallowConvertValueToType(value.parameter),
-        },
-        ({ body, parameter }) => `[](${parameter}) -> ${body}`,
-      );
+    case 'FunctionLiteral': {
+      const body = shallowConvertValueToType(state, makeUniqueId)(value.body);
+      const parameter = shallowConvertValueToType(state, makeUniqueId)(value.parameter);
+      return `[](${parameter}) -> ${body}`;
+    }
 
     case 'FreeVariable':
-      return Monad.pure(value.name);
+      return value.name;
     // throw new Error(`Free variable ${value.name} cannot be part of a type`);
 
     case 'SymbolLiteral':
-      return Monad.pure('std::string');
+      return 'std::string';
 
     case 'BooleanLiteral':
-      return Monad.pure('boolean');
+      return 'boolean';
 
     case 'NumberLiteral':
-      return Monad.pure('double');
+      return 'double';
 
     case 'StringLiteral':
-      return Monad.pure('std::string');
+      return 'std::string';
 
     case 'DualBinding':
       throw new Error(`Dual binding value cannot be part of a type`);
@@ -81,6 +68,7 @@ const shallowConvertValueToType = (value: Value): Monad<CppState, string> => {
   }
 };
 
-export function convertValueToType(value: Value): Monad<CppState, CppType> {
-  return mapM(shallowConvertValueToType(value), string => ({ kind: 'Type', value: string }));
+export function convertValueToType(state: GenerateCppState, makeUniqueId: UniqueIdGenerator, value: Value): CppType {
+  const result = shallowConvertValueToType(state, makeUniqueId)(value);
+  return { kind: 'Type', value: result };
 }

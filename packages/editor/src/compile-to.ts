@@ -17,13 +17,23 @@ export interface CompileToResult {
   messages: Message[];
 }
 
-function toBackend(expression: CoreExpression, node: CoreNode, backend: 'javascript' | 'cpp'): string | undefined {
+function toBackend(
+  expression: CoreExpression,
+  node: CoreNode,
+  backend: 'javascript' | 'cpp',
+): string | undefined {
+  let i = 0;
+  function makeUniqueId(prefix: string = 'variable'): string {
+    i += 1;
+    return `${prefix}${i}`;
+  }
+
   switch (backend) {
     case 'javascript':
       return generateJavascript(expression, { module: 'esm' });
 
     case 'cpp':
-      return generateCpp(node);
+      return generateCpp(makeUniqueId, node);
 
     default:
       return assertNever(backend);
