@@ -1,4 +1,4 @@
-export default class App {
+export declare class App {
     private inputElement;
     private outputElement;
     private jsLanguageButton;

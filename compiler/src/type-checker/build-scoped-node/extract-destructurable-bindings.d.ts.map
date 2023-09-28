@@ -1,0 +1,1 @@
+{"version":3,"file":"extract-destructurable-bindings.d.ts","sourceRoot":"","sources":["../../../../../../compiler/src/type-checker/build-scoped-node/extract-destructurable-bindings.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,UAAU,EAAE,MAAM,6DAA6D,CAAC;AAEzF,OAAO,EAAE,KAAK,EAAE,MAAM,gBAAgB,CAAC;AAUvC,wBAAgB,6BAA6B,CAAC,IAAI,EAAE,UAAU,GAAG,CAAC,MAAM,EAAE,KAAK,CAAC,EAAE,CAQjF"}

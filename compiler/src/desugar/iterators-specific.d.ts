@@ -12,6 +12,4 @@ export declare function recordMapIterator<A, B>(f: (a: A) => B): (expression: Re
 export declare function makeExpressionIterator<A, B>(f: (a: A) => B): (e: Expression<A>) => Expression<B>;
 export declare function shallowStripNode<D, A>(node: NodeWithExpression<D, A>): A;
 export declare function makeStripNode<D>(makeIterator: <A, B>(f: (a: A) => B) => (e: Expression<A>) => Expression<B>): (n: Expression<Node<D>>) => Expression;
-export declare const stripExpressionNodes: (n: Expression<Node<unknown>>) => Expression;
-export declare function stripNode<D>(node: Node<D>): Expression<void>;
 //# sourceMappingURL=iterators-specific.d.ts.map

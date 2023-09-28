@@ -1,7 +1,7 @@
 import { CoreExpression, NodeWithExpression } from '../..';
-import { TypedDecoration } from '../../type-checker/type-check';
+import { ResolvedNodeDecoration } from '../../type-checker/resolve-implicits';
+import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import { CppExpression } from './cpp-ast';
-import { Monad } from './monad';
-import { CppState } from './monad-state-operations';
-export declare function convertNodeToAst({ expression, decoration }: NodeWithExpression<TypedDecoration, CoreExpression<Monad<CppState, CppExpression>>>): Monad<CppState, CppExpression>;
+import { GenerateCppState } from './generate-cpp-state';
+export declare function convertNodeToAst(state: GenerateCppState, makeUniqueId: UniqueIdGenerator, { expression, decoration }: NodeWithExpression<ResolvedNodeDecoration, CoreExpression<CppExpression>>): CppExpression;
 //# sourceMappingURL=convert-node-to-ast.d.ts.map

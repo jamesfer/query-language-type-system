@@ -1,13 +1,11 @@
 import { Free } from '../utils/free';
-import { TypedNode } from './type-check';
-import { Expression } from './types/expression';
 export declare function assertNever(x: never): never;
 export declare function clipArrays<T, U>(array1: T[], array2: U[]): [T[], U[]];
 export declare function checkedZip<T, U>(array1: T[], array2: U[]): [T, U][];
 export declare function checkedZipWith<T, U, R>(array1: T[], array2: U[], zipper: (value1: T, value2: U) => R): R[];
-export declare function unzip<T1>(array: [T1][]): [T1[] | undefined];
-export declare function unzip<T1, T2>(array: [T1, T2][]): [T1[] | undefined, T2[] | undefined];
-export declare function unzip<T1, T2, T3>(array: [T1, T2, T3][]): [T1[] | undefined, T2[] | undefined, T3[] | undefined];
+export declare function unzip<T1>(array: [T1][]): [T1[]];
+export declare function unzip<T1, T2>(array: [T1, T2][]): [T1[], T2[]];
+export declare function unzip<T1, T2, T3>(array: [T1, T2, T3][]): [T1[], T2[], T3[]];
 export declare function unzipObject<T1>(object: {
     [k: string]: [T1];
 }): [{
@@ -62,9 +60,5 @@ export declare function accumulateStatesUsingAnd<S, T>(func: (arg: T) => boolean
 export declare function accumulateStatesUsingOr<S, T>(func: (arg: T) => boolean): [() => boolean, (arg: T) => T];
 export declare function withRecursiveFreeState<T extends any[], S, R>(f: (state: S | undefined, ...args: T) => [S, () => Free<R>]): (...args: T) => Free<R>;
 export declare function withStateStack<S, T extends any[], R>(f: (pushState: (state: S) => void, state: S | undefined, ...args: T) => R): (...args: T) => R;
-/**
- * Automatically tracks the parent kind of each expression and provides its to the given callback.
- */
-export declare function withParentExpressionKind<R>(f: (parentKind: Expression['kind'] | undefined, node: TypedNode) => R): (node: TypedNode) => R;
 export declare function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined): [T, R] | undefined;
 //# sourceMappingURL=utils.d.ts.map

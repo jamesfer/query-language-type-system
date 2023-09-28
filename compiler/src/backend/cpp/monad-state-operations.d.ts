@@ -6,7 +6,6 @@ export declare type CppState = CombinedState<{
     localStatements: ArrayState<CppStatement>;
     globalStatements: ArrayState<CppStatement>;
 }>;
-export declare function newUniqueId(prefix: string): Monad<CppState, string>;
 export declare function appendGlobalStatement(statement: CppStatement): Monad<CppState, void>;
 export declare function appendLocalStatement(statement: CppStatement): Monad<CppState, void>;
 export declare function getLocalStatements(): Monad<CppState, CppStatement[]>;

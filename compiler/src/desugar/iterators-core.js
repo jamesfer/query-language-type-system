@@ -1,15 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.passThroughIterator = exports.combineIteratorMap = exports.makeReduceIterator = void 0;
-function makeReduceIterator(iterators) {
-    return (input) => {
-        if (input.kind in iterators) {
-            return iterators[input.kind](input);
-        }
-        throw new Error(`Unknown iterator for object with a kind of ${input.kind}. Known iterators: ${Object.keys(iterators).join(', ')}`);
-    };
-}
-exports.makeReduceIterator = makeReduceIterator;
+exports.passThroughIterator = exports.combineIteratorMap = void 0;
 function combineIteratorMap(iterators) {
     return f => (input) => {
         if (input.kind in iterators) {

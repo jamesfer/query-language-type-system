@@ -6,7 +6,7 @@ export interface EditorSettings {
     theme?: string;
     code?: string;
 }
-export default class Editor {
+export declare class Editor {
     private readonly element;
     private readonly settings;
     private readonly editor;

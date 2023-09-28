@@ -2,8 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.stripDesugaredNodeWithoutPatternMatch = exports.makePatternMatchDesugaredNodeIterator = exports.desugarPatternMatch = void 0;
 const lodash_1 = require("lodash");
-const constructors_1 = require("../type-checker/constructors");
-const scope_utils_1 = require("../type-checker/scope-utils");
 const utils_1 = require("../type-checker/utils");
 const visitor_utils_1 = require("../type-checker/visitor-utils");
 const desugar_destructuring_1 = require("./desugar-destructuring");
@@ -11,6 +9,7 @@ const desugar_dual_bindings_1 = require("./desugar-dual-bindings");
 const iterators_core_1 = require("./iterators-core");
 const iterators_specific_1 = require("./iterators-specific");
 function convertPatternMatchToConditions(value, test) {
+    const scope = value.decoration.scope;
     switch (test.expression.kind) {
         case 'SymbolExpression':
         case 'BooleanExpression':
@@ -34,12 +33,9 @@ function convertPatternMatchToConditions(value, test) {
                                         name: 'equals',
                                     },
                                     decoration: {
-                                        scope: constructors_1.scope(),
+                                        scope,
+                                        resolvedImplicits: [],
                                         type: {
-                                            kind: 'FreeVariable',
-                                            name: 'a',
-                                        },
-                                        implicitType: {
                                             kind: 'FreeVariable',
                                             name: 'a',
                                         },
@@ -47,12 +43,9 @@ function convertPatternMatchToConditions(value, test) {
                                 },
                             },
                             decoration: {
-                                scope: constructors_1.scope(),
+                                scope,
+                                resolvedImplicits: [],
                                 type: {
-                                    kind: 'FreeVariable',
-                                    name: 'b',
-                                },
-                                implicitType: {
                                     kind: 'FreeVariable',
                                     name: 'b',
                                 },
@@ -60,12 +53,9 @@ function convertPatternMatchToConditions(value, test) {
                         },
                     },
                     decoration: {
-                        scope: constructors_1.scope(),
+                        scope,
+                        resolvedImplicits: [],
                         type: {
-                            kind: 'FreeVariable',
-                            name: 'c',
-                        },
-                        implicitType: {
                             kind: 'FreeVariable',
                             name: 'c',
                         },
@@ -85,17 +75,17 @@ function convertPatternMatchToConditions(value, test) {
                     record: value,
                 },
                 decoration: {
+                    scope,
                     type: valueType.properties[name],
-                    implicitType: valueType.properties[name],
-                    scope: constructors_1.scope(),
+                    resolvedImplicits: []
                 },
             }, property)));
         }
         case 'Identifier': {
-            const binding = scope_utils_1.findBinding(test.decoration.scope, test.expression.name);
-            if (binding) {
-                // TODO return equals comparison
-            }
+            // const binding = findBinding(test.decoration.scope, test.expression.name);
+            // if (binding) {
+            //   // TODO return equals comparison
+            // }
             return [];
         }
         case 'DataInstantiation': // TODO
@@ -113,7 +103,7 @@ function convertPatternMatchToConditions(value, test) {
 function convertPatternMatchToBindings(value, test) {
     switch (test.expression.kind) {
         case 'Identifier':
-            if (!scope_utils_1.findBinding(test.decoration.scope, test.expression.name)) {
+            if (!(test.expression.name in test.decoration.scope.bindings)) {
                 return [{ value, name: test.expression.name }];
             }
             return [];
@@ -135,9 +125,9 @@ function convertPatternMatchToBindings(value, test) {
                     record: value,
                 },
                 decoration: {
+                    scope: test.decoration.scope,
                     type: valueType.properties[name],
-                    implicitType: valueType.properties[name],
-                    scope: constructors_1.scope(),
+                    resolvedImplicits: [],
                 },
             }, property)));
         case 'DataInstantiation': // TODO
@@ -158,11 +148,8 @@ function combineConditions(conditions, value, alternative) {
             kind: 'FreeVariable',
             name: 't'
         },
-        implicitType: {
-            kind: 'FreeVariable',
-            name: 't'
-        },
         scope: value.decoration.scope,
+        resolvedImplicits: [],
     };
     const combinedCondition = conditions.reduce((left, right) => {
         return {
@@ -229,11 +216,8 @@ function makeConsequent(bindings, body) {
             kind: 'FreeVariable',
             name: 't'
         },
-        implicitType: {
-            kind: 'FreeVariable',
-            name: 't'
-        },
         scope: body.decoration.scope,
+        resolvedImplicits: [],
     };
     return bindings.reduceRight((body, binding) => {
         return {
@@ -277,14 +261,15 @@ function shallowDesugarPatternMatch({ expression, decoration }) {
         case 'BindingExpression':
             return { expression, decoration, kind: 'Node' };
         case 'PatternMatchExpression': {
-            const identifier = {
+            const identifier = { kind: 'Identifier', name: 'MATCH_VARIABLE$' };
+            const identifierNode = {
                 kind: 'Node',
-                expression: { kind: 'Identifier', name: 'MATCH_VARIABLE$' },
+                expression: identifier,
                 decoration: expression.value.decoration,
             };
             const patterns = expression.patterns.map((pattern) => {
-                const conditions = convertPatternMatchToConditions(identifier, pattern.test);
-                const bindings = convertPatternMatchToBindings(identifier, pattern.test);
+                const conditions = convertPatternMatchToConditions(identifierNode, pattern.test);
+                const bindings = convertPatternMatchToBindings(identifierNode, pattern.test);
                 return {
                     conditions,
                     value: makeConsequent(bindings, pattern.value),
@@ -294,9 +279,9 @@ function shallowDesugarPatternMatch({ expression, decoration }) {
                 throw new Error('Cannot have a pattern match with no patterns');
             }
             if (patterns.length === 1) {
-                return wrapInBinding(identifier.expression.name, expression.value, patterns[0].value);
+                return wrapInBinding(identifier.name, expression.value, patterns[0].value);
             }
-            return wrapInBinding(identifier.expression.name, expression.value, patterns.slice(0, -1).reduce((alternative, pattern) => {
+            return wrapInBinding(identifier.name, expression.value, patterns.slice(0, -1).reduce((alternative, pattern) => {
                 return combineConditions(pattern.conditions, pattern.value, alternative);
             }, patterns[patterns.length - 1].value));
         }

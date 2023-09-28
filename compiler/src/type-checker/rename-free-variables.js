@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.renameFreeVariables = void 0;
-const unique_id_generator_1 = require("../utils/unique-id-generator");
 const utils_1 = require("./utils");
 function findNameInScopes(scopes, name) {
     if (scopes.length === 0) {
@@ -90,8 +89,8 @@ const renameFreeVariablesInScope = (makeUniqueId) => (scopes, expression) => {
             return utils_1.assertNever(expression);
     }
 };
-function renameFreeVariables(expression) {
-    const [, result] = renameFreeVariablesInScope(unique_id_generator_1.uniqueIdStream())([], expression);
+function renameFreeVariables(makeUniqueId, expression) {
+    const [, result] = renameFreeVariablesInScope(makeUniqueId)([], expression);
     return result;
 }
 exports.renameFreeVariables = renameFreeVariables;

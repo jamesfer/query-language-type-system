@@ -8,9 +8,6 @@ export declare type ReductionIteratorMap<Keys extends string, E extends {
         kind: k;
     } ? Kind<k, A> : never) => B) : never;
 });
-export declare function makeReduceIterator<EU extends URIS, E extends {
-    kind: URIS;
-} & Kind<EU, any>, A, B>(iterators: ReductionIteratorMap<E['kind'], E, A, B>): (input: Kind<EU, A>) => B;
 export declare type IteratorMapIterator<K extends URIS, A, B> = ((f: (a: A) => B) => (expression: Kind<K, A>) => Kind<K, B>);
 export declare type IteratorMap<Keys extends string, E extends {
     kind: URIS;
@@ -21,7 +18,9 @@ export declare type IteratorMap<Keys extends string, E extends {
 });
 export declare function combineIteratorMap<EU extends URIS, E extends {
     kind: URIS;
-} & Kind<EU, any>, A, B>(iterators: IteratorMap<E['kind'], E, A, B>): (f: (a: A) => B) => (input: Kind<EU, A>) => Kind<EU, B>;
+} & Kind<EU, any>, A, B>(iterators: IteratorMap<E['kind'], E, A, B>): (f: (a: A) => B) => (input: Kind<EU, A> & {
+    kind: URIS;
+}) => Kind<EU, B>;
 export declare type Prop<K extends string, V> = {
     [k in K]: V;
 };

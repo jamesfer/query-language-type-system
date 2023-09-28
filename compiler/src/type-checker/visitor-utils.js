@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mapNode = exports.visitValueWithState = exports.visitValueForState = exports.visitAndTransformValue = exports.visitValue = exports.visitChildValues = exports.visitAndTransformExpressionBefore = exports.visitAndTransformExpression = exports.visitAndTransformChildExpression = exports.visitAndTransformNode = exports.visitNodes = exports.visitExpressionNodes = exports.unfoldExplicitParameters = exports.unfoldParameters = void 0;
+exports.mapNode = exports.visitAndTransformValue = exports.visitValue = exports.visitChildValues = exports.visitAndTransformExpressionBefore = exports.visitAndTransformExpression = exports.visitAndTransformChildExpression = exports.visitAndTransformNode = exports.visitNodes = exports.visitExpressionNodes = exports.unfoldExplicitParameters = exports.unfoldParameters = void 0;
 const lodash_1 = require("lodash");
 const utils_1 = require("./utils");
 function* unfoldParameters(value) {
@@ -214,31 +214,6 @@ const visitAndTransformChildValues = (callback) => (value) => {
 };
 exports.visitAndTransformValue = (visitor) => (value) => {
     return visitor(visitAndTransformChildValues(exports.visitAndTransformValue(visitor))(value));
-};
-exports.visitValueForState = (initial, visitor) => (value) => {
-    let state = initial;
-    const wrap = (visitor) => (value) => {
-        const [newState, newValue] = visitor([state, value]);
-        state = newState;
-        return newValue;
-    };
-    exports.visitValue({
-        before: visitor.before ? wrap(visitor.before) : undefined,
-        after: visitor.after ? wrap(visitor.after) : undefined,
-    })(value);
-    return state;
-};
-exports.visitValueWithState = (initial, visitor) => (value) => {
-    let state = initial;
-    const wrap = (visitor) => (value) => {
-        const [newState, newValue] = visitor([state, value]);
-        state = newState;
-        return newValue;
-    };
-    return exports.visitValue({
-        before: visitor.before ? wrap(visitor.before) : undefined,
-        after: visitor.after ? wrap(visitor.after) : undefined,
-    })(value);
 };
 function mapNode(f, node) {
     return Object.assign(Object.assign({}, node), { expression: f(node.expression) });

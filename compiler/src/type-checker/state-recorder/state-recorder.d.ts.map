@@ -1,0 +1,1 @@
+{"version":3,"file":"state-recorder.d.ts","sourceRoot":"","sources":["../../../../../../compiler/src/type-checker/state-recorder/state-recorder.ts"],"names":[],"mappings":"AAAA,qBAAa,aAAa,CAAC,CAAC;IAC1B,MAAM,EAAE,CAAC,EAAE,CAAM;IAEjB,IAAI,CAAC,KAAK,EAAE,CAAC,GAAG,IAAI;IAIpB,OAAO,CAAC,MAAM,EAAE,CAAC,EAAE,GAAG,IAAI;IAM1B,KAAK;CAGN"}

@@ -1,8 +1,11 @@
-import { Application, BindingExpression, BooleanExpression, DataInstantiation, DualExpression, Expression, Identifier, NativeExpression, NodeWithExpression, NumberExpression, PatternMatchExpression, ReadDataPropertyExpression, ReadRecordPropertyExpression, RecordExpression, StringExpression, SymbolExpression, TypedNode } from '..';
-import { TypedDecoration } from '../type-checker/type-check';
+import { Application, BindingExpression, BooleanExpression, DataInstantiation, DualExpression, Expression, Identifier, NativeExpression, NodeWithExpression, NumberExpression, PatternMatchExpression, ReadDataPropertyExpression, ReadRecordPropertyExpression, RecordExpression, StringExpression, SymbolExpression } from '..';
+import { ResolvedNode, ResolvedNodeDecoration } from '../type-checker/resolve-implicits';
+import { Value } from '../type-checker/types/value';
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
 export interface SimpleFunctionExpression<T = Expression> {
     kind: 'SimpleFunctionExpression';
     parameter: string;
+    parameterType: Value;
     implicit: boolean;
     body: T;
 }
@@ -13,11 +16,11 @@ declare module 'fp-ts/lib/HKT' {
         readonly ['DesugaredExpressionWithoutDestructuring']: DesugaredExpressionWithoutDestructuring<A>;
     }
 }
-export interface DesugaredNode extends NodeWithExpression<TypedDecoration, DesugaredExpressionWithoutDestructuring<DesugaredNode>> {
+export interface DesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, DesugaredExpressionWithoutDestructuring<DesugaredNode>> {
 }
-export interface PartiallyDesugaredNode extends NodeWithExpression<TypedDecoration, Expression<DesugaredNode>> {
+export interface PartiallyDesugaredNode extends NodeWithExpression<ResolvedNodeDecoration, Expression<DesugaredNode>> {
 }
-export declare function desugarDestructuring(node: TypedNode): DesugaredNode;
+export declare function desugarDestructuring(makeUniqueId: UniqueIdGenerator, node: ResolvedNode): DesugaredNode;
 export declare function simpleFunctionMapIterator<A, B>(f: (a: A) => B): (expression: SimpleFunctionExpression<A>) => SimpleFunctionExpression<B>;
 export declare function makeDesugaredNodeIterator<A, B>(f: (a: A) => B): (e: DesugaredExpressionWithoutDestructuring<A>) => DesugaredExpressionWithoutDestructuring<B>;
 //# sourceMappingURL=desugar-destructuring.d.ts.map

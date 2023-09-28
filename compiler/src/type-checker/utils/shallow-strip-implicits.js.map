@@ -1,0 +1,1 @@
+{"version":3,"file":"shallow-strip-implicits.js","sourceRoot":"","sources":["../../../../../../compiler/src/type-checker/utils/shallow-strip-implicits.ts"],"names":[],"mappings":";;;AAEA,SAAgB,qBAAqB,CAAC,KAAY;IAChD,OAAO,KAAK,CAAC,IAAI,KAAK,yBAAyB,CAAC,CAAC,CAAC,qBAAqB,CAAC,KAAK,CAAC,IAAI,CAAC,CAAC,CAAC,CAAC,KAAK,CAAC;AAC9F,CAAC;AAFD,sDAEC"}

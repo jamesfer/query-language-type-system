@@ -1,11 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.clearLocalStatements = exports.getLocalStatements = exports.appendLocalStatement = exports.appendGlobalStatement = exports.newUniqueId = void 0;
+exports.clearLocalStatements = exports.getLocalStatements = exports.appendLocalStatement = exports.appendGlobalStatement = void 0;
 const monad_1 = require("./monad");
-function newUniqueId(prefix) {
-    return monad_1.Monad.of(state => state.child('makeUniqueId').apply(prefix));
-}
-exports.newUniqueId = newUniqueId;
 function appendGlobalStatement(statement) {
     return monad_1.Monad.of((state) => {
         state.child('globalStatements').append(statement);

@@ -16,8 +16,6 @@ export declare const visitAndTransformExpressionBefore: <T>(visitor: (value: T e
 export declare const visitChildValues: (visitor: Visitor<Value>) => (value: Value) => Value;
 export declare const visitValue: (visitor: Visitor<Value>) => (value: Value) => Value;
 export declare const visitAndTransformValue: <T>(visitor: (value: Value<T>) => T extends void ? Value<void> : T) => (value: Value) => T extends void ? Value<void> : T;
-export declare const visitValueForState: <S>(initial: S, visitor: Visitor<[S, Value<void>]>) => (value: Value) => S;
-export declare const visitValueWithState: <S>(initial: S, visitor: Visitor<[S, Value<void>]>) => (value: Value) => Value;
 export declare function mapNode<D, E, F>(f: (e: E) => F, node: NodeWithExpression<D, E>): NodeWithExpression<D, F>;
 export {};
 //# sourceMappingURL=visitor-utils.d.ts.map

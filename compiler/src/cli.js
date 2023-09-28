@@ -7,11 +7,13 @@ const lodash_1 = require("lodash");
 const perf_hooks_1 = require("perf_hooks");
 const api_1 = require("./api");
 const parse_1 = tslib_1.__importDefault(require("./parser/parse"));
-const constructors_1 = require("./type-checker/constructors");
-const evaluate_1 = require("./type-checker/evaluate");
-const run_type_phase_1 = require("./type-checker/run-type-phase");
+const type_checker_1 = require("./type-checker");
 const utils_1 = require("./type-checker/utils");
 const visitor_utils_1 = require("./type-checker/visitor-utils");
+const unique_id_generator_1 = require("./utils/unique-id-generator");
+const assert_1 = require("./utils/assert");
+const generate_javascript_1 = require("./backend/javascript/generate-javascript");
+const require_from_string_1 = tslib_1.__importDefault(require("require-from-string"));
 function indent(string, spaces = 2) {
     const indentString = Array(spaces).fill(' ').join('');
     return string.replace(/^/gm, indentString);
@@ -54,17 +56,29 @@ const prettyPrintValue = visitor_utils_1.visitAndTransformValue((value) => {
 });
 function timePromise(f) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        let before = perf_hooks_1.performance.now();
+        const before = perf_hooks_1.performance.now();
         const result = yield f();
-        let after = perf_hooks_1.performance.now();
+        const after = perf_hooks_1.performance.now();
         return [after - before, result];
     });
 }
 function timeFunction(f) {
-    let before = perf_hooks_1.performance.now();
+    const before = perf_hooks_1.performance.now();
     const result = f();
-    let after = perf_hooks_1.performance.now();
+    const after = perf_hooks_1.performance.now();
     return [after - before, result];
+}
+function timeAndPrintSection(name, f) {
+    try {
+        process.stdout.write(name);
+        const [time, value] = timeFunction(f);
+        process.stdout.write(chalk_1.default.grey(` ${time.toFixed(0)}ms\n`));
+        return value;
+    }
+    catch (e) {
+        process.stdout.write('\n');
+        throw e;
+    }
 }
 function readFileTimed(filename) {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
@@ -100,9 +114,9 @@ function parseCode(code) {
     process.stdout.write(chalk_1.default.grey(` ${time.toFixed(0)}ms\n`));
     return expression;
 }
-function checkTypes(expression) {
+function runCheckTypes(expression) {
     process.stdout.write('➜ Checking types...');
-    const [time, [messages]] = timeFunction(() => run_type_phase_1.runTypePhase(expression));
+    const [time, [messages]] = timeFunction(() => type_checker_1.checkTypes(unique_id_generator_1.uniqueIdStream(), expression));
     if (messages.length > 0) {
         process.stdout.write('\n');
         console.log(chalk_1.default.red('✖ Failed to type code'));
@@ -113,38 +127,69 @@ function checkTypes(expression) {
     }
     process.stdout.write(chalk_1.default.grey(` ${time.toFixed(0)}ms\n`));
 }
-function evaluate(expression) {
-    process.stdout.write('➜ Evaluating...');
-    const [time, value] = timeFunction(() => evaluate_1.evaluateExpression(constructors_1.evaluationScope())(expression));
-    if (!value) {
-        process.stdout.write('\n');
-        console.log(chalk_1.default.red('✖ Failed to evaluate expression'));
-        process.exit(1);
+function compileCode(code) {
+    try {
+        return timeAndPrintSection('➜ Compiling...', () => {
+            return api_1.compile(code);
+        });
     }
-    process.stdout.write(chalk_1.default.grey(` ${time.toFixed(0)}ms\n`));
-    return value;
+    catch (e) {
+        console.error(chalk_1.default.red('✖ Compilation threw an error: ') + e);
+    }
+}
+function evaluateExpression(expression) {
+    const javascriptCode = generate_javascript_1.generateJavascript(expression, { module: 'commonjs' });
+    try {
+        return require_from_string_1.default(javascriptCode);
+    }
+    catch (error) {
+        throw new Error(`Encountered an error while requiring generated code\n${error}\n\nCode: ${javascriptCode}`);
+    }
+}
+function evaluate(expression) {
+    try {
+        return timeAndPrintSection('➜ Evaluating...', () => {
+            return evaluateExpression(expression);
+        });
+    }
+    catch (e) {
+        console.log(chalk_1.default.red('✖ Failed to evaluate expression: ') + e);
+    }
+}
+function handleCode(code) {
+    const result = compileCode(code);
+    if (result == null) {
+        return;
+    }
+    if (result.expression == null) {
+        console.error(chalk_1.default.red('✖ Failed to produce an expression from compiled code.'));
+        result.messages.forEach((message) => {
+            console.error(chalk_1.default.red(`  - ${message}`));
+        });
+        return;
+    }
+    const value = evaluate(result.expression);
+    console.log(chalk_1.default.green('\u2713 Succeeded'));
+    console.log();
+    console.log(value);
+    // console.log(indent(prettyPrintValue(value)));
+    // console.log();
 }
 function main() {
     return tslib_1.__awaiter(this, void 0, void 0, function* () {
-        const filename = process.argv[2];
-        if (!filename) {
-            console.log(chalk_1.default.red('✖ Need to provide a filename'));
-            process.exit(1);
-        }
-        const code = yield readFile(filename);
-        const result = api_1.compile(code);
-        if (result.expression) {
-            const value = evaluate(result.expression);
-            console.log(chalk_1.default.green('\u2713 Succeeded'));
-            console.log();
-            console.log(indent(prettyPrintValue(value)));
-            console.log();
+        if (process.argv[2] === '-e') {
+            const code = process.argv[3];
+            assert_1.assert(code != null, 'Missing code argument after -e');
+            handleCode(code);
         }
         else {
-            console.log(chalk_1.default.red('✖ Failed to produce an expression from compiled code.'));
-            result.messages.forEach((message) => {
-                console.log(chalk_1.default.red(`  - ${message}`));
-            });
+            const filename = process.argv[2];
+            if (!filename) {
+                console.log(chalk_1.default.red('✖ Need to provide a filename'));
+                process.exit(1);
+            }
+            const code = yield readFile(filename);
+            handleCode(code);
         }
     });
 }

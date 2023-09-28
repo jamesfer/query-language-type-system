@@ -1,10 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = require("tslib");
 require("codemirror/lib/codemirror.css");
 require("codemirror/theme/monokai.css");
 require("../index.css");
-const app_1 = tslib_1.__importDefault(require("./app"));
+const app_1 = require("./app");
 // Insert html content into the body
 const element = document.createElement('div');
 element.innerHTML = `
@@ -34,5 +33,5 @@ const cppLanguageButton = document.getElementById('cpp-language-button');
 if (!editorElement || !outputElement || !jsLanguageButton || !cppLanguageButton) {
     throw new Error('Failed to find #editor and #output elements');
 }
-new app_1.default(editorElement, outputElement, jsLanguageButton, cppLanguageButton);
+new app_1.App(editorElement, outputElement, jsLanguageButton, cppLanguageButton);
 //# sourceMappingURL=index.js.map

@@ -2,16 +2,15 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.convertValueToType = void 0;
 const make_record_literal_struct_1 = require("./make-record-literal-struct");
-const monad_1 = require("./monad");
-const shallowConvertValueToType = (value) => {
+const shallowConvertValueToType = (state, makeUniqueId) => (value) => {
     switch (value.kind) {
-        case 'DataValue':
-            return monad_1.pipeRecord({
-                name: shallowConvertValueToType(value.name),
-                parameters: monad_1.traverseM(value.parameters, shallowConvertValueToType),
-            }, ({ name, parameters }) => `${name}<${parameters.join(', ')}>`);
+        case 'DataValue': {
+            const name = shallowConvertValueToType(state, makeUniqueId)(value.name);
+            const parameters = value.parameters.map(shallowConvertValueToType(state, makeUniqueId));
+            return `${name}<${parameters.join(', ')}>`;
+        }
         case 'RecordLiteral':
-            return monad_1.pipeRecord({ struct: make_record_literal_struct_1.makeRecordLiteralStruct(value) }, ({ struct }) => struct);
+            return make_record_literal_struct_1.makeRecordLiteralStruct(state, makeUniqueId, value);
         case 'ApplicationValue': {
             // Collect all parameters to un-curry the application
             let parameters = [value.parameter];
@@ -20,27 +19,26 @@ const shallowConvertValueToType = (value) => {
                 parameters = [callee.parameter, ...parameters];
                 callee = callee.callee;
             }
-            return monad_1.pipeRecord({
-                callee: shallowConvertValueToType(callee),
-                parameters: monad_1.traverseM(parameters, shallowConvertValueToType),
-            }, ({ callee, parameters }) => `${callee}<${parameters.join(', ')}>`);
+            const resultCallee = shallowConvertValueToType(state, makeUniqueId)(callee);
+            const resultParameters = parameters.map(shallowConvertValueToType(state, makeUniqueId));
+            return `${resultCallee}<${resultParameters.join(', ')}>`;
         }
-        case 'FunctionLiteral':
-            return monad_1.pipeRecord({
-                body: shallowConvertValueToType(value.body),
-                parameter: shallowConvertValueToType(value.parameter),
-            }, ({ body, parameter }) => `[](${parameter}) -> ${body}`);
+        case 'FunctionLiteral': {
+            const body = shallowConvertValueToType(state, makeUniqueId)(value.body);
+            const parameter = shallowConvertValueToType(state, makeUniqueId)(value.parameter);
+            return `[](${parameter}) -> ${body}`;
+        }
         case 'FreeVariable':
-            return monad_1.Monad.pure(value.name);
+            return value.name;
         // throw new Error(`Free variable ${value.name} cannot be part of a type`);
         case 'SymbolLiteral':
-            return monad_1.Monad.pure('std::string');
+            return 'std::string';
         case 'BooleanLiteral':
-            return monad_1.Monad.pure('boolean');
+            return 'boolean';
         case 'NumberLiteral':
-            return monad_1.Monad.pure('double');
+            return 'double';
         case 'StringLiteral':
-            return monad_1.Monad.pure('std::string');
+            return 'std::string';
         case 'DualBinding':
             throw new Error(`Dual binding value cannot be part of a type`);
         case 'ReadDataValueProperty':
@@ -53,8 +51,9 @@ const shallowConvertValueToType = (value) => {
             throw new Error(`Pattern match value cannot be part of a type`);
     }
 };
-function convertValueToType(value) {
-    return monad_1.mapM(shallowConvertValueToType(value), string => ({ kind: 'Type', value: string }));
+function convertValueToType(state, makeUniqueId, value) {
+    const result = shallowConvertValueToType(state, makeUniqueId)(value);
+    return { kind: 'Type', value: result };
 }
 exports.convertValueToType = convertValueToType;
 //# sourceMappingURL=convert-value-to-type.js.map

@@ -3,18 +3,20 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = require("tslib");
 const dedent_js_1 = tslib_1.__importDefault(require("dedent-js"));
 const parse_1 = tslib_1.__importDefault(require("../parser/parse"));
-const run_type_phase_1 = require("../type-checker/run-type-phase");
+const type_checker_1 = require("../type-checker");
+const unique_id_generator_1 = require("../utils/unique-id-generator");
 const desugar_1 = require("./desugar");
 function compileAndDesugar(code) {
     const { value: expression } = parse_1.default(code);
     if (!expression) {
         throw new Error(`Failed to parse code: ${code}`);
     }
-    const [typeMessages, typedNode] = run_type_phase_1.runTypePhase(expression);
+    const makeUniqueId = unique_id_generator_1.uniqueIdStream();
+    const [typeMessages, typedNode] = type_checker_1.checkTypes(makeUniqueId, expression);
     if (typeMessages.length > 0) {
         throw new Error(`Failed to type code: ${typeMessages.join(', ')}`);
     }
-    return desugar_1.desugar(typedNode);
+    return desugar_1.desugar(makeUniqueId, typedNode);
 }
 describe('desugar', () => {
     describe('desugarDestructuring', () => {
@@ -64,7 +66,7 @@ describe('desugar', () => {
                         kind: 'Node',
                         expression: {
                             kind: 'SimpleFunctionExpression',
-                            parameter: 'injectedParameter$',
+                            parameter: expect.stringMatching(/^injectedParameter\$\d*/),
                             body: {
                                 kind: 'Node',
                                 expression: {
@@ -103,7 +105,7 @@ describe('desugar', () => {
                         kind: 'Node',
                         expression: {
                             kind: 'SimpleFunctionExpression',
-                            parameter: 'injectedParameter$',
+                            parameter: expect.stringMatching(/^injectedParameter\$\d*/),
                             body: {
                                 kind: 'Node',
                                 expression: {
@@ -118,14 +120,8 @@ describe('desugar', () => {
                                                 kind: 'Node',
                                                 expression: {
                                                     kind: 'Identifier',
-                                                    name: 'injectedParameter$',
+                                                    name: expect.stringMatching(/^injectedParameter\$\d*/),
                                                 },
-                                            },
-                                        },
-                                        decoration: {
-                                            type: {
-                                                kind: 'FreeVariable',
-                                                name: expect.stringMatching(/^a\$.*/),
                                             },
                                         },
                                     },
@@ -156,7 +152,7 @@ describe('desugar', () => {
                         kind: 'Node',
                         expression: {
                             kind: 'SimpleFunctionExpression',
-                            parameter: 'injectedParameter$',
+                            parameter: expect.stringMatching(/^injectedParameter\$\d*/),
                             body: {
                                 kind: 'Node',
                                 expression: {
@@ -166,12 +162,12 @@ describe('desugar', () => {
                                         kind: 'Node',
                                         expression: {
                                             kind: 'Identifier',
-                                            name: 'injectedParameter$'
+                                            name: expect.stringMatching(/^injectedParameter\$\d*/),
                                         },
                                         decoration: {
                                             type: {
                                                 kind: 'FreeVariable',
-                                                name: expect.stringMatching(/^a\$.*/),
+                                                name: expect.stringMatching(/^dualExpression\$.*/),
                                             },
                                         },
                                     },
@@ -184,12 +180,12 @@ describe('desugar', () => {
                                                 kind: 'Node',
                                                 expression: {
                                                     kind: 'Identifier',
-                                                    name: 'injectedParameter$'
+                                                    name: expect.stringMatching(/^injectedParameter\$\d*/),
                                                 },
                                                 decoration: {
                                                     type: {
                                                         kind: 'FreeVariable',
-                                                        name: expect.stringMatching(/^a\$.*/),
+                                                        name: expect.stringMatching(/^dualExpression\$.*/),
                                                     },
                                                 },
                                             },

@@ -1,64 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.node = exports.readDataProperty = exports.readRecordProperty = exports.data = exports.dual = exports.dataInstantiation = exports.record = exports.booleanExpression = exports.numberExpression = exports.apply = exports.identifier = exports.lambda = exports.implement = exports.bind = exports.symbolExpression = exports.dualBinding = exports.stringLiteral = exports.numberLiteral = exports.booleanLiteral = exports.freeVariable = exports.recordLiteral = exports.functionType = exports.dataValue = exports.symbol = exports.eScopeShapeBinding = exports.eScopeBinding = exports.scopeBinding = exports.expandEvaluationScope = exports.expandScope = exports.evaluationScope = exports.scope = void 0;
+exports.node = exports.readDataProperty = exports.readRecordProperty = exports.data = exports.dual = exports.dataInstantiation = exports.record = exports.stringExpression = exports.booleanExpression = exports.numberExpression = exports.apply = exports.identifier = exports.lambda = exports.bind = exports.symbolExpression = exports.application = exports.dualBinding = exports.stringLiteral = exports.numberLiteral = exports.booleanLiteral = exports.freeVariable = exports.recordLiteral = exports.functionType = exports.dataValue = exports.symbol = void 0;
 const lodash_1 = require("lodash");
-/**
- * Scope stuff
- */
-function scope(scope = {}) {
-    return Object.assign({ bindings: [] }, scope);
-}
-exports.scope = scope;
-function evaluationScope(scope = {}) {
-    return Object.assign({ bindings: [] }, scope);
-}
-exports.evaluationScope = evaluationScope;
-function expandScope(parent, child = {}) {
-    return {
-        bindings: [...parent.bindings, ...child.bindings || []],
-    };
-}
-exports.expandScope = expandScope;
-function expandEvaluationScope(parent, child = {}) {
-    return {
-        bindings: [...parent.bindings, ...child.bindings || []],
-    };
-}
-exports.expandEvaluationScope = expandEvaluationScope;
-// export function scopeDataDeclaration(callee: string, parameters: TypedNode[]):  {
-//   return {
-//     callee,
-//     parameters,
-//     kind: 'DataDeclaration',
-//   };
-// }
-function scopeBinding(name, scope, type, node) {
-    return {
-        name,
-        type,
-        scope,
-        node,
-        // expression,
-        kind: 'ScopeBinding',
-    };
-}
-exports.scopeBinding = scopeBinding;
-function eScopeBinding(name, value) {
-    return {
-        name,
-        value,
-        kind: 'ScopeBinding',
-    };
-}
-exports.eScopeBinding = eScopeBinding;
-function eScopeShapeBinding(name, type) {
-    return {
-        name,
-        type,
-        kind: 'ScopeShapeBinding',
-    };
-}
-exports.eScopeShapeBinding = eScopeShapeBinding;
 /**
  * Values
  */
@@ -135,6 +78,14 @@ function dualBinding(left, right) {
     };
 }
 exports.dualBinding = dualBinding;
+function application(callee, parameter) {
+    return {
+        callee,
+        parameter,
+        kind: 'ApplicationValue',
+    };
+}
+exports.application = application;
 function toExpression(expression) {
     if (typeof expression === 'string') {
         return identifier(expression);
@@ -163,11 +114,13 @@ exports.bind = (name, value) => (body) => ({
     kind: 'BindingExpression',
     value: toExpression(value),
 });
-exports.implement = (name, parameters = []) => (exports.bind(lodash_1.uniqueId(`${name}Implementation`), parameters.length > 0 ? apply(identifier(name), parameters) : identifier(name)));
 function defaultExplicit(parameters) {
     return parameters.map(parameter => Array.isArray(parameter) ? parameter : [parameter, false]);
 }
 function lambda(parameters, body) {
+    if (parameters.length === 0) {
+        throw new Error('Cannot create a function with no parameters');
+    }
     return defaultExplicit(parameters).reduceRight((body, [parameter, implicit]) => ({
         body,
         implicit,
@@ -183,8 +136,8 @@ function identifier(name) {
     };
 }
 exports.identifier = identifier;
-function apply(callee, parameters = []) {
-    return parameters.reduce((callee, parameter) => ({
+function apply(callee, parameters) {
+    return lodash_1.castArray(parameters).reduce((callee, parameter) => ({
         kind: 'Application',
         callee: callee,
         parameter: toExpression(parameter),
@@ -205,6 +158,13 @@ function booleanExpression(value) {
     };
 }
 exports.booleanExpression = booleanExpression;
+function stringExpression(value) {
+    return {
+        value,
+        kind: 'StringExpression',
+    };
+}
+exports.stringExpression = stringExpression;
 function record(properties) {
     return {
         properties,

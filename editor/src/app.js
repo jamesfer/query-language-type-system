@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.App = void 0;
 const tslib_1 = require("tslib");
 const dedent_js_1 = tslib_1.__importDefault(require("dedent-js"));
 const compile_to_1 = tslib_1.__importDefault(require("./compile-to"));
 const rxjs_1 = require("rxjs");
 const operators_1 = require("rxjs/operators");
-const editor_1 = tslib_1.__importDefault(require("./editor"));
+const editor_1 = require("./editor");
 const activeLanguageButtonClass = 'selected';
 class App {
     constructor(inputElement, outputElement, jsLanguageButton, cppLanguageButton) {
@@ -13,15 +14,18 @@ class App {
         this.outputElement = outputElement;
         this.jsLanguageButton = jsLanguageButton;
         this.cppLanguageButton = cppLanguageButton;
-        this.editor = new editor_1.default(this.inputElement);
-        this.outputEditor = new editor_1.default(this.outputElement, {
+        this.editor = new editor_1.Editor(this.inputElement);
+        this.outputEditor = new editor_1.Editor(this.outputElement, {
             readOnly: true,
             mode: 'javascript',
         });
         this.backendOption$ = new rxjs_1.BehaviorSubject('javascript');
         this.jsButtonSubscription = rxjs_1.fromEvent(this.jsLanguageButton, 'click').pipe(operators_1.mapTo('javascript')).subscribe(this.backendOption$);
         this.cppButtonSubscription = rxjs_1.fromEvent(this.cppLanguageButton, 'click').pipe(operators_1.mapTo('cpp')).subscribe(this.backendOption$);
-        this.compilationSubscription = rxjs_1.combineLatest(this.inputCodeObservable(), this.inputCompileOptions()).subscribe(([code, options]) => {
+        this.compilationSubscription = rxjs_1.combineLatest([
+            this.inputCodeObservable(),
+            this.inputCompileOptions(),
+        ]).subscribe(([code, options]) => {
             this.displayCompiledCode(this.generateCompilationOutput(code, options));
         });
         this.jsButtonStyleSubscription = this.backendOption$.subscribe((backend) => {
@@ -59,28 +63,26 @@ class App {
             if (output) {
                 return { code: output };
             }
-            else {
-                const formattedMessages = messages.map(message => ` *    ✖ ${message}`);
-                return {
-                    error: dedent_js_1.default `
-            /**
-             * Code failed to compile:
-             ${formattedMessages.join('\n')}
-             */
-          `,
-                };
-            }
+            const formattedMessages = messages.map(message => ` *    ✖ ${message}`);
+            return {
+                error: dedent_js_1.default `
+          /**
+           * Code failed to compile:
+           ${formattedMessages.join('\n')}
+           */
+        `,
+            };
         }
         catch (error) {
             return {
                 error: dedent_js_1.default `
           /**
-            Compiler threw an exception: ${error}
-          */
+           * Compiler threw an exception: ${error}
+           */
         `,
             };
         }
     }
 }
-exports.default = App;
+exports.App = App;
 //# sourceMappingURL=app.js.map

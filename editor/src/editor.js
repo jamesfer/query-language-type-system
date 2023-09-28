@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Editor = void 0;
 const codemirror_1 = require("codemirror");
 const rxjs_1 = require("rxjs");
 const mode_1 = require("./mode");
@@ -37,5 +38,5 @@ class Editor {
         return (_, value) => subject.next(value);
     }
 }
-exports.default = Editor;
+exports.Editor = Editor;
 //# sourceMappingURL=editor.js.map

@@ -5,7 +5,7 @@ const visitor_utils_1 = require("../type-checker/visitor-utils");
 const destructure_expression_1 = require("./destructure-expression");
 const iterators_core_1 = require("./iterators-core");
 const iterators_specific_1 = require("./iterators-specific");
-function shallowDesugarDestructuring({ expression, decoration }) {
+function shallowDesugarDestructuring(makeUniqueId, { expression, decoration }) {
     switch (expression.kind) {
         case 'Identifier':
         case 'BooleanExpression':
@@ -30,12 +30,13 @@ function shallowDesugarDestructuring({ expression, decoration }) {
                     expression: {
                         kind: 'SimpleFunctionExpression',
                         parameter: expression.parameter.expression.name,
+                        parameterType: expression.parameter.decoration.type,
                         implicit: expression.implicit,
                         body: expression.body,
                     },
                 };
             }
-            const newName = 'injectedParameter$';
+            const newName = makeUniqueId('injectedParameter$');
             const identifierNode = {
                 kind: 'Node',
                 expression: { kind: 'Identifier', name: newName },
@@ -48,6 +49,7 @@ function shallowDesugarDestructuring({ expression, decoration }) {
                 expression: {
                     kind: 'SimpleFunctionExpression',
                     parameter: newName,
+                    parameterType: expression.parameter.decoration.type,
                     implicit: expression.implicit,
                     body: bindings.reduce((accum, binding) => ({
                         decoration,
@@ -64,8 +66,8 @@ function shallowDesugarDestructuring({ expression, decoration }) {
         }
     }
 }
-function desugarDestructuring(node) {
-    const internal = (node) => shallowDesugarDestructuring(visitor_utils_1.mapNode(iterator, node));
+function desugarDestructuring(makeUniqueId, node) {
+    const internal = (node) => (shallowDesugarDestructuring(makeUniqueId, visitor_utils_1.mapNode(iterator, node)));
     const iterator = iterators_specific_1.makeExpressionIterator(internal);
     return internal(node);
 }

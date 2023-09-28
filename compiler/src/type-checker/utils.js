@@ -1,18 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findWithResult = exports.withParentExpressionKind = exports.withStateStack = exports.withRecursiveFreeState = exports.accumulateStatesUsingOr = exports.accumulateStatesUsingAnd = exports.accumulateStatesWithResult = exports.accumulateStates = exports.permuteArrays = exports.spreadApply = exports.pipe = exports.isDefined = exports.mapValuesWithState = exports.mapWithState = exports.everyValue = exports.everyIs = exports.unzipObject = exports.unzip = exports.checkedZipWith = exports.checkedZip = exports.clipArrays = exports.assertNever = void 0;
-// import { AssertionError } from 'assert';
+exports.findWithResult = exports.withStateStack = exports.withRecursiveFreeState = exports.accumulateStatesUsingOr = exports.accumulateStatesUsingAnd = exports.accumulateStatesWithResult = exports.accumulateStates = exports.permuteArrays = exports.spreadApply = exports.pipe = exports.isDefined = exports.mapValuesWithState = exports.mapWithState = exports.everyValue = exports.everyIs = exports.unzipObject = exports.unzip = exports.checkedZipWith = exports.checkedZip = exports.clipArrays = exports.assertNever = void 0;
 const lodash_1 = require("lodash");
 const free_1 = require("../utils/free");
 function assertNever(x) {
     throw new Error('Assert never was actually called');
 }
 exports.assertNever = assertNever;
-// export function assert(condition: any, message: string): asserts condition {
-//   if (!condition) {
-//     throw new AssertionError({ message: `Assertion failed: ${message}` });
-//   }
-// }
 function clipArrays(array1, array2) {
     if (array1.length > array2.length) {
         return [array1.slice(0, array2.length), array2];
@@ -162,16 +156,6 @@ function withStateStack(f) {
     };
 }
 exports.withStateStack = withStateStack;
-/**
- * Automatically tracks the parent kind of each expression and provides its to the given callback.
- */
-function withParentExpressionKind(f) {
-    return withStateStack((pushState, parentKind, node) => {
-        pushState(node.expression.kind);
-        return f(parentKind, node);
-    });
-}
-exports.withParentExpressionKind = withParentExpressionKind;
 function findWithResult(list, f) {
     let result = undefined;
     let found = list.find(element => {

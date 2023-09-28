@@ -1,0 +1,1 @@
+{"version":3,"file":"generate-cpp-state.d.ts","sourceRoot":"","sources":["../../../../../../compiler/src/backend/cpp/generate-cpp-state.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,sDAAsD,CAAC;AACxF,OAAO,EAAE,aAAa,EAAE,MAAM,kDAAkD,CAAC;AACjF,OAAO,EAAE,YAAY,EAAE,MAAM,WAAW,CAAC;AAEzC,qBAAa,gBAAgB;IAC3B,oBAAoB,mCAA0C;IAC9D,gBAAgB,8BAAqC;IACrD,eAAe,8BAAqC;CACrD"}

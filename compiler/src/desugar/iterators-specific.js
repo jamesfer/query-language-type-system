@@ -1,21 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stripNode = exports.stripExpressionNodes = exports.makeStripNode = exports.shallowStripNode = exports.makeExpressionIterator = exports.recordMapIterator = exports.patternMatchMapIterator = exports.bindingMapIterator = exports.dualMapIterator = exports.functionMapIterator = exports.readRecordPropertyMapIterator = exports.readDataPropertyMapIterator = exports.dataInstantiationMapIterator = exports.applicationMapIterator = exports.emptyMapIterator = void 0;
+exports.makeStripNode = exports.shallowStripNode = exports.makeExpressionIterator = exports.recordMapIterator = exports.patternMatchMapIterator = exports.bindingMapIterator = exports.dualMapIterator = exports.functionMapIterator = exports.readRecordPropertyMapIterator = exports.readDataPropertyMapIterator = exports.dataInstantiationMapIterator = exports.applicationMapIterator = exports.emptyMapIterator = void 0;
 const lodash_1 = require("lodash");
 const iterators_core_1 = require("./iterators-core");
-// export function passThroughNodeIterator<A, B, D>(f: (value: A) => B): (node: NodeWithExpression<D, A>) => NodeWithExpression<D, B> {
-//   return passThroughIterator('expression')(f);
-// }
-//
-// export function strippingNodeIterator<A, B, D>(f: (value: A) => B): (node: NodeWithExpression<D, A>) => B {
-//   return node => f(node.expression);
-// }
-// type Keys<K extends string, E extends { kind: string }> = E extends { kind: K } ? keyof E : never;
-//
-// const expressionChildPropertyMap: { [K in Expression['kind']]: Keys<K, Expression>[] } = {
-//   Application: ['callee'],
-//   DataInstantiation: ['callee', 'parameters']
-// };
 function emptyMapIterator(f) {
     return expression => expression;
 }
@@ -85,33 +72,4 @@ function makeStripNode(makeIterator) {
     return iterator;
 }
 exports.makeStripNode = makeStripNode;
-exports.stripExpressionNodes = makeStripNode(makeExpressionIterator);
-function stripNode(node) {
-    return exports.stripExpressionNodes(shallowStripNode(node));
-}
-exports.stripNode = stripNode;
-// function reduceExpression<A>(f: (input: Expression<A>) => A): (input: Expression) => A {
-//   // Doesn't work, will just cause infinite loop
-//   const nestedIterator = (expression: Expression) => reduceIterator(expression);
-//   const iterators: ReductionIteratorMap<Expression['kind'], Expression, Expression, A> = {
-//     Identifier: f,
-//     BooleanExpression: f,
-//     StringExpression: f,
-//     NumberExpression: f,
-//     SymbolExpression: f,
-//     DataInstantiation: nestedIterator,
-//     Application: applicationMapIterator(f),
-//     ReadDataPropertyExpression: nestedIterator,
-//     ReadRecordPropertyExpression: nestedIterator,
-//     FunctionExpression: nestedIterator,
-//     DualExpression: nestedIterator,
-//     BindingExpression: nestedIterator,
-//     NativeExpression: nestedIterator,
-//     PatternMatchExpression: nestedIterator,
-//     RecordExpression: nestedIterator,
-//   };
-//   const reduceIterator = makeReduceIterator<'Expression', Expression, Expression, A>(iterators);
-//   return reduceIterator;
-// }
-// function a<D, A>(f: NodeWithExpression<D, A>): (node: NodeWithExpression<D, any>)
 //# sourceMappingURL=iterators-specific.js.map
