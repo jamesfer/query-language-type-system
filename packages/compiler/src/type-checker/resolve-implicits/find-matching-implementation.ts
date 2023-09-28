@@ -7,8 +7,9 @@ import { Scope } from '../build-scoped-node';
 
 function filterBindingsBy(scope: Scope, f: (value: Value, string: String) => boolean): [string, Value][] {
   const accumulator: [string, Value][] = [];
-  
-  for (const name in scope.bindings) { if (f(scope.bindings[name], name)) {
+
+  for (const name in scope.bindings) {
+    if (f(scope.bindings[name], name)) {
       accumulator.push([name, scope.bindings[name]]);
     }
   }

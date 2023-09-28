@@ -10,8 +10,12 @@ import { ResolvedNode, resolveImplicits } from './resolve-implicits';
 import { StateRecorder } from './state-recorder/state-recorder';
 import { Expression } from './types/expression';
 import { Message } from './types/message';
+import { simplifyCollapsedTypes } from './simplify-collapsed-types/simplify-collapsed-types';
 
-export function checkTypes(makeUniqueId: UniqueIdGenerator, expression: Expression): [Message[], ResolvedNode] {
+export function checkTypes(
+  makeUniqueId: UniqueIdGenerator,
+  expression: Expression,
+): [Message[], ResolvedNode] {
   const messageState = new StateRecorder<Message>();
 
   // Rename all free variables to prevent conflicts
@@ -24,8 +28,11 @@ export function checkTypes(makeUniqueId: UniqueIdGenerator, expression: Expressi
   // const collapsedInferredTypes = collapseInferredTypes(messageState, inferredTypes);
   const collapsedInferredTypes = reduceInferredTypes(messageState, inferredTypes);
 
-  // Reapplies all the inferred types discovered in the previous step. Type information can propagate to all expressions
-  const shapedNode = recursivelyApplyInferredTypes(collapsedInferredTypes)(namedNode);
+  const simplifiedInferredTypes = simplifyCollapsedTypes(collapsedInferredTypes);
+
+  // Reapplies all the inferred types discovered in the previous step.
+  // Type information can propagate to all expressions
+  const shapedNode = recursivelyApplyInferredTypes(simplifiedInferredTypes)(namedNode);
 
   // Builds and attaches a scope to each node
   const scopedNode = buildScopedNode(shapedNode);

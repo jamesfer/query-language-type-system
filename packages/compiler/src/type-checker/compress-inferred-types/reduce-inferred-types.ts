@@ -79,10 +79,6 @@ const mergeCollapsedTypes = (
 ) => (
   existing: CollapsedInferredType,
 ): [CollapsedInferredType, CollapsedInferredType[]] => {
-  if (next.from === 'nodeIdentifiera$rename$1Type$45') {
-    console.log('x');
-  }
-
   return pipe(
     wrapped(messageState, existing, next),
     mapFst((mergedPartialType): CollapsedInferredType => ({
@@ -91,7 +87,7 @@ const mergeCollapsedTypes = (
       sources: [...existing.sources, ...next.sources],
     })),
   );
-}
+};
 
 const applyCollapsedType = (
   messageState: StateRecorder<Message>,
@@ -114,7 +110,7 @@ const applyCollapsedType = (
     ),
     mapFst(newType => ({ ...allTypes, [newType.from]: newType })),
   );
-}
+};
 
 export function reduceInferredTypes(
   messageState: StateRecorder<Message>,

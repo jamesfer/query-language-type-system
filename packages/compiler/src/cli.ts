@@ -2,13 +2,17 @@ import chalk from 'chalk';
 import { promises } from 'fs';
 import { map } from 'lodash';
 import { performance } from 'perf_hooks';
-import { compile } from './api';
+import { compile, CompileResult } from './api';
 import parse from './parser/parse';
 import { checkTypes } from './type-checker';
 import { Expression } from './type-checker/types/expression';
 import { assertNever } from './type-checker/utils';
 import { visitAndTransformValue } from './type-checker/visitor-utils';
 import { uniqueIdStream } from './utils/unique-id-generator';
+import { assert } from './utils/assert';
+import { DesugaredExpressionWithoutPatternMatch } from './desugar/desugar-pattern-match';
+import { generateJavascript } from './backend/javascript/generate-javascript';
+import requireFromString from 'require-from-string';
 
 function indent(string: string, spaces = 2) {
   const indentString = Array(spaces).fill(' ').join('');
@@ -67,17 +71,29 @@ const prettyPrintValue = visitAndTransformValue<string>((value): string => {
 });
 
 async function timePromise<T>(f: () => Promise<T>): Promise<[number, T]> {
-  let before = performance.now();
+  const before = performance.now();
   const result = await f();
-  let after = performance.now();
+  const after = performance.now();
   return [after - before, result];
 }
 
 function timeFunction<T>(f: () => T): [number, T] {
-  let before = performance.now();
+  const before = performance.now();
   const result = f();
-  let after = performance.now();
+  const after = performance.now();
   return [after - before, result];
+}
+
+function timeAndPrintSection<T>(name: string, f: () => T): T {
+  try {
+    process.stdout.write(name);
+    const [time, value] = timeFunction(f);
+    process.stdout.write(chalk.grey(` ${time.toFixed(0)}ms\n`));
+    return value;
+  } catch (e) {
+    process.stdout.write('\n');
+    throw e;
+  }
 }
 
 async function readFileTimed(filename: string): Promise<[number, string]> {
@@ -128,39 +144,73 @@ function runCheckTypes(expression: Expression): void {
   process.stdout.write(chalk.grey(` ${time.toFixed(0)}ms\n`));
 }
 
-// function evaluate(expression: DesugaredExpressionWithoutPatternMatch): Value {
-//   process.stdout.write('➜ Evaluating...');
-//   const [time, value] = timeFunction(() => evaluateExpression(evaluationScope())(expression));
-//   if (!value) {
-//     process.stdout.write('\n');
-//     console.log(chalk.red('✖ Failed to evaluate expression'));
-//     process.exit(1);
-//   }
-//
-//   process.stdout.write(chalk.grey(` ${time.toFixed(0)}ms\n`));
-//   return value;
-// }
+function compileCode(code: string): CompileResult | undefined {
+  try {
+    return timeAndPrintSection('➜ Compiling...', () => {
+      return compile(code);
+    });
+  } catch (e) {
+    console.error(chalk.red('✖ Compilation threw an error: ') + e);
+  }
+}
 
-async function main() {
-  const filename = process.argv[2];
-  if (!filename) {
-    console.log(chalk.red('✖ Need to provide a filename'));
-    process.exit(1);
+function evaluateExpression(expression: DesugaredExpressionWithoutPatternMatch): any {
+  const javascriptCode = generateJavascript(expression, { module: 'commonjs' });
+  try {
+    return requireFromString(javascriptCode);
+  } catch (error) {
+    throw new Error(`Encountered an error while requiring generated code\n${error}\n\nCode: ${javascriptCode}`);
+  }
+}
+
+function evaluate(expression: DesugaredExpressionWithoutPatternMatch): any {
+  try {
+    return timeAndPrintSection('➜ Evaluating...', () => {
+      return evaluateExpression(expression);
+    });
+  } catch (e) {
+    console.log(chalk.red('✖ Failed to evaluate expression: ') + e);
+  }
+}
+
+function handleCode(code: string) {
+  const result = compileCode(code);
+  if (result == null) {
+    return;
   }
 
-  const code = await readFile(filename);
-  const result = compile(code);
-  if (result.expression) {
-    // const value = evaluate(result.expression);
-    console.log(chalk.green('\u2713 Succeeded'));
-    console.log();
-    // console.log(indent(prettyPrintValue(value)));
-    // console.log();
-  } else {
-    console.log(chalk.red('✖ Failed to produce an expression from compiled code.'));
+  if (result.expression == null) {
+    console.error(chalk.red('✖ Failed to produce an expression from compiled code.'));
     result.messages.forEach((message) => {
-      console.log(chalk.red(`  - ${message}`));
+      console.error(chalk.red(`  - ${message}`));
     });
+    return;
+  }
+
+  const value = evaluate(result.expression);
+  console.log(chalk.green('\u2713 Succeeded'));
+  console.log();
+  console.log(value);
+
+  // console.log(indent(prettyPrintValue(value)));
+  // console.log();
+}
+
+async function main() {
+  if (process.argv[2] === '-e') {
+    const code = process.argv[3];
+    assert(code != null, 'Missing code argument after -e');
+
+    handleCode(code);
+  } else {
+    const filename = process.argv[2];
+    if (!filename) {
+      console.log(chalk.red('✖ Need to provide a filename'));
+      process.exit(1);
+    }
+
+    const code = await readFile(filename);
+    handleCode(code);
   }
 }
 

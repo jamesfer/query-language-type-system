@@ -18,7 +18,7 @@ export interface CollapsedInferredType {
   sources: InferredType[];
 }
 
-export type CollapsedInferredTypeMap = { [k: string]: CollapsedInferredType }
+export type CollapsedInferredTypeMap = { [k: string]: CollapsedInferredType };
 
 export function makeInferredType(
   operator: InferredTypeOperator,

@@ -104,4 +104,18 @@ describe('reduceInferredTypes', () => {
     ]);
     expect(messageState.values).toEqual([expect.any(String)]);
   });
+
+  it('xxx', () => {
+    const result = reduceInferredTypes(messageState, [
+      inferredType('a', 'Equals', functionType(numberLiteral(123), [[freeVariable('y'), true], freeVariable('x')])),
+      inferredType('d', 'EvaluatedFrom', freeVariable('a')),
+    ]);
+
+    expect(result['d']).toEqual({
+      operator: 'EvaluatedFrom',
+      from: 'd',
+      to: freeVariable('a'),
+      sources: expect.anything(),
+    });
+  });
 });

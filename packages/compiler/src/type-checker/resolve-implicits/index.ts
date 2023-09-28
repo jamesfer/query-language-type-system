@@ -58,7 +58,7 @@ function isValidCombination(implicitsToResolve: Value[], combination: Value[]) {
       origin,
       inferrer,
     )),
-  )
+  );
   collapseInferredTypes(messageState, pairs);
   return messageState.values.length === 0;
 }
@@ -91,7 +91,7 @@ function findAllMatchingImplementationsFor(
 
   // If there are no possibilities then the implicits are unresolvable
   if (validCombinations.length === 0) {
-    state.push('Could not find a valid set of replacements for implicits')
+    state.push('Could not find a valid set of replacements for implicits');
     return [];
   }
 
@@ -134,7 +134,7 @@ const resolveImplicitsFor = (state: StateRecorder<Message>) => (node: ScopedNode
       resolvedImplicits: matchingImplementations,
     },
   });
-}
+};
 
 export function resolveImplicits(node: ScopedNode): [Message[], ResolvedNode] {
   const state = new StateRecorder<Message>();

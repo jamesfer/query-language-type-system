@@ -16,7 +16,7 @@ import {
   symbol,
 } from '../constructors';
 import { StateRecorder } from '../state-recorder/state-recorder';
-import { BindingExpression, Expression } from '../types/expression';
+import { BindingExpression, Expression, FunctionExpression } from '../types/expression';
 import { InferredType, InferredTypeOperator, makeInferredType } from '../types/inferred-type';
 import { NodeWithChild } from '../types/node';
 import { FreeVariable, Value } from '../types/value';
@@ -46,7 +46,7 @@ const selectChildExpressions = makeExpressionIterator<ExpressionWith<any>, Expre
 );
 
 /**
- * Returns the type of a particular expression. In addition, it records any value pairs between the
+ * Returns the type of the particular expression. In addition, it records any value pairs between the
  * child types and the result type.
  */
 function determineResultType(
@@ -284,6 +284,16 @@ const recordBindingExpressionPairs = (inferredTypes: StateRecorder<InferredType>
   recordShapePair(inferredTypes, 'EvaluatedFrom')(expression.body);
 };
 
+/**
+ * Records the value pairs for a function expression.
+ */
+const recordFunctionExpressionPairs = (inferredTypes: StateRecorder<InferredType>) => (
+  expression: FunctionExpression<ExpressionWith<NamedNode>>,
+): void => {
+  recordShapePair(inferredTypes, 'EvaluatedFrom')(expression.parameter);
+  recordShapePair(inferredTypes, 'Equals')(expression.body);
+};
+
 const isBindingExpression = (
   expression: Expression<ExpressionWith<NamedNode>>
 ): expression is BindingExpression<ExpressionWith<NamedNode>> => (
@@ -293,13 +303,23 @@ const isBindingExpression = (
 const recordChildShapePairs = (
   inferredTypes: StateRecorder<InferredType>,
 ): (expression: Expression<ExpressionWith<NamedNode>>) => void => {
-  return flow(
-    fromPredicate(isBindingExpression, identity),
-    fold(
-      makeExpressionIterator(recordShapePair(inferredTypes, 'EvaluatedFrom')),
-      recordBindingExpressionPairs(inferredTypes),
-    ),
-  );
+  return (expression) => {
+    if (isBindingExpression(expression)) {
+      recordBindingExpressionPairs(inferredTypes)(expression);
+    } else if (expression.kind === 'FunctionExpression') {
+      recordFunctionExpressionPairs(inferredTypes)(expression);
+    } else {
+      makeExpressionIterator(recordShapePair(inferredTypes, 'EvaluatedFrom'))(expression);
+    }
+  };
+
+  // return flow(
+  //   fromPredicate(isBindingExpression, identity),
+  //   fold(
+  //     makeExpressionIterator(recordShapePair(inferredTypes, 'EvaluatedFrom')),
+  //     recordBindingExpressionPairs(inferredTypes),
+  //   ),
+  // );
 }
 
 function attachShapesWithState(

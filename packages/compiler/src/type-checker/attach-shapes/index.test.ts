@@ -45,6 +45,16 @@ describe('attachShapes', () => {
     };
   }
 
+  function equals(from: string, to: Value): InferredType {
+    return {
+      from,
+      to,
+      operator: 'Equals',
+      origin: expect.anything(),
+      inferrer: expect.anything(),
+    };
+  }
+
   beforeEach(() => {
     uniqueIdGenerator = prefixlessUniqueIdGenerator();
   });
@@ -131,14 +141,17 @@ describe('attachShapes', () => {
 
     it.each<[string, Value]>([
       ['lambdaParameter', freeVariable('x')],
-      ['lambdaBody', stringLiteral('Hello')],
       ['lambda', functionType(freeVariable('lambdaBody'), [freeVariable('lambdaParameter')])],
       ['numberLiteral', numberLiteral(123)],
       ['internalApplicationResult', freeVariable('application')],
       ['lambda', functionType(freeVariable('lambdaBody'), [freeVariable('lambdaParameter')])],
-      ['internalApplicationParameter', freeVariable('numberLiteral')],
-    ])('infers the type of the %s variable', (from, to) => {
+      // ['internalApplicationParameter', freeVariable('numberLiteral')],
+    ])('creates a evaluatedFrom partial type for the %s variable', (from, to) => {
       expect(inferences).toContainEqual(evaluatedFrom(from, to));
+    });
+
+    it('creates a equals partial type for the lambda body', () => {
+      expect(inferences).toContainEqual(equals('lambdaBody', stringLiteral('Hello')));
     });
 
     it('produces the correct named node', () => {

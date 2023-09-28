@@ -9,7 +9,6 @@ import dedent from 'dedent-js';
 // "END"
 // `;
 
-
 const preludeLibrary = dedent`
 data BUILT_IN
 data Integer = a

@@ -19,12 +19,17 @@ export interface ScopedNodeDecoration {
 
 export type ScopedNode<T = void> = NodeWithChild<ScopedNodeDecoration, T extends void ? ScopedNode : T>;
 
-function buildBindingScope(scope: Scope, expression: BindingExpression<ShapedNode>, ): BindingExpression<ScopedNode> {
-  const bodyScope = {
-    ...scope,
-    [expression.name]: expression.value.decoration.type,
+function expandScope(scope: Scope, newBindings: { [k: string]: Value }): Scope {
+  return {
+    bindings: {
+      ...scope.bindings,
+      ...newBindings,
+    },
   };
+}
 
+function buildBindingScope(scope: Scope, expression: BindingExpression<ShapedNode>, ): BindingExpression<ScopedNode> {
+  const bodyScope = expandScope(scope, { [expression.name]: expression.value.decoration.type });
   return {
     ...expression,
     value: shallowBuildScope(scope)(expression.value),
@@ -32,17 +37,17 @@ function buildBindingScope(scope: Scope, expression: BindingExpression<ShapedNod
   };
 }
 
-function buildFunctionScope(scope: Scope, expression: FunctionExpression<ShapedNode>): FunctionExpression<ScopedNode> {
+function buildFunctionScope(
+  scope: Scope,
+  expression: FunctionExpression<ShapedNode>,
+): FunctionExpression<ScopedNode> {
   const identifiers = extractDestructurableBindings(expression.parameter);
-  const bodyScope = {
-    ...scope,
-    ...fromPairs(identifiers.filter(([name]) => !(name in scope))),
-  };
+  const bodyScope = expandScope(scope, fromPairs(identifiers.filter(([name]) => !(name in scope))));
   return {
     ...expression,
     parameter: shallowBuildScope(scope)(expression.parameter),
     body: shallowBuildScope(bodyScope)(expression.body),
-  }
+  };
 }
 
 function attachScope(scope: Scope, decoration: ShapedNodeDecoration, expression: Expression<ScopedNode>): ScopedNode {

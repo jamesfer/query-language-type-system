@@ -1,11 +1,11 @@
 import { makeExpressionIterator } from '../../desugar/iterators-specific';
 import { NamedNode } from '../attach-shapes';
 import { freeVariable } from '../constructors';
-import { CollapsedInferredTypeMap } from '../types/inferred-type';
 import { NodeWithChild } from '../types/node';
 import { Value } from '../types/value';
 import { mapNode, visitAndTransformValue } from '../visitor-utils';
 import { CountMap } from '../../utils/count-map';
+import { SimplifiedInferredTypeMap } from '../simplify-collapsed-types/simplify-collapsed-types';
 
 export interface ShapedNodeDecoration {
   /**
@@ -18,10 +18,11 @@ export interface ShapedNodeDecoration {
   shape: Value;
 }
 
-export type ShapedNode<T = void> = NodeWithChild<ShapedNodeDecoration, T extends void ? ShapedNode : T>;
+export type ShapedNode<T = void> =
+  NodeWithChild<ShapedNodeDecoration, T extends void ? ShapedNode : T>;
 
 function applyCompressedInferredTypesRecursively(
-  inferredTypes: CollapsedInferredTypeMap,
+  inferredTypes: SimplifiedInferredTypeMap,
   value: Value,
   visitedVariables: CountMap<string>,
 ): Value {
@@ -47,13 +48,13 @@ function applyCompressedInferredTypesRecursively(
 }
 
 function applyCompressedInferredTypes(
-  inferredTypes: CollapsedInferredTypeMap,
+  inferredTypes: SimplifiedInferredTypeMap,
   value: Value,
 ): Value {
   return applyCompressedInferredTypesRecursively(inferredTypes, value, new CountMap());
 }
 
-const applyInferredTypesAttachedTypeNode = (inferredTypes: CollapsedInferredTypeMap) => (
+const applyInferredTypesAttachedTypeNode = (inferredTypes: SimplifiedInferredTypeMap) => (
   node: NamedNode<ShapedNode>,
 ): ShapedNode => {
   const shape = applyCompressedInferredTypes(
@@ -68,7 +69,7 @@ const applyInferredTypesAttachedTypeNode = (inferredTypes: CollapsedInferredType
 };
 
 export function recursivelyApplyInferredTypes(
-  inferredTypes: CollapsedInferredTypeMap,
+  inferredTypes: SimplifiedInferredTypeMap,
 ): (node: NamedNode) => ShapedNode {
   const applyTypes = applyInferredTypesAttachedTypeNode(inferredTypes);
   const internal = (node: NamedNode): ShapedNode => applyTypes(mapNode(iterator, node));
