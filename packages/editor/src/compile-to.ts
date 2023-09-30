@@ -42,10 +42,6 @@ function toBackend(
 
 export default function compileTo(code: string, options: CompileToOptions): CompileToResult {
   const { messages, expression, node } = compile(code);
-  if (expression && node) {
-    const output = toBackend(expression, node, options.backend);
-    return { messages, output };
-  }
-
-  return { messages, output: undefined };
+  const output = expression && node ? toBackend(expression, node, options.backend) : undefined;
+  return { messages, output };
 }

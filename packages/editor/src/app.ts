@@ -76,19 +76,21 @@ export class App {
 
     try {
       const { messages, output } = compileTo(code, options);
+      const formattedMessages = messages.map(message => ` *    ✖ ${message}`);
+      const messageComment = formattedMessages.length > 0
+        ? dedentJs`
+          /**
+           * ${output ? 'Code compiled with errors' : 'Code failed to compile'}:
+          ${formattedMessages.join('\n')}
+           */
+        `
+        : '';
+
       if (output) {
-        return { code: output };
+        return { code: `${output}\n\n${messageComment}` };
       }
 
-      const formattedMessages = messages.map(message => ` *    ✖ ${message}`);
-      return {
-        error: dedentJs`
-          /**
-           * Code failed to compile:
-           ${formattedMessages.join('\n')}
-           */
-        `,
-      };
+      return { error: messageComment };
     } catch (error) {
       return {
         error: dedentJs`
