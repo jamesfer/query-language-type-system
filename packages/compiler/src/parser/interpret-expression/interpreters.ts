@@ -295,7 +295,9 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretParenthesis,
 ));
 
-export default function interpretExpression(tokens: ExpressionToken[]): WithMessages<Expression | undefined> {
+export default function interpretExpression(
+  tokens: ExpressionToken[],
+): WithMessages<Expression | undefined> {
   const { messages, value: results } = runFree(runInterpreter(
     matchExpression(Precedence.none),
     tokens,

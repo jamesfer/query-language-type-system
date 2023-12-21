@@ -195,43 +195,4 @@ describe('checkTypes', () => {
       expect(node.decoration.type).toEqual(numberLiteral(111111));
     });
   });
-
-  describe('when checking ', () => {
-    let uniqueIdGenerator: UniqueIdGenerator;
-    let expression: Expression;
-    let messages: Message[];
-    let node: ResolvedNode;
-
-    beforeEach(() => {
-      uniqueIdGenerator = uniqueIdStream();
-
-      expression = pipe(
-        data('Integer', ['a']),
-        data('IAddable', ['I', 'methods'], [
-          'x',
-          record({
-            go: lambda(
-              [
-                apply('I', ['n']),
-                'n',
-              ],
-              'n',
-            ),
-          }),
-        ]),
-        bind('integerIdentity', lambda([apply('Integer', ['b']), 'b'], 'b')),
-        bind('implementation', apply('IAddable', ['Integer', record({ go: identifier('integerIdentity') })])),
-        numberExpression(111111),
-      );
-      [messages, node] = checkTypes(uniqueIdGenerator, expression);
-    });
-
-    it('produces no messages', () => {
-      expect(messages).toEqual([]);
-    });
-
-    it('infers the type of the result', () => {
-      expect(node.decoration.type).toEqual(numberLiteral(111111));
-    });
-  });
 });

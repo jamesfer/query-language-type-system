@@ -19,7 +19,11 @@ export enum Precedence {
   parenthesis,
 }
 
-export type InterpreterFunction<T> = (tokens: ExpressionToken[], previous: Expression | undefined, precedence: Precedence) => Free<WithMessages<WithTokens<T>[]>>
+export type InterpreterFunction<T> = (
+  tokens: ExpressionToken[],
+  previous: Expression | undefined,
+  precedence: Precedence,
+) => Free<WithMessages<WithTokens<T>[]>>;
 
 export interface Interpreter<T> {
   name: string | undefined;

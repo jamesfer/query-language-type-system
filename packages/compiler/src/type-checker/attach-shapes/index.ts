@@ -1,7 +1,6 @@
-import { fold, fromPredicate } from 'fp-ts/Either';
-import { flow, identity } from 'fp-ts/function';
+import { flow } from 'fp-ts/function';
 import { mapValues } from 'lodash';
-import { tap } from 'lodash/fp'
+import { tap } from 'lodash/fp';
 import { makeExpressionIterator } from '../../desugar/iterators-specific';
 import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import {

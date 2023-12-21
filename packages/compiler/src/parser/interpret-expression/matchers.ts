@@ -16,7 +16,7 @@ import { flatMapWithTokens, mapWithTokens, WithTokens, withTokens } from './toke
 export function matchOption<T>(childInterpreter: Interpreter<T>): Interpreter<T | undefined> {
   return interpreter('matchOption', (tokens, previous, precedence) => pipeFree(
     runInterpreter(childInterpreter, tokens, previous, precedence),
-    (withMessages) => pureFree(doWithState((state) => {
+    withMessages => pureFree(doWithState((state) => {
       const result = state.unwrap(withMessages);
       return result.length > 0 ? result : [withTokens([], undefined)];
     })),
@@ -115,7 +115,7 @@ function matchRepeatedRecursive<T>(
 
         return mapFree(
           matchRepeatedRecursive(tokens, previous, precedence, childInterpreter, successfulResults),
-          (repeatedMatches) => [...completedMatches, ...state.unwrap(repeatedMatches)],
+          repeatedMatches => [...completedMatches, ...state.unwrap(repeatedMatches)],
         );
       },
     );
@@ -152,7 +152,7 @@ export const matchKeyword = (keyword: string): Interpreter<ExpressionToken> => (
 );
 
 export const matchTokens = (...kinds: ExpressionTokenKind[]): Interpreter<ExpressionToken[]> => (
-  interpreter(`matchTokens(${kinds.join(', ')})`, (tokens) => doWithFreeState(() => {
+  interpreter(`matchTokens(${kinds.join(', ')})`, tokens => doWithFreeState(() => {
     if (kinds.every((kind, index) => tokens[index] && tokens[index].kind === kind)) {
       const matchedTokens = tokens.slice(0, kinds.length);
       return pureFree([withTokens(matchedTokens, matchedTokens)]);
@@ -162,7 +162,8 @@ export const matchTokens = (...kinds: ExpressionTokenKind[]): Interpreter<Expres
 );
 
 export const withPrevious = (precedence: Precedence): Interpreter<Expression> => (
-  interpreter('withPrevious', (_, previous, previousPrecedence) => pureFree(withMessages([],
+  interpreter('withPrevious', (_, previous, previousPrecedence) => pureFree(withMessages(
+    [],
     previous !== undefined && precedence >= previousPrecedence
       ? [withTokens([], previous)]
       : [],
@@ -196,7 +197,9 @@ export function protectAgainstLoops<T>(wrapped: Interpreter<T>): Interpreter<T> 
 /**
  * This has to be a function because it is referenced inside the other interpret function
  */
-function recursivelyMatchExpression(interpretExpressionComponent: Interpreter<Expression>): Interpreter<Expression> {
+function recursivelyMatchExpression(
+  interpretExpressionComponent: Interpreter<Expression>,
+): Interpreter<Expression> {
   return interpreter('recursivelyMatchExpression', (tokens, previous, precedence) => {
     return doWithFreeState((state) => {
       return pipeFree(
@@ -223,15 +226,20 @@ function recursivelyMatchExpression(interpretExpressionComponent: Interpreter<Ex
   });
 }
 
-export function makeExpressionMatcher(interpretExpression: () => Interpreter<Expression>): (precedence: Precedence) => Interpreter<Expression> {
-  return precedence => interpreter('matchExpression', (tokens) => (
+export function makeExpressionMatcher(
+  interpretExpression: () => Interpreter<Expression>,
+): (precedence: Precedence) => Interpreter<Expression> {
+  return precedence => interpreter('matchExpression', tokens => (
     runInterpreter(recursivelyMatchExpression(interpretExpression()), tokens, undefined, precedence)
   ));
 }
 
-export function makeBrokenExpressionMatcher(interpretExpression: () => Interpreter<Expression>): (precedence: Precedence) => Interpreter<Expression> {
-  return precedence => interpreter('matchBrokenExpression', (tokens) => matchAll(
+export function makeBrokenExpressionMatcher(
+  interpretExpression: () => Interpreter<Expression>,
+): (precedence: Precedence) => Interpreter<Expression> {
+  return precedence => interpreter('matchBrokenExpression', tokens => matchAll(
     matchTokens('break'),
+    matchRepeated(matchTokens('break')),
     recursivelyMatchExpression(interpretExpression()),
-  )(([_, e]) => e)(tokens, undefined, precedence));
+  )(([_1, _2, e]) => e)(tokens, undefined, precedence));
 }

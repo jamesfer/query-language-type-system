@@ -2,12 +2,11 @@ import {
   Application,
   Expression,
   FunctionExpression,
-  NativeExpression,
   PatternMatchExpression,
 } from '..';
 import { identifier } from '../type-checker/constructors';
 import parse from './parse';
-import dedent from 'dedent-js';
+import dedentJs from 'dedent-js';
 
 describe('parse', () => {
   it('recognises a number expression', () => {
@@ -120,15 +119,15 @@ describe('parse', () => {
                         kind: 'NumberExpression',
                         value: 1,
                       },
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    )
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    );
   });
 
   it('recognises an implicit function expression', () => {
@@ -457,13 +456,13 @@ describe('parse', () => {
   });
 
   it('parses multiple blank lines', () => {
-    const result = parse(dedent`
+    const result = parse(dedentJs`
       let a = 1
-      
-      
+
+
       let b = 2
-      
-      
+
+
       b
     `);
 
@@ -478,6 +477,23 @@ describe('parse', () => {
           name: 'b',
         },
       }),
+    }));
+  });
+
+  it('allows indented line breaks in binding expressions', () => {
+    const result = parse(dedentJs`
+      let a =
+        1
+      a
+    `);
+    expect(result.messages).toHaveLength(0);
+    expect(result.value).toEqual(expect.objectContaining({
+      kind: 'BindingExpression',
+      name: 'a',
+      body: {
+        kind: 'Identifier',
+        name: 'a',
+      },
     }));
   });
 });

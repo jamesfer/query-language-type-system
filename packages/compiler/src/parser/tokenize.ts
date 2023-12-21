@@ -1,4 +1,5 @@
 import * as moo from 'moo';
+import { GenericToken } from './types/generic-token';
 
 export enum TokenKind {
   lineBreak = 'lineBreak',
@@ -23,11 +24,6 @@ export enum TokenKind {
   // openBracket,
   // closeBracket,
   unknown = 'unknown',
-}
-
-export interface GenericToken<K> {
-  kind: K;
-  value: string;
 }
 
 export interface Token extends GenericToken<TokenKind> {}
@@ -59,9 +55,17 @@ export const rules: moo.Rules = {
   [TokenKind.unknown]: /./,
 };
 
-const lexer = moo.compile(rules);
+let cachedLexer: moo.Lexer | undefined;
+
+function makeLexer(): moo.Lexer {
+  if (cachedLexer === undefined) {
+    cachedLexer = moo.compile(rules);
+  }
+  return cachedLexer;
+}
 
 export default function * tokenize(code: string): Iterable<Token> {
+  const lexer = makeLexer();
   lexer.reset(code);
   for (const { type, value } of lexer) {
     if (type) {

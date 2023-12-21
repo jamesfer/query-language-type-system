@@ -345,4 +345,16 @@ describe('Scenarios', () => {
       `)).toEqual(['Could not find a valid set of replacements for implicits']);
     });
   });
+
+  describe('the built in equals function', () => {
+    // This is blocked on allowing a function to "return" implicits. The equals function
+    // returns "a" which is a Boolean, but there is no way for the function to provide
+    // the implicits to the outer world.
+    it.skip('allows partial application', () => {
+      expect(compilerMessages(dedentJs`
+        let partialEquals = equals 5
+        partialEquals 3
+      `)).toEqual([]);
+    });
+  });
 });

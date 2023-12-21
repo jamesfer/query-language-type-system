@@ -53,4 +53,19 @@ describe('tokenize', () => {
       { kind: TokenKind.number, value: '10' },
     ]);
   });
+
+  it('tokenizes indentation', () => {
+    expect(Array.from(tokenize('let a =\n  5\na'))).toEqual([
+      { kind: TokenKind.keyword, value: 'let' },
+      { kind: TokenKind.whitespace, value: ' ' },
+      { kind: TokenKind.identifier, value: 'a' },
+      { kind: TokenKind.whitespace, value: ' ' },
+      { kind: TokenKind.equals, value: '=' },
+      { kind: TokenKind.lineBreak, value: '\n' },
+      { kind: TokenKind.whitespace, value: '  ' },
+      { kind: TokenKind.number, value: '5' },
+      { kind: TokenKind.lineBreak, value: '\n' },
+      { kind: TokenKind.identifier, value: 'a' },
+    ]);
+  });
 });

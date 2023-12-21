@@ -15,6 +15,7 @@ data Integer = a
 data Float = a
 data String = a
 data Boolean = a
+-- These are blocked on allowing a function to be called with different parameters
 --data True
 --data False
 --let trueBooleanImpl = Boolean True
@@ -26,7 +27,7 @@ let multiply = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "
 let divide = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "/", }, }
 let modulo = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "%", }, }
 let power = (a -> b):#{ javascript = { kind = "binaryOperation", operator = "**", }, }
-let equals = (implicit Boolean r -> a -> b -> r):#{ evaluator = { kind = "builtin", name = "equals", }, javascript = { kind = "binaryOperation", operator = "===", }, }
+let equals = (a -> b -> implicit Boolean r -> r):#{ evaluator = { kind = "builtin", name = "equals", }, javascript = { kind = "binaryOperation", operator = "===", }, }
 let if = (implicit Boolean c -> implicit t a -> implicit t b -> implicit t r -> c -> a -> b -> r):#{ evaluator = { kind = "builtin", name = "if", }, javascript = { kind = "ternaryOperator", }, }
 "END"
 `;

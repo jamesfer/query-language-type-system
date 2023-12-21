@@ -1,4 +1,5 @@
-import { GenericToken, Token, TokenKind } from './tokenize';
+import { Token, TokenKind } from './tokenize';
+import { GenericToken } from './types/generic-token';
 
 export type ExpressionTokenKind =
   | 'break'
@@ -21,7 +22,7 @@ export type ExpressionTokenKind =
 
 export interface ExpressionToken extends GenericToken<ExpressionTokenKind> {}
 
-const breakToken: GenericToken<'break'> = { kind: 'break', value: '' };
+const BREAK_TOKEN: GenericToken<'break'> = { kind: 'break', value: '' };
 
 export function * produceExpressionTokens(lexer: Iterable<Token>): Iterable<ExpressionToken> {
   let startOfLine = true;
@@ -29,16 +30,19 @@ export function * produceExpressionTokens(lexer: Iterable<Token>): Iterable<Expr
   let currentIndent = 0;
   for (const { kind, value } of lexer) {
     switch (kind) {
+      // Skip comment tokens
       case TokenKind.unknown:
       case TokenKind.comment:
         break;
 
+      // Reset indentation on line-breaks
       case TokenKind.lineBreak:
         startOfLine = true;
         previousIndent = currentIndent;
         currentIndent = 0;
         break;
 
+      // Count the current indentation level
       case TokenKind.whitespace:
         if (startOfLine) {
           currentIndent += Math.floor(value.length / 2);
@@ -49,8 +53,8 @@ export function * produceExpressionTokens(lexer: Iterable<Token>): Iterable<Expr
         if (startOfLine) {
           startOfLine = false;
           if (previousIndent !== undefined) {
-            for (let i = previousIndent; i >= currentIndent; i--) {
-              yield breakToken;
+            for (let i = previousIndent; i >= currentIndent; i -= 1) {
+              yield BREAK_TOKEN;
             }
           }
         }
@@ -59,6 +63,6 @@ export function * produceExpressionTokens(lexer: Iterable<Token>): Iterable<Expr
   }
 
   if (startOfLine && previousIndent !== undefined) {
-    yield breakToken;
+    yield BREAK_TOKEN;
   }
 }
