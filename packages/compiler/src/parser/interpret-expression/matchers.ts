@@ -238,8 +238,7 @@ export function makeBrokenExpressionMatcher(
   interpretExpression: () => Interpreter<Expression>,
 ): (precedence: Precedence) => Interpreter<Expression> {
   return precedence => interpreter('matchBrokenExpression', tokens => matchAll(
-    matchTokens('break'),
     matchRepeated(matchTokens('break')),
     recursivelyMatchExpression(interpretExpression()),
-  )(([_1, _2, e]) => e)(tokens, undefined, precedence));
+  )(([_, e]) => e)(tokens, undefined, precedence));
 }
