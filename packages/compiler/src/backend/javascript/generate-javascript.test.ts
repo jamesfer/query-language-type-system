@@ -95,7 +95,6 @@ describe('generateJavascript', () => {
         1: y$rename$26,
         2: z$rename$27
       });
-
       export default a(1)(2)(3);
     `);
   });
@@ -107,7 +106,6 @@ describe('generateJavascript', () => {
       add for return
     `)).toEqual(dedentJs`
       const add = $leftBinaryParam => $rightBinaryParam => $leftBinaryParam + $rightBinaryParam;
-
       const for_ = 1;
       const return_ = 2;
       export default add(for_)(return_);
