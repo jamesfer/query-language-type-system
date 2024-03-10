@@ -1,6 +1,6 @@
 import { CoreExpression, NodeWithExpression } from '../..';
 import { ResolvedNodeDecoration } from '../../type-checker/resolve-implicits';
-import { assertNever } from '../../type-checker/utils';
+import { assertNever } from '../../type-checker/utils/utils';
 import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import { convertValueToType } from './convert-value-to-type';
 import { CppExpression } from './cpp-ast';

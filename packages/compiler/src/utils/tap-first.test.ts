@@ -8,8 +8,10 @@ describe('tapFirst', () => {
   });
 
   it('returns the exact same copy of the first argument', () => {
-    const object = {};
-    const fn = jest.fn<void, [object, string]>((obj, string) => { obj['a'] = string; });
+    const object: { a?: string } = {};
+    const fn = (obj: { a?: string }, string: string) => {
+      obj['a'] = string;
+    };
     const result = tapFirst(fn)(object, 'hello');
     expect(result).toBe(object);
     expect(result).toEqual({ a: 'hello' });

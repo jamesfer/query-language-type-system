@@ -1,7 +1,7 @@
 import { mapValues } from 'lodash';
-import { Expression } from './types/expression';
-import { Node, NodeWithChild, NodeWithExpression } from './types/node';
-import { Value } from './types/value';
+import { Expression } from '../types/expression';
+import { Node, NodeWithChild, NodeWithExpression } from '../types/node';
+import { Value } from '../types/value';
 import { assertNever } from './utils';
 
 export function* unfoldParameters(value: Value): Generator<[boolean, Value, Value]> {

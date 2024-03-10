@@ -14,7 +14,7 @@ import { prefixlessUniqueIdGenerator } from './test-utils/test-unique-id-generat
 import { Expression } from './types/expression';
 import { Message } from './types/message';
 import { ResolvedNode } from './resolve-implicits';
-import { pipe } from './utils';
+import { pipe } from './utils/utils';
 
 describe('checkTypes', () => {
   describe('when checking an expression with inference', () => {

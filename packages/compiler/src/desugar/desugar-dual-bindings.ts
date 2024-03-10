@@ -16,7 +16,7 @@ import {
   SymbolExpression,
 } from '..';
 import { ResolvedNodeDecoration } from '../type-checker/resolve-implicits';
-import { mapNode } from '../type-checker/visitor-utils';
+import { mapNode } from '../type-checker/utils/visitor-utils';
 import {
   DesugaredExpressionWithoutDestructuring,
   SimpleFunctionExpression,

@@ -13,9 +13,9 @@ import {
   makeInferredType,
 } from '../types/inferred-type';
 import { Value } from '../types/value';
-import { permuteArrays } from '../utils';
+import { permuteArrays } from '../utils/utils';
 import { selectImplicitParameters } from '../utils/select-implicit-parameters';
-import { mapNode } from '../visitor-utils';
+import { mapNode } from '../utils/visitor-utils';
 import { findMatchingImplementations } from './find-matching-implementation';
 
 export interface ResolvedNodeDecoration {

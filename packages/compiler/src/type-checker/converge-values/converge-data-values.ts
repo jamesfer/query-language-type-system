@@ -1,7 +1,7 @@
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { Message } from '../types/message';
 import { DataValue, Value } from '../types/value';
-import { checkedZip } from '../utils';
+import { checkedZip } from '../utils/utils';
 import { ConvergeState, InferredType } from './converge-types';
 import { mismatchResult } from './converge-utils';
 import { convergeValuesWithState } from './converge-values-with-state';

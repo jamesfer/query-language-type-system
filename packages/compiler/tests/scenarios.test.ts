@@ -165,10 +165,10 @@ describe('Scenarios', () => {
 
   it('compiles a data declaration implementation with a constraint', () => {
     expect(compilerMessages(dedentJs`
-      data Serial = s
-      data Color = implicit Serial t, t
+      data Serializable = s
+      data Color = implicit Serializable t, t
       data Red
-      let serialRedImpl = Serial Red
+      let serialRedImpl = Serializable Red
       let colorRedImpl = Color Red
       5
     `)).toEqual([]);
@@ -176,8 +176,8 @@ describe('Scenarios', () => {
 
   it('errors if a data declaration parameter does not match its constraints', () => {
     expect(compilerMessages(dedentJs`
-      data Serial = s
-      data Color = implicit Serial t, t
+      data Serializable = s
+      data Color = implicit Serializable t, t
       data Red
       let colorRedImpl = Color Red
       5
@@ -198,16 +198,16 @@ describe('Scenarios', () => {
 
   it.skip('errors when there are two data declarations with the same name', () => {
     expect(compilerMessages(dedentJs`
-      data Serial
-      data Serial
+      data Serializable
+      data Serializable
       5
     `)).toEqual(['A variable with the name Serial already exists']);
   });
 
   it('errors when there is a data declaration and a let binding with the same name', () => {
     expect(compilerMessages(dedentJs`
-      data Serial
-      let Serial = 10
+      data Serializable
+      let Serializable = 10
       5
     `)).toEqual(['Types are different']);
     // `)).toEqual(['A variable with the name Serial already exists']);
@@ -215,8 +215,8 @@ describe('Scenarios', () => {
 
   it('errors when there is a let binding and a data declaration with the same name', () => {
     expect(compilerMessages(dedentJs`
-      let Serial = 10
-      data Serial
+      let Serializable = 10
+      data Serializable
       5
     `)).toEqual(['Types are different']);
     // `)).toEqual(['A variable with the name Serial already exists']);
@@ -251,7 +251,7 @@ describe('Scenarios', () => {
     `)).toEqual(['Could not find a valid set of replacements for implicits']);
   });
 
-  it('compiles a function call with a constraint that also takes a parameter', () => {
+  it('compiles a function call with a constraint with a parameter', () => {
     expect(compilerMessages(dedentJs`
       data X
       data Maybe = a
@@ -263,7 +263,7 @@ describe('Scenarios', () => {
     `)).toEqual([]);
   });
 
-  it('errors on a function call with a constraint that also takes a parameter that is incompatible', () => {
+  it('errors on a function call with a constraint with a parameter that is incompatible', () => {
     expect(compilerMessages(dedentJs`
       data X
       data Maybe = a

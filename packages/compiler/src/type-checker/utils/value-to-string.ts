@@ -1,5 +1,5 @@
-import { assertNever } from '../utils';
-import { visitAndTransformValue } from '../visitor-utils';
+import { assertNever } from './utils';
+import { visitAndTransformValue } from './visitor-utils';
 import { map } from 'lodash';
 
 export const valueToString = visitAndTransformValue<string>((value) => {

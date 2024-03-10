@@ -104,8 +104,8 @@ const applyCollapsedType = (
   return pipe(
     allTypes,
     lookup(nextType.from),
-    fold<CollapsedInferredType, [CollapsedInferredType, CollapsedInferredType[]]>(
-      () => [nextType, []],
+    fold(
+      (): [CollapsedInferredType, CollapsedInferredType[]] => [nextType, []],
       mergeCollapsedTypes(messageState)(nextType),
     ),
     mapFst(newType => ({ ...allTypes, [newType.from]: newType })),

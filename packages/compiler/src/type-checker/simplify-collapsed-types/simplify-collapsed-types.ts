@@ -1,9 +1,9 @@
 import { CollapsedInferredTypeMap } from '../types/inferred-type';
 import { mapValues } from 'lodash';
-import { visitAndTransformValue } from '../visitor-utils';
+import { visitAndTransformValue } from '../utils/visitor-utils';
 import { Value } from '../types/value';
 import { CountMap } from '../../utils/count-map';
-import { pipe } from '../utils';
+import { pipe } from '../utils/utils';
 import { shallowStripImplicits } from '../utils/shallow-strip-implicits';
 
 function cacheValues(f: (value: Value) => Value): (value: Value) => Value {

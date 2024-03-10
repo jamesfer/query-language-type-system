@@ -6,7 +6,7 @@ import {
   RecordLiteral,
   SymbolLiteral,
   Value,
-} from './types/value';
+} from '../types/value';
 import {
   accumulateStates,
   accumulateStatesUsingOr,

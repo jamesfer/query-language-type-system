@@ -9,7 +9,7 @@ import {
   zip,
   zipWith,
 } from 'lodash';
-import { Free, mapFree } from '../utils/free';
+import { Free, mapFree } from '../../utils/free';
 
 export function assertNever(x: never): never {
   throw new Error('Assert never was actually called');
@@ -211,4 +211,3 @@ export function findWithResult<T, R>(list: T[], f: (element: T) => R | undefined
 
   return [found, result]
 }
-

@@ -6,7 +6,7 @@ import {
   makePatternMatchDesugaredNodeIterator,
 } from '../../desugar/desugar-pattern-match';
 import { ResolvedNodeDecoration } from '../../type-checker/resolve-implicits';
-import { mapNode } from '../../type-checker/visitor-utils';
+import { mapNode } from '../../type-checker/utils/visitor-utils';
 
 function collectChildBindings<T>(node: DesugaredExpressionWithoutPatternMatch<[string[], T]>): [string[], DesugaredExpressionWithoutPatternMatch<T>] {
   const allVariables: string[][] = [];

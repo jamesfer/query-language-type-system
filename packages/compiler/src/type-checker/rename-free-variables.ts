@@ -1,14 +1,12 @@
-import { UniqueIdGenerator, uniqueIdStream } from '../utils/unique-id-generator';
+import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { Expression } from './types/expression';
 import {
   assertNever,
   mapValuesWithState,
   mapWithState,
+} from './utils/utils';
 
-
-} from './utils';
-
-export type RenameScopes = { [k: string]: string }[]
+export type RenameScopes = { [k: string]: string }[];
 
 function findNameInScopes(scopes: { [k: string]: string }[], name: string): string | undefined {
   if (scopes.length === 0) {

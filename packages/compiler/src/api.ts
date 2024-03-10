@@ -1,5 +1,7 @@
 import { CoreExpression, CoreNode, desugar, stripCoreNode } from './desugar/desugar';
-import { removeUnusedBindings } from './optimisations/remove-unused-bindings/remove-unused-bindings';
+import {
+  removeUnusedBindings,
+} from './optimisations/remove-unused-bindings/remove-unused-bindings';
 import parse from './parser/parse';
 import { attachPrelude } from './prelude/attach-prelude';
 import { checkTypes } from './type-checker';

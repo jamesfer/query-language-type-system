@@ -6,4 +6,3 @@ export function selectImplicitParameters(inputValue: Value): Value[] {
     value.kind === 'ImplicitFunctionLiteral' ? [value.body, value.parameter] : []
   ));
 }
-

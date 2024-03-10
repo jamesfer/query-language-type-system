@@ -1,6 +1,6 @@
 import { CoreNode } from '../..';
 import { makePatternMatchDesugaredNodeIterator } from '../../desugar/desugar-pattern-match';
-import { mapNode } from '../../type-checker/visitor-utils';
+import { mapNode } from '../../type-checker/utils/visitor-utils';
 import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import { convertNodeToAst } from './convert-node-to-ast';
 import { CppExpression, CppStatement } from './cpp-ast';

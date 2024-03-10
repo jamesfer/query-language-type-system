@@ -2,7 +2,7 @@ import generator from '@babel/generator';
 import * as types from '@babel/types';
 import { flatten, map, range } from 'lodash';
 import { CoreExpression } from '../..';
-import { assertNever, unzip } from '../../type-checker/utils';
+import { assertNever, unzip } from '../../type-checker/utils/utils';
 
 // const destructureExpression = (base: Expression) =>
 //   (value: Expression): [string, Expression][] => {

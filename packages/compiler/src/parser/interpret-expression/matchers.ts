@@ -1,6 +1,6 @@
 import { flatMap, flatten, isEqual, map, partition } from 'lodash';
 import { Expression } from '../..';
-import { checkedZip, withRecursiveFreeState } from '../../type-checker/utils';
+import { checkedZip, withRecursiveFreeState } from '../../type-checker/utils/utils';
 import { Free, mapFree, pipeFree, pureFree, returningFree, traverseFree } from '../../utils/free';
 import { ExpressionToken, ExpressionTokenKind } from '../produce-expression-tokens';
 import {

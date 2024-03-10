@@ -19,7 +19,7 @@ import {
 } from '..';
 import { ResolvedNode, ResolvedNodeDecoration } from '../type-checker/resolve-implicits';
 import { Value } from '../type-checker/types/value';
-import { mapNode } from '../type-checker/visitor-utils';
+import { mapNode } from '../type-checker/utils/visitor-utils';
 import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { performExpressionDestructuring } from './destructure-expression';
 import { combineIteratorMap } from './iterators-core';
@@ -176,4 +176,3 @@ export function makeDesugaredNodeIterator<A, B>(f: (a: A) => B): (e: DesugaredEx
     RecordExpression: recordMapIterator,
   })(f);
 }
-

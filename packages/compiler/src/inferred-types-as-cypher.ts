@@ -1,6 +1,6 @@
 import { InferredType } from './type-checker/types/inferred-type';
 import { Value } from './type-checker/types/value';
-import { extractFreeVariableNamesFromValue } from './type-checker/variable-utils';
+import { extractFreeVariableNamesFromValue } from './type-checker/utils/variable-utils';
 import { UniqueIdGenerator, uniqueIdStream } from './utils/unique-id-generator';
 
 function mergeVariable(nodeName: string, name: string): string {

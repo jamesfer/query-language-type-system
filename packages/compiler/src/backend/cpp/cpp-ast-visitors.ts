@@ -1,4 +1,4 @@
-import { assertNever } from '../../type-checker/utils';
+import { assertNever } from '../../type-checker/utils/utils';
 import {
   CppExpression,
   CppExpressionWithChild,

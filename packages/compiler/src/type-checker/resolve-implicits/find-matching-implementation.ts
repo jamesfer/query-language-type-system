@@ -2,7 +2,7 @@ import { convergeValues } from '../converge-values';
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { Message } from '../types/message';
 import { Value } from '../types/value';
-import { visitAndTransformValue } from '../visitor-utils';
+import { visitAndTransformValue } from '../utils/visitor-utils';
 import { Scope } from '../build-scoped-node';
 
 function filterBindingsBy(scope: Scope, f: (value: Value, string: String) => boolean): [string, Value][] {

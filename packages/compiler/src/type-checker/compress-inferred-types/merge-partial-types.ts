@@ -210,7 +210,7 @@ const exactlyMergeTypesWithState = (
     default:
       return absurd(left);
   }
-}
+};
 
 /**
  * strip implicits from left
@@ -261,12 +261,15 @@ function stripAndRestoreLeftImplicitsAndConverge(
     leftValue,
     right.to,
   );
-  return equalsPartialType(functionType(convergedValue, implicits.map(implicit => [implicit, true])));
+  return equalsPartialType(functionType(
+    convergedValue,
+    implicits.map(implicit => [implicit, true]),
+  ));
 }
 
 /**
  * strip implicits from right
- * if right is freeVariable, then (right.value.name evaluatesTo left.value)
+ * if right is freeVariable, then (`right.value.name` evaluatesTo `left.value`),
  * else converge
  */
 function stripRightImplicitsAndConverge(
@@ -313,7 +316,10 @@ function stripAndRestoreRightImplicitsAndConverge(
     left.to,
     rightValue,
   );
-  return equalsPartialType(functionType(convergedValue, implicits.map(implicit => [implicit, true])));
+  return equalsPartialType(functionType(
+    convergedValue,
+    implicits.map(implicit => [implicit, true]),
+  ));
 }
 
 export function mergePartialTypes(
@@ -330,7 +336,12 @@ export function mergePartialTypes(
         case 'Equals':
           return equalsPartialType(exactlyMergeTypes(left.to, right.to));
         case 'EvaluatesTo':
-          return stripAndRestoreLeftImplicitsAndConverge(messageState, assumptionsState, left, right);
+          return stripAndRestoreLeftImplicitsAndConverge(
+            messageState,
+            assumptionsState,
+            left,
+            right,
+          );
         case 'EvaluatedFrom':
           return stripRightImplicitsAndConverge(messageState, assumptionsState, left, right);
         default:
@@ -339,11 +350,21 @@ export function mergePartialTypes(
     case 'EvaluatesTo':
       switch (right.operator) {
         case 'Equals':
-          return stripAndRestoreRightImplicitsAndConverge(messageState, assumptionsState, left, right);
+          return stripAndRestoreRightImplicitsAndConverge(
+            messageState,
+            assumptionsState,
+            left,
+            right,
+          );
         case 'EvaluatesTo':
           return equalsPartialType(exactlyMergeTypes(left.to, right.to));
         case 'EvaluatedFrom':
-          return stripRightImplicitsAndConverge(messageState, assumptionsState, left, right);
+          return stripRightImplicitsAndConverge(
+            messageState,
+            assumptionsState,
+            left,
+            right,
+          );
         default:
           return absurd(right.operator);
       }

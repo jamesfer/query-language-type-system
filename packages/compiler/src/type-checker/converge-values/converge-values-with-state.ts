@@ -1,7 +1,7 @@
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { Message } from '../types/message';
 import { Value } from '../types/value';
-import { assertNever } from '../utils';
+import { assertNever } from '../utils/utils';
 import { convergeApplications } from './converge-applications';
 import { convergeBooleans } from './converge-booleans';
 import { convergeDataValues } from './converge-data-values';

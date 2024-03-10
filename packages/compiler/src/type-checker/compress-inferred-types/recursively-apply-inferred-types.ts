@@ -3,7 +3,7 @@ import { NamedNode } from '../attach-shapes';
 import { freeVariable } from '../constructors';
 import { NodeWithChild } from '../types/node';
 import { Value } from '../types/value';
-import { mapNode, visitAndTransformValue } from '../visitor-utils';
+import { mapNode, visitAndTransformValue } from '../utils/visitor-utils';
 import { CountMap } from '../../utils/count-map';
 import { SimplifiedInferredTypeMap } from '../simplify-collapsed-types/simplify-collapsed-types';
 
