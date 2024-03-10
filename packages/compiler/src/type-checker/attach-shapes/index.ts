@@ -25,16 +25,18 @@ export interface NamedNodeDecoration {
   type: Value;
 }
 
-export type NamedNode<T = void> = NodeWithChild<NamedNodeDecoration, T extends void ? NamedNode : T>;
+export type NamedNode<T = void> =
+  NodeWithChild<NamedNodeDecoration, T extends void ? NamedNode : T>;
 
 interface ExpressionWith<T> {
   expression: Expression;
   value: T;
 }
 
-const convertChildrenToShapeNames = makeExpressionIterator<ExpressionWith<NamedNode>, ExpressionWith<FreeVariable>>(
-  ({ expression, value }) => ({ expression, value: freeVariable(value.decoration.shapeName) })
-);
+const convertChildrenToShapeNames =
+  makeExpressionIterator<ExpressionWith<NamedNode>, ExpressionWith<FreeVariable>>(
+    ({ expression, value }) => ({ expression, value: freeVariable(value.decoration.shapeName) }),
+  );
 
 const selectChildNamedNodes = makeExpressionIterator<ExpressionWith<NamedNode>, NamedNode>(
   ({ value }) => value,
@@ -45,8 +47,8 @@ const selectChildExpressions = makeExpressionIterator<ExpressionWith<any>, Expre
 );
 
 /**
- * Returns the type of the particular expression. In addition, it records any value pairs between the
- * child types and the result type.
+ * Returns the type of the particular expression. In addition, it records any value pairs between
+ * the child types and the result type.
  */
 function determineResultType(
   inferredTypes: StateRecorder<InferredType>,
@@ -126,7 +128,7 @@ function determineResultType(
       ]);
 
     case 'DataInstantiation': {
-      const parameterTypes = shallowExpression.parameters.map(parameter => parameter.value)
+      const parameterTypes = shallowExpression.parameters.map(parameter => parameter.value);
       return dataValue(shallowExpression.callee.value, parameterTypes);
     }
 
@@ -161,7 +163,8 @@ function determineResultType(
 
     case 'ReadRecordPropertyExpression': {
       const resultType = freeVariable(makeUniqueId('readRecordProperty$'));
-      // TODO this implementation is bugged because it requires that record have exactly these properties
+      // TODO this implementation is bugged because it requires that record have exactly these
+      //  properties
       const expectedType = recordLiteral({ [shallowExpression.property]: resultType });
       inferredTypes.push(makeInferredType(
         'EvaluatedFrom',
@@ -175,7 +178,8 @@ function determineResultType(
 
     case 'ReadDataPropertyExpression': {
       const resultType = freeVariable(makeUniqueId('readDataProperty$'));
-      // TODO this implementation is bugged because it requires that data value have exactly this many elements
+      // TODO this implementation is bugged because it requires that data value have exactly this
+      //  many elements
       const expectedType = dataValue(
         freeVariable(makeUniqueId('dataPropertyName$')),
         [
@@ -250,10 +254,10 @@ const makeNamedNode = (
     expression: selectChildExpressions(expression),
     value: node(selectChildNamedNodes(expression), {
       type: determineResultType(inferredTypes, makeUniqueId, expression),
-      shapeName: makeUniqueId(getPrefix(expression))
+      shapeName: makeUniqueId(getPrefix(expression)),
     }),
   };
-}
+};
 
 /**
  * Records a value pair between the expression's shape name and the result type.
@@ -262,7 +266,7 @@ const recordShapePair = (
   inferredTypes: StateRecorder<InferredType>,
   kind: InferredTypeOperator,
 ) => (
-  { expression, value }: ExpressionWith<NamedNode>
+  { expression, value }: ExpressionWith<NamedNode>,
 ): void => {
   inferredTypes.push(makeInferredType(
     kind,
@@ -271,7 +275,7 @@ const recordShapePair = (
     expression,
     expression,
   ));
-}
+};
 
 /**
  * Records the value pairs for a binding expression.
@@ -294,7 +298,7 @@ const recordFunctionExpressionPairs = (inferredTypes: StateRecorder<InferredType
 };
 
 const isBindingExpression = (
-  expression: Expression<ExpressionWith<NamedNode>>
+  expression: Expression<ExpressionWith<NamedNode>>,
 ): expression is BindingExpression<ExpressionWith<NamedNode>> => (
   expression.kind === 'BindingExpression'
 );
@@ -319,20 +323,21 @@ const recordChildShapePairs = (
   //     recordBindingExpressionPairs(inferredTypes),
   //   ),
   // );
-}
+};
 
 function attachShapesWithState(
   inferredTypes: StateRecorder<InferredType>,
   makeUniqueId: UniqueIdGenerator,
 ): (expression: Expression) => NamedNode {
-  const iterateOverChildren: (expression: Expression) => Expression<ExpressionWith<NamedNode>> = flow(
-    // Recurse through all children
-    makeExpressionIterator((e: Expression) => iterateOverChildren(e)),
-    // Determine the type of the expression and attach a name
-    makeExpressionIterator(makeNamedNode(inferredTypes, makeUniqueId)),
-    // Record any value pairs on the named node
-    tap(recordChildShapePairs(inferredTypes)),
-  );
+  const iterateOverChildren: (expression: Expression) => Expression<ExpressionWith<NamedNode>> =
+    flow(
+      // Recurse through all children
+      makeExpressionIterator((e: Expression) => iterateOverChildren(e)),
+      // Determine the type of the expression and attach a name
+      makeExpressionIterator(makeNamedNode(inferredTypes, makeUniqueId)),
+      // Record any value pairs on the named node
+      tap(recordChildShapePairs(inferredTypes)),
+    );
   return flow(
     iterateOverChildren,
     makeNamedNode(inferredTypes, makeUniqueId),

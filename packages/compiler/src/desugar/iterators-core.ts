@@ -29,7 +29,8 @@ export type ReductionIteratorMap<Keys extends string, E extends { kind: URIS }, 
 //   }
 // }
 
-export type IteratorMapIterator<K extends URIS, A, B> = ((f: (a: A) => B) => (expression: Kind<K, A>) => Kind<K, B>);
+export type IteratorMapIterator<K extends URIS, A, B> =
+  ((f: (a: A) => B) => (expression: Kind<K, A>) => Kind<K, B>);
 
 export type IteratorMap<Keys extends string, E extends { kind: URIS }, A, B> = (
   // E extends { kind: infer K }
