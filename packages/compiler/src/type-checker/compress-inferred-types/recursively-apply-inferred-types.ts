@@ -1,4 +1,4 @@
-import { makeExpressionIterator } from '../../desugar/iterators-specific';
+import { shallowExpressionIterator } from '../../utils/iterators-specific';
 import { NamedNode } from '../attach-shapes';
 import { freeVariable } from '../constructors';
 import { NodeWithChild } from '../types/node';
@@ -73,6 +73,6 @@ export function recursivelyApplyInferredTypes(
 ): (node: NamedNode) => ShapedNode {
   const applyTypes = applyInferredTypesAttachedTypeNode(inferredTypes);
   const internal = (node: NamedNode): ShapedNode => applyTypes(mapNode(iterator, node));
-  const iterator = makeExpressionIterator(internal);
+  const iterator = shallowExpressionIterator(internal);
   return internal;
 }

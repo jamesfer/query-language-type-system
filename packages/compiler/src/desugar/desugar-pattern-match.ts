@@ -19,7 +19,7 @@ import {
   makeDualBindingDesugaredNodeIterator,
 } from './desugar-dual-bindings';
 import { DesugaredExpressionWithoutDualExpression } from './desugar-dual-bindings';
-import { combineIteratorMap } from './iterators-core';
+import { combineIteratorMap } from '../utils/iterators-core';
 import {
   applicationMapIterator,
   bindingMapIterator,
@@ -28,7 +28,7 @@ import {
   readDataPropertyMapIterator,
   readRecordPropertyMapIterator, recordMapIterator,
   shallowStripNode,
-} from './iterators-specific';
+} from '../utils/iterators-specific';
 
 export type DesugaredExpressionWithoutPatternMatch<T = void> =
   | Identifier

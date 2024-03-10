@@ -23,7 +23,7 @@ import {
   DesugaredNode as DestructuringDesugaredNode,
   makeDesugaredNodeIterator, simpleFunctionMapIterator,
 } from './desugar-destructuring';
-import { combineIteratorMap } from './iterators-core';
+import { combineIteratorMap } from '../utils/iterators-core';
 import {
   applicationMapIterator,
   bindingMapIterator,
@@ -32,7 +32,7 @@ import {
   patternMatchMapIterator,
   readDataPropertyMapIterator,
   readRecordPropertyMapIterator, recordMapIterator,
-} from './iterators-specific';
+} from '../utils/iterators-specific';
 
 export type DesugaredExpressionWithoutDualExpression<T = void> =
   | Identifier

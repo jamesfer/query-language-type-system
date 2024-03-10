@@ -1,7 +1,7 @@
-import { flow } from 'fp-ts/function';
+import { flow, pipe } from 'fp-ts/function';
 import { mapValues } from 'lodash';
 import { tap } from 'lodash/fp';
-import { makeExpressionIterator } from '../../desugar/iterators-specific';
+import { shallowExpressionIterator } from '../../utils/iterators-specific';
 import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import {
   booleanLiteral,
@@ -34,15 +34,15 @@ interface ExpressionWith<T> {
 }
 
 const convertChildrenToShapeNames =
-  makeExpressionIterator<ExpressionWith<NamedNode>, ExpressionWith<FreeVariable>>(
+  shallowExpressionIterator<ExpressionWith<NamedNode>, ExpressionWith<FreeVariable>>(
     ({ expression, value }) => ({ expression, value: freeVariable(value.decoration.shapeName) }),
   );
 
-const selectChildNamedNodes = makeExpressionIterator<ExpressionWith<NamedNode>, NamedNode>(
+const selectChildNamedNodes = shallowExpressionIterator<ExpressionWith<NamedNode>, NamedNode>(
   ({ value }) => value,
 );
 
-const selectChildExpressions = makeExpressionIterator<ExpressionWith<any>, Expression>(
+const selectChildExpressions = shallowExpressionIterator<ExpressionWith<any>, Expression>(
   ({ expression }) => expression,
 );
 
@@ -312,7 +312,7 @@ const recordChildShapePairs = (
     } else if (expression.kind === 'FunctionExpression') {
       recordFunctionExpressionPairs(inferredTypes)(expression);
     } else {
-      makeExpressionIterator(recordShapePair(inferredTypes, 'EvaluatedFrom'))(expression);
+      shallowExpressionIterator(recordShapePair(inferredTypes, 'EvaluatedFrom'))(expression);
     }
   };
 
@@ -325,21 +325,31 @@ const recordChildShapePairs = (
   // );
 };
 
+function attachShapesToChildren(
+  inferredTypes: StateRecorder<InferredType>,
+  makeUniqueId: (prefix?: string) => string,
+  expression: Expression,
+): Expression<ExpressionWith<NamedNode>> {
+  return pipe(
+    expression,
+    // Recurse through all children
+    shallowExpressionIterator(
+      (child: Expression) => attachShapesToChildren(inferredTypes, makeUniqueId, child),
+    ),
+    // Determine the type of the expression and attach a name
+    shallowExpressionIterator(makeNamedNode(inferredTypes, makeUniqueId)),
+    // Record any value pairs on the named node
+    tap(recordChildShapePairs(inferredTypes)),
+  );
+}
+
 function attachShapesWithState(
   inferredTypes: StateRecorder<InferredType>,
   makeUniqueId: UniqueIdGenerator,
-): (expression: Expression) => NamedNode {
-  const iterateOverChildren: (expression: Expression) => Expression<ExpressionWith<NamedNode>> =
-    flow(
-      // Recurse through all children
-      makeExpressionIterator((e: Expression) => iterateOverChildren(e)),
-      // Determine the type of the expression and attach a name
-      makeExpressionIterator(makeNamedNode(inferredTypes, makeUniqueId)),
-      // Record any value pairs on the named node
-      tap(recordChildShapePairs(inferredTypes)),
-    );
-  return flow(
-    iterateOverChildren,
+  expression: Expression,
+): NamedNode {
+  return pipe(
+    attachShapesToChildren(inferredTypes, makeUniqueId, expression),
     makeNamedNode(inferredTypes, makeUniqueId),
     tap(recordShapePair(inferredTypes, 'EvaluatedFrom')),
     expression => expression.value,
@@ -351,6 +361,6 @@ export function attachShapes(
   expression: Expression,
 ): [InferredType[], NamedNode] {
   const inferredTypes = new StateRecorder<InferredType>();
-  const namedNode = attachShapesWithState(inferredTypes, makeUniqueId)(expression);
+  const namedNode = attachShapesWithState(inferredTypes, makeUniqueId, expression);
   return [inferredTypes.values, namedNode];
 }

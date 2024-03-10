@@ -1,4 +1,3 @@
-import { Kind, URIS } from 'fp-ts/lib/HKT';
 import { mapValues } from 'lodash';
 import {
   Application,
@@ -19,14 +18,23 @@ import {
   RecordExpression,
   StringExpression,
   SymbolExpression,
-} from '..';
+} from '../index';
 import { combineIteratorMap } from './iterators-core';
 
-export function emptyMapIterator<A, B, E extends Identifier | BooleanExpression | StringExpression | NumberExpression | SymbolExpression | NativeExpression>(f: (a: A) => B): (expression: E) => E {
+export function emptyMapIterator<A, B, E extends
+  | Identifier
+  | BooleanExpression
+  | StringExpression
+  | NumberExpression
+  | SymbolExpression
+  | NativeExpression,
+>(f: (a: A) => B): (expression: E) => E {
   return expression => expression;
 }
 
-export function applicationMapIterator<A, B>(f: (a: A) => B): (expression: Application<A>) => Application<B> {
+export function applicationMapIterator<A, B>(f: (a: A) => B): (
+  expression: Application<A>,
+) => Application<B> {
   return expression => ({
     ...expression,
     callee: f(expression.callee),
@@ -34,7 +42,9 @@ export function applicationMapIterator<A, B>(f: (a: A) => B): (expression: Appli
   });
 }
 
-export function dataInstantiationMapIterator<A, B>(f: (a: A) => B): (expression: DataInstantiation<A>) => DataInstantiation<B> {
+export function dataInstantiationMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: DataInstantiation<A>) => DataInstantiation<B> {
   return expression => ({
     ...expression,
     callee: f(expression.callee),
@@ -42,21 +52,27 @@ export function dataInstantiationMapIterator<A, B>(f: (a: A) => B): (expression:
   });
 }
 
-export function readDataPropertyMapIterator<A, B>(f: (a: A) => B): (expression: ReadDataPropertyExpression<A>) => ReadDataPropertyExpression<B> {
+export function readDataPropertyMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: ReadDataPropertyExpression<A>) => ReadDataPropertyExpression<B> {
   return expression => ({
     ...expression,
     dataValue: f(expression.dataValue),
   });
 }
 
-export function readRecordPropertyMapIterator<A, B>(f: (a: A) => B): (expression: ReadRecordPropertyExpression<A>) => ReadRecordPropertyExpression<B> {
+export function readRecordPropertyMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: ReadRecordPropertyExpression<A>) => ReadRecordPropertyExpression<B> {
   return expression => ({
     ...expression,
     record: f(expression.record),
   });
 }
 
-export function functionMapIterator<A, B>(f: (a: A) => B): (expression: FunctionExpression<A>) => FunctionExpression<B> {
+export function functionMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: FunctionExpression<A>) => FunctionExpression<B> {
   return expression => ({
     ...expression,
     parameter: f(expression.parameter),
@@ -64,7 +80,9 @@ export function functionMapIterator<A, B>(f: (a: A) => B): (expression: Function
   });
 }
 
-export function dualMapIterator<A, B>(f: (a: A) => B): (expression: DualExpression<A>) => DualExpression<B> {
+export function dualMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: DualExpression<A>) => DualExpression<B> {
   return expression => ({
     ...expression,
     left: f(expression.left),
@@ -72,7 +90,9 @@ export function dualMapIterator<A, B>(f: (a: A) => B): (expression: DualExpressi
   });
 }
 
-export function bindingMapIterator<A, B>(f: (a: A) => B): (expression: BindingExpression<A>) => BindingExpression<B> {
+export function bindingMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: BindingExpression<A>) => BindingExpression<B> {
   return expression => ({
     ...expression,
     body: f(expression.body),
@@ -80,7 +100,9 @@ export function bindingMapIterator<A, B>(f: (a: A) => B): (expression: BindingEx
   });
 }
 
-export function patternMatchMapIterator<A, B>(f: (a: A) => B): (expression: PatternMatchExpression<A>) => PatternMatchExpression<B> {
+export function patternMatchMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: PatternMatchExpression<A>) => PatternMatchExpression<B> {
   return expression => ({
     ...expression,
     value: f(expression.value),
@@ -92,14 +114,18 @@ export function patternMatchMapIterator<A, B>(f: (a: A) => B): (expression: Patt
   });
 }
 
-export function recordMapIterator<A, B>(f: (a: A) => B): (expression: RecordExpression<A>) => RecordExpression<B> {
+export function recordMapIterator<A, B>(
+  f: (a: A) => B,
+): (expression: RecordExpression<A>) => RecordExpression<B> {
   return expression => ({
     ...expression,
     properties: mapValues(expression.properties, f),
   });
 }
 
-export function makeExpressionIterator<A, B>(f: (a: A) => B): (e: Expression<A>) => Expression<B> {
+export function shallowExpressionIterator<A, B>(
+  f: (a: A) => B,
+): (e: Expression<A>) => Expression<B> {
   return combineIteratorMap<'Expression', Expression, A, B>({
     Identifier: emptyMapIterator,
     BooleanExpression: emptyMapIterator,

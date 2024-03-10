@@ -1,7 +1,7 @@
 import { UniqueIdGenerator } from '../../utils/unique-id-generator';
 import { Expression } from '../types/expression';
 import { flow } from 'fp-ts/function';
-import { makeExpressionIterator } from '../../desugar/iterators-specific';
+import { shallowExpressionIterator } from '../../utils/iterators-specific';
 import { NodeWithChild } from '../types/node';
 import { node } from '../constructors';
 
@@ -17,11 +17,11 @@ interface ExpressionWith<T> {
   value: T;
 }
 
-const selectChildNamedNodes = makeExpressionIterator<ExpressionWith<NamedNode>, NamedNode>(
+const selectChildNamedNodes = shallowExpressionIterator<ExpressionWith<NamedNode>, NamedNode>(
   ({ value }) => value,
 );
 
-const selectChildExpressions = makeExpressionIterator<ExpressionWith<any>, Expression>(
+const selectChildExpressions = shallowExpressionIterator<ExpressionWith<any>, Expression>(
   ({ expression }) => expression,
 );
 
@@ -57,9 +57,9 @@ function attachShapesWithState(
     expression: Expression,
   ) => Expression<ExpressionWith<NamedNode>> = flow(
     // Recurse through all children
-    makeExpressionIterator((e: Expression) => iterateOverChildren(e)),
+    shallowExpressionIterator((e: Expression) => iterateOverChildren(e)),
     // Determine the type of the expression and attach a name
-    makeExpressionIterator(makeNamedNode(makeUniqueId)),
+    shallowExpressionIterator(makeNamedNode(makeUniqueId)),
   );
   return flow(
     iterateOverChildren,

@@ -1,7 +1,7 @@
 import { pipe } from 'fp-ts/function';
 import { zip, chainWithIndex, map } from 'fp-ts/Array';
 import { Message, Node } from '../..';
-import { makeExpressionIterator } from '../../desugar/iterators-specific';
+import { shallowExpressionIterator } from '../../utils/iterators-specific';
 import { Scope, ScopedNode } from '../build-scoped-node';
 import { collapseInferredTypes } from '../compress-inferred-types/collapse-inferred-types';
 import { ShapedNodeDecoration } from '../compress-inferred-types/recursively-apply-inferred-types';
@@ -139,7 +139,7 @@ const resolveImplicitsFor = (state: StateRecorder<Message>) => (node: ScopedNode
 export function resolveImplicits(node: ScopedNode): [Message[], ResolvedNode] {
   const state = new StateRecorder<Message>();
   const internal = (node: ScopedNode): ResolvedNode => resolveImplicitsFor(state)(mapNode(iterator, node));
-  const iterator = makeExpressionIterator(internal);
+  const iterator = shallowExpressionIterator(internal);
   const result = internal(node);
   return [state.values, result];
 }

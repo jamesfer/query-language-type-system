@@ -135,7 +135,9 @@ const interpretData = interpreter('interpretData', matchAll(
     const [, implicitFirstParameter, firstParameter, otherParameters = []] = option;
     parameters = [
       [firstParameter, !!implicitFirstParameter],
-      ...otherParameters.map<[Expression, boolean]>(([, implicit, parameter]) => [parameter, !!implicit])
+      ...otherParameters.map<[Expression, boolean]>(
+        ([, implicit, parameter]) => [parameter, !!implicit],
+      ),
     ];
   }
   return {
@@ -154,7 +156,7 @@ const interpretData = interpreter('interpretData', matchAll(
           left: parameter,
           right: {
             kind: 'Identifier',
-            name: `dataParameter$${index}`
+            name: `dataParameter$${index}`,
           },
         },
       }),
@@ -172,7 +174,7 @@ const interpretData = interpreter('interpretData', matchAll(
             : {
               kind: 'Identifier',
               name: `dataParameter$${index}`,
-            }
+            },
         ),
         parameterShapes: parameters,
       },
@@ -240,14 +242,15 @@ const interpretPatternMatch = interpreter('interpretPatternMatch', matchAll(
 
 function extractSimpleRecordValues(record: RecordExpression): { [k: string]: any } {
   return fromPairs(flatMap(record.properties, (value: Expression, key): [string, any][] => {
-    if (value.kind === 'BooleanExpression') {
-      return [[key, value.value]];
-    } else if (value.kind === 'NumberExpression') {
-      return [[key, value.value]];
-    } else if (value.kind === 'StringExpression') {
-      return [[key, value.value]];
-    } else if (value.kind === 'RecordExpression') {
-      return [[key, extractSimpleRecordValues(value)]];
+    switch (value.kind) {
+      case 'BooleanExpression':
+        return [[key, value.value]];
+      case 'NumberExpression':
+        return [[key, value.value]];
+      case 'StringExpression':
+        return [[key, value.value]];
+      case 'RecordExpression':
+        return [[key, extractSimpleRecordValues(value)]];
     }
     return [];
   }));
@@ -295,7 +298,7 @@ const interpretExpressionComponent: Interpreter<Expression> = protectAgainstLoop
   interpretParenthesis,
 ));
 
-export default function interpretExpression(
+export function interpretExpression(
   tokens: ExpressionToken[],
 ): WithMessages<Expression | undefined> {
   const { messages, value: results } = runFree(runInterpreter(

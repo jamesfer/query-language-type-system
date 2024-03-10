@@ -1,4 +1,4 @@
-import { makeExpressionIterator } from '../../desugar/iterators-specific';
+import { shallowExpressionIterator } from '../../utils/iterators-specific';
 import { ShapedNode } from '../compress-inferred-types/recursively-apply-inferred-types';
 import { StateRecorder } from '../state-recorder/state-recorder';
 import { Value } from '../types/value';
@@ -16,7 +16,7 @@ export function extractDestructurableBindings(node: ShapedNode): [string, Value]
 
   const extractBindingIntoState = extractBinding(state);
   const internal = (node: ShapedNode): ShapedNode => extractBindingIntoState(mapNode(iterator, node))
-  const iterator = makeExpressionIterator(internal);
+  const iterator = shallowExpressionIterator(internal);
   internal(node);
   return state.values;
 }

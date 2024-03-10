@@ -1,5 +1,5 @@
 import { fromPairs } from 'lodash';
-import { makeExpressionIterator } from '../../desugar/iterators-specific';
+import { shallowExpressionIterator } from '../../utils/iterators-specific';
 import { ShapedNode, ShapedNodeDecoration } from '../compress-inferred-types/recursively-apply-inferred-types';
 import { node } from '../constructors';
 import { BindingExpression, Expression, FunctionExpression } from '../types/expression';
@@ -61,7 +61,7 @@ const shallowBuildScope = (scope: Scope) => (node: ShapedNode): ScopedNode => {
     case 'FunctionExpression':
       return attachScope(scope, node.decoration, buildFunctionScope(scope, node.expression));
     default: {
-      const scopedExpression = makeExpressionIterator(shallowBuildScope(scope))(node.expression);
+      const scopedExpression = shallowExpressionIterator(shallowBuildScope(scope))(node.expression);
       return attachScope(scope, node.decoration, scopedExpression);
     }
   }

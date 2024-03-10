@@ -22,17 +22,17 @@ import { Value } from '../type-checker/types/value';
 import { mapNode } from '../type-checker/utils/visitor-utils';
 import { UniqueIdGenerator } from '../utils/unique-id-generator';
 import { performExpressionDestructuring } from './destructure-expression';
-import { combineIteratorMap } from './iterators-core';
+import { combineIteratorMap } from '../utils/iterators-core';
 import {
   applicationMapIterator,
   bindingMapIterator,
   dataInstantiationMapIterator,
   dualMapIterator,
-  emptyMapIterator, makeExpressionIterator,
+  emptyMapIterator, shallowExpressionIterator,
   patternMatchMapIterator,
   readDataPropertyMapIterator,
   readRecordPropertyMapIterator, recordMapIterator,
-} from './iterators-specific';
+} from '../utils/iterators-specific';
 
 export interface SimpleFunctionExpression<T = Expression> {
   kind: 'SimpleFunctionExpression';
@@ -146,7 +146,7 @@ export function desugarDestructuring(makeUniqueId: UniqueIdGenerator, node: Reso
   const internal = (node: ResolvedNode): DesugaredNode => (
     shallowDesugarDestructuring(makeUniqueId, mapNode(iterator, node))
   );
-  const iterator = makeExpressionIterator(internal);
+  const iterator = shallowExpressionIterator(internal);
   return internal(node);
 }
 
